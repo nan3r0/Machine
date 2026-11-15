@@ -23,13 +23,24 @@ from typing import NoReturn
 
 EDIT_TOOLS = {"Edit", "Write", "MultiEdit", "NotebookEdit"}
 CONTRACT_OWNER_ROLES = {"architect", "test_author"}
-# Matched against the resolved absolute path, so they also cover ~/.claude, parent repos and worktrees.
+# Claude Code files that run code or change configuration. Matched against the resolved absolute
+# path, so they also cover ~/.claude, parent repos and worktrees.
 ADMIN_PATHS = [
     "*/.claude/hooks/*",
     "*/.claude/settings*.json",
     "*/.claude/agents/*",
+    "*/.claude/commands/*",
+    "*/.claude/skills/*",
+    "*/.claude/plugins/*",
+    "*/.claude.json",
+    "*/.mcp.json",
+    "*managed-settings*.json",
 ]
-DEVICE_PREFIXES = ("\\\\?\\", "\\\\.\\", "//?/", "//./")
+# The only places outside the project a planning session may write: Claude's memory and job scratch.
+OUTSIDE_ALLOWED = [
+    "*/.claude/projects/*/memory/*",
+    "*/.claude/jobs/*/tmp/*",
+]
 HARNESS_PATHS = [
     ".harness/locks.yaml",
     ".harness/config.yaml",
@@ -45,7 +56,7 @@ def block(message: str) -> NoReturn:
 
 def is_aliasing_form(raw: str) -> bool:
     """True for Windows path forms that can point at a different, protected path."""
-    if raw.startswith(DEVICE_PREFIXES):
+    if raw.replace("/", "\\").startswith("\\\\"):  # UNC and device paths, any slash mix
         return True
     _, rest = os.path.splitdrive(raw)
     if ":" in rest:
@@ -57,7 +68,7 @@ def is_aliasing_form(raw: str) -> bool:
 def resolve(root: Path, raw: str) -> tuple[str, str | None]:
     """(resolved absolute path, project-relative path or None if outside), both lowercase posix."""
     if is_aliasing_form(raw):
-        block(f"path form not allowed ({raw}): device prefixes, 8.3 names, trailing dots or spaces "
+        block(f"path form not allowed ({raw}): UNC or device paths, 8.3 names, trailing dots or spaces "
               "and ':' streams can alias protected files. Use the plain full path.")
     path = Path(raw)
     if not path.is_absolute():
@@ -91,8 +102,13 @@ def find_task(root: Path, task_id: str) -> dict:
 
 def check(root: Path, full: str, rel: str | None, task_id: str, admin: bool) -> None:
     if not admin and matches(full, ADMIN_PATHS):
-        block(f"{full} is a Claude Code hook, settings or agent file. Only the owner edits it, in a "
-              "session launched with LOOM_ADMIN=1.")
+        block(f"{full} is a Claude Code file that runs code or changes configuration. Only the owner "
+              "edits it, in a session launched with LOOM_ADMIN=1.")
+    if rel is None:
+        if admin or (not task_id and matches(full, OUTSIDE_ALLOWED)):
+            return
+        block(f"{full} is outside the project. Planning sessions may only write Claude's memory "
+              "and job scratch folders there; tasks may not write outside at all.")
 
     lock_file = root / ".harness" / "locks.yaml"
     locked = (load_yaml(lock_file).get("locked") or []) if lock_file.exists() else []
@@ -105,8 +121,6 @@ def check(root: Path, full: str, rel: str | None, task_id: str, admin: bool) -> 
         return
 
     task = find_task(root, task_id)
-    if rel is None:
-        block("path is outside the project, so it is outside paths_allowed.")
     if rel in (f".harness/handoffs/{task_id.lower()}.md", "contract_change.md", "env_issue.md"):
         return
     owner = task.get("role") in CONTRACT_OWNER_ROLES

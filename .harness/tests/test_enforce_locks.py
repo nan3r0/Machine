@@ -214,15 +214,46 @@ def test_admin_env_allows_admin_file_outside_project(project: Path) -> None:
     assert run_hook(project, str(path), admin=True).returncode == 0
 
 
-def test_plain_file_outside_project_allowed_without_task(project: Path) -> None:
-    """Planning sessions still write Claude's memory files outside the repo."""
-    path = project.parent / "home" / ".claude" / "projects" / "memory" / "note.md"
-    assert run_hook(project, str(path)).returncode == 0
+def test_memory_and_job_tmp_outside_project_allowed_without_task(project: Path) -> None:
+    """Planning sessions still write Claude's memory and job scratch files outside the repo."""
+    home = project.parent / "home" / ".claude"
+    for path in (home / "projects" / "some-project" / "memory" / "note.md",
+                 home / "jobs" / "abc123" / "tmp" / "msg.txt"):
+        assert run_hook(project, str(path)).returncode == 0, path
 
 
-@pytest.mark.parametrize("prefix", ["\\\\?\\", "\\\\.\\", "//?/", "//./"])
+def test_other_outside_files_blocked_without_task(project: Path) -> None:
+    for path in (project.parent / "elsewhere.py",
+                 project.parent / "home" / ".bashrc",
+                 project.parent / "home" / ".claude" / "CLAUDE.md"):
+        result = run_hook(project, str(path))
+        assert result.returncode == 2, path
+        assert "outside the project" in result.stderr
+
+
+def test_admin_env_allows_outside_files(project: Path) -> None:
+    assert run_hook(project, str(project.parent / "elsewhere.py"), admin=True).returncode == 0
+
+
+@pytest.mark.parametrize("path", [
+    ".mcp.json", ".claude.json", ".claude/commands/x.md", ".claude/skills/s/SKILL.md",
+    ".claude/plugins/p/hook.py", "etc/managed-settings.json",
+])
+def test_config_and_execution_files_are_admin_only(project: Path, path: str) -> None:
+    result = run_hook(project, path)
+    assert result.returncode == 2
+    assert "LOOM_ADMIN" in result.stderr
+
+
+@pytest.mark.parametrize("prefix", ["\\\\?\\", "\\\\.\\", "//?/", "//./", "\\/?/", "/\\.\\"])
 def test_device_path_prefixes_are_blocked(project: Path, prefix: str) -> None:
     result = run_hook(project, prefix + str(project / "tests" / "x.py"))
+    assert result.returncode == 2
+    assert "path" in result.stderr
+
+
+def test_unc_paths_are_blocked(project: Path) -> None:
+    result = run_hook(project, "\\\\server\\share\\x.py")
     assert result.returncode == 2
     assert "path" in result.stderr
 
