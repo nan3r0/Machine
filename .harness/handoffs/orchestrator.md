@@ -22,11 +22,14 @@ You are the Stage 0 orchestrator (HARNESS.md section 10, Stage 0). Model: Sonnet
 - One watcher per task; no polling loops in your own turns.
 - One Gate 2 pass per task; chase only blocking findings.
 
-## State (2026-11-15, second orchestrator session)
-- Merged to main: p1-contracts (#6), p1-tts-kokoro (#22), p1-docs-check (#23). Alignment model is `small.en` (merged, #21).
-- Running (Sonnet, own windows and worktrees under `.claude/worktrees/`): `p1-align` (worktree `align`), `p1-captions-ass` (worktree `captions`), started from main `ca16ad3`. Watchers died with the previous session: restart one per task with `sh .harness/scripts/wait_task.sh <worktree> <id> ca16ad3 <claude-pid>` (pids 32168 for p1-align, 2296 for p1-captions-ass if still alive; else find the `cmd.exe` child of the task's `open_task_window.ps1` powershell, and if a task already committed, check git state directly first). On TASK_DONE run Gate 1, Gate 2 review, push, PR, wait_ci.
-- Next after those: `p1-compose` (security and visual_qa specialist reviews apply), `p1-qa`, then `p1-render-cli`, `p1-actions-workflow`, phase-end reviews.
-- Gotchas: run launch and worktree commands from the main checkout, not from a worktree session (isolation blocks them). Create each task venv with an absolute path; chained `cd` leaks between parallel Bash calls.
+## State (2026-11-15, second orchestrator session, after compose)
+- Merged to main: p1-contracts (#6), p1-tts-kokoro (#22), p1-docs-check (#23), p1-align (#26), p1-captions-ass (#27), p1-compose (#28). Close-out docs for the last three are on `docs/p1-closeout-3`.
+- Running: `p1-qa` (Sonnet, worktree `qa`, branch `task/p1-qa`, started from main `65fc2a1`). Restart the watcher if needed: `sh .harness/scripts/wait_task.sh <abs worktree> p1-qa 65fc2a1 <cmd.exe pid under its open_task_window powershell>`; if it already committed, check git state first. On TASK_DONE: Gate 1, Gate 2 review, visual QA (render/ trigger), push, PR, wait_ci. Close its window (stop the `open_task_window` powershell, never match on the task name alone).
+- Next: `p1-render-cli` (depends on qa), then `p1-actions-workflow` (security review), then phase-end reviews (qa-lead, cso, auditor, phase review).
+- Launch helper: a small .ps1 that takes -Task -Worktree -Brief avoids shell quoting failures; Git Bash `cmd //c start` quoting fails.
+- Carry to render-cli and qa: caption font fell back to DejaVu in the compose test (empty fonts dir); Montserrat bold on the variable font is unverified, check a real render with `assets/fonts`; fallback is a static Montserrat-Bold.ttf. Overlapping caption events at chunk boundaries may need a CONTRACT_CHANGE.
+- Ask the Architect at close-out to move `_AUDIO_RATE_HZ` and `_STDERR_TAIL_LINES` from compose.py into `pipeline/constants.py` (locked file).
+- Gotchas: run launch and worktree commands from the main checkout. Create each task venv with an absolute path.
 
 ## Open items
 - Usage-limit fixture saved (`.harness/tests/fixtures/limit_messages/session_5h-2026-11-15.txt`). Add the weekly one when it happens.
