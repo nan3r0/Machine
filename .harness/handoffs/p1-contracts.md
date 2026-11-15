@@ -50,6 +50,7 @@ done after review round 2 (`.harness/reviews/p1-contracts-round2.md`): every ite
 - Whisper model `base.en` for alignment: neither PLAN.md nor spec.md names one. The words come from the script, so the model only supplies timing; base.en is English-only and quick on CPU. Move up a size if alignment drifts.
 - Cache keys hash `pipeline/constants.py` instead of repeating the revision literal, so a revision bump cannot leave a stale key.
 - torch and torchaudio pinned to 2.11.0 CPU builds: torchaudio has no release past 2.11 and must match torch. stable-ts 2.19.1 calls only `torchaudio.save` (not on the align path) and `torchaudio.functional` filters.
+- Round 5: torch stays at 2.11.0 and pip-audit ignores `PYSEC-2025-194` (fixed in torch 2.13.0). Step 1 failed: the newest torchaudio is 2.11.1 on both PyPI and the CPU index. Step 2 failed: stable-ts 2.19.1 imports torchaudio at module level (`stable_whisper/audio/utils.py`, `audio/output.py`, `non_whisper/transcribe.py`), so it cannot be dropped, and a torchaudio built for torch 2.11 is not safe on 2.13. Makefile comment says when to remove the ignore; `test_makefile_ignores_only_the_known_advisories` pins the list at three ids.
 - Heavy tests run when `CI=true`, not when a tool happens to be installed, matching the owner's "heavy tests never run locally".
 - Steps are called through module attributes in `render_one`, documented in its docstring, so its tests replace them with fakes and the wiring is fully tested without heavy packages.
 - `escape_ass_text` must write braces as `\{` and `\}` and must not leave `\N`, `\n` or `\h`; how it neutralises a backslash is left to the implementer.
@@ -73,6 +74,7 @@ done after review round 2 (`.harness/reviews/p1-contracts-round2.md`): every ite
 - Two QA alignment cases first broke word order as well as the fault they named, so a QA implementation could pass them for the wrong reason; rewritten to change one thing each.
 
 ## Known risks / fragile spots
+- Known vulnerability accepted: torch 2.11.0 `PYSEC-2025-194` is ignored in `make check` until a torchaudio for torch 2.13+ ships. Check `pip index versions torchaudio` on each Dependabot cycle; when it exists, move both pins, drop the ignore and update the test.
 - Not verified locally, for CI to confirm:
   - All heavy tests (Kokoro, stable-ts, FFmpeg render, QA on real video, golden render). Each is skipped locally by design.
   - The heavy install: the `+cpu` torch wheels from the extra index, kokoro 0.9.4 with transformers 5.22.1 (it imports `AlbertModel` and `AlbertConfig`), spaCy 3.8.18 with the 3.8.0 model, numba's numpy cap. Install time may be long on the first run until the pip cache warms.
@@ -101,7 +103,14 @@ done after review round 2 (`.harness/reviews/p1-contracts-round2.md`): every ite
 - Outside this task's `paths_allowed`, for the owner: add `p1-contracts` to `.harness/status.yaml` after merge, update the CLAUDE.md Status line, and consider lessons.md entries: "Writing to the main repo path instead of the worktree path was caught by the hook; always use the worktree root in absolute paths." "Without `-z`, `git diff --name-only` quotes non-ASCII paths, which silently defeats pattern checks." "Python run from a Bash heredoc halves backslashes in non-raw strings (it wrote a NUL byte and a broken `\n` into tests this round); use the Edit tool for code with backslashes."
 - Then the five implementer tasks can run in file-name order.
 
+## Docs
+- none: no doc states the pip-audit ignore list or the torch pin changes (pins unchanged, spec.md section 7 still correct).
+
 ## Evidence
+Review round 5, 2026-11-15 (torch vulnerability):
+- `pip index versions torchaudio`: newest 2.11.1 (PyPI and CPU index); torch has 2.15.0. Source of stable-ts 2.19.1 checked after `pip download --no-deps`: torchaudio imported at top level. Third option applied.
+- `ruff check .`: All checks passed. `mypy --strict pipeline/`: no issues in 11 source files. `pytest --cov=pipeline` (LOOM_TASK=p1-contracts): 100 passed, 110 skipped, 0 failed; coverage 89%. The ignore test caught a missing space between two `--ignore-vuln` flags in the Makefile on the first run. CI pip-audit not run locally (awaiting CI).
+
 Review round 4, 2026-11-15 (pip-audit resolution only):
 - Makefile audits a `mktemp` copy of requirements-heavy.txt with `+cpu` stripped via sed (the local versions do not exist on PyPI), same two ignores; `test_makefile_audits_only_project_requirements` updated to match.
 - `ruff check .`: All checks passed. `mypy --strict pipeline/`: no issues in 11 source files. `pytest --cov=pipeline`: 100 passed, 110 skipped, 0 failed; coverage 89%. CI pip-audit not run locally (awaiting CI).
