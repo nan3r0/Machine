@@ -1,5 +1,6 @@
 """Gate 1 runner (ci.yml), Makefile and Dependabot structure. Owned by no task, so always runs."""
 
+import re
 from pathlib import Path
 
 import yaml
@@ -26,6 +27,24 @@ def test_ci_runs_make_check_with_heavy_packages_and_ffmpeg() -> None:
     assert "make check" in text
     assert "requirements-heavy.txt" in text
     assert "ffmpeg" in text
+
+
+def test_ci_installs_torch_from_cpu_index_only_then_pypi() -> None:
+    for job in rules.load("ci.yml")["jobs"].values():
+        run = "\n".join(str(s.get("run", "")) for s in job["steps"])
+        if "requirements-heavy.txt" in run:
+            rules.assert_torch_from_cpu_index_first(run)
+
+
+def test_ci_model_cache_key_tracks_weight_pins() -> None:
+    rules.assert_model_cache_tracks_pins(rules.load("ci.yml"))
+
+
+def test_ci_checkout_keeps_no_credentials() -> None:
+    for job in rules.load("ci.yml")["jobs"].values():
+        checkout = job["steps"][0]
+        assert checkout["uses"].startswith("actions/checkout@")
+        assert checkout["with"]["persist-credentials"] is False
 
 
 def test_ci_scope_check_uses_pr_base_or_main() -> None:
@@ -80,3 +99,14 @@ def test_requirements_are_pinned_exactly() -> None:
             line = line.split("#")[0].strip()
             if line and not line.startswith("--"):
                 assert "==" in line or " @ https://" in line, f"{name}: {line} is not pinned"
+
+
+def test_requirements_use_no_extra_index_and_hash_direct_urls() -> None:
+    for name in ("requirements.txt", "requirements-dev.txt", "requirements-heavy.txt"):
+        for line in (ROOT / name).read_text(encoding="utf-8").splitlines():
+            line = line.strip()
+            if line.startswith("#"):
+                continue
+            assert "index-url" not in line, f"{name}: package indexes belong in the CI install step"
+            if " @ https://" in line:
+                assert re.search(r"#sha256=[0-9a-f]{64}$", line), f"{name}: {line} has no sha256"

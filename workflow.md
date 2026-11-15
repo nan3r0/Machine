@@ -55,7 +55,7 @@ Locked by p1-contracts. Every task's acceptance test is `test_acceptance` in its
 | PRD criterion | Test |
 |---|---|
 | R1.1, R1.2 | `tests/test_schema.py` |
-| R2.1 to R2.3 | `tests/voice/test_kokoro.py` (`test_acceptance`, `test_second_run_uses_cache_offline`, `test_unknown_voice_fails_without_file`, `check_wav` tests) |
+| R2.1 to R2.3 | `tests/voice/test_kokoro.py` (`test_acceptance`, `test_second_run_uses_cache_offline`, `test_unpinned_voice_fails_before_any_download`, `check_wav` tests); weight pins in `tests/test_pins.py` |
 | R3.1, R3.2 | `tests/voice/test_align.py` (heavy acceptance on the fixture wav, plus a hypothesis property on `to_word_timings`) |
 | R4.1 to R4.3 | `tests/render/test_captions_ass.py` (hypothesis property `test_every_word_shown_once_in_order_inside_the_audio`) |
 | R5.1 to R5.3 | `tests/render/test_compose.py::test_acceptance` (heavy; also writes `out/frames/compose-*.png`) |
@@ -69,12 +69,12 @@ Locked by p1-contracts. Every task's acceptance test is `test_acceptance` in its
 | R7.5 | CI `make check`; scope check in `tests/test_scope_check.py` |
 | R7.6 | Handoffs of p1-qa-lead, p1-cso, p1-audit; owner approves |
 
-`tests/test_ci_workflow.py` and `tests/test_scope_check.py` belong to no task, so they always run. CI uploads `out/frames/` as the `frames` artifact for the visual-qa reviewer.
+`tests/test_ci_workflow.py`, `tests/test_pins.py` and `tests/test_scope_check.py` belong to no task, so they always run. CI uploads `out/frames/` as the `frames` artifact for the visual-qa reviewer.
 
 ### Phase 1 status
 
 | Task | Status | Review |
 |---|---|---|
 | Harness setup (hook, config, agents, logger, status file) | done, 25 harness tests pass, hook confirmed live | none yet |
-| p1-contracts | done locally 2026-11-16, awaiting CI and Gate 2 (security review for `ci.yml`) | |
+| p1-contracts | review round 1 fixed locally 2026-11-15, awaiting CI and Gate 2 (security review for `ci.yml`) | |
 | p1-tts-kokoro to p1-phase-review | not started | |

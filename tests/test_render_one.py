@@ -1,7 +1,6 @@
 """R6.2, R6.3 and the golden render: one script JSON to final.mp4 (task p1-render-cli)."""
 
 import json
-import re
 import subprocess
 import sys
 from pathlib import Path
@@ -41,8 +40,8 @@ class Fakes:
             raise self.voice_error
         return write_wav(out_path, 1.0, constants.VOICE_SAMPLE_RATE)
 
-    def align_words(self, audio: Path, text: str) -> list[WordTiming]:
-        self.calls.append(("align", (audio, text)))
+    def align_words(self, audio: Path, text: str, cache_dir: Path) -> list[WordTiming]:
+        self.calls.append(("align", (audio, text, cache_dir)))
         return [WordTiming(word=w, start=i * 0.3, end=i * 0.3 + 0.25) for i, w in enumerate(text.split())]
 
     def build_ass(self, timings: list[WordTiming], *args: Any, **kwargs: Any) -> str:
@@ -96,7 +95,7 @@ def test_acceptance(tmp_path: Path) -> None:
     """R6.2: the sample renders, passes QA and the CLI exits 0. Also the golden render checks."""
     out = tmp_path / "out"
     result = subprocess.run([sys.executable, "-m", "pipeline.render_one", str(SAMPLE), str(out),
-                             "--cache-dir", str(ROOT / ".cache" / "models")],
+                             "--cache-dir", str(ROOT / render_one.DEFAULT_CACHE_DIR)],
                             cwd=ROOT, capture_output=True, text=True)
     assert result.returncode == 0, result.stdout[-2000:] + result.stderr[-2000:]
     for name in ("voice.wav", "captions.ass", "final.mp4", "qa.json"):
@@ -116,10 +115,13 @@ def test_acceptance(tmp_path: Path) -> None:
     dialogues = [line for line in ass.splitlines() if line.startswith("Dialogue:")]
     assert len(dialogues) == len(SCRIPT.narration_words())
     for line in dialogues:
-        x, y = map(float, re.search(r"\\pos\(([\d.]+),([\d.]+)\)", line).groups())  # type: ignore[union-attr]
+        positions = media.ASS_POS.findall(line)
+        assert len(positions) == 1, line
+        x, y = map(float, positions[0])
         assert constants.SAFE_LEFT_PX <= x <= constants.SAFE_RIGHT_PX
         assert constants.SAFE_TOP_PX <= y <= constants.SAFE_BOTTOM_PX
 
+    assert max(constants.GOLDEN_FRAME_TIMES_S) < media.duration(final)
     frames = media.extract_frames(final, "golden", constants.GOLDEN_FRAME_TIMES_S)
     assert all(f.stat().st_size > 0 for f in frames)
 
@@ -140,7 +142,7 @@ def test_steps_get_the_script_text_and_paths(tmp_path: Path, fakes: Fakes) -> No
     assert text == SCRIPT.narration_text()
     assert voice_path == out / "voice.wav"
     assert cache_dir == tmp_path / "models"
-    assert fakes.args("align") == (out / "voice.wav", SCRIPT.narration_text())
+    assert fakes.args("align") == (out / "voice.wav", SCRIPT.narration_text(), tmp_path / "models")
     _, captions, final, _, log = fakes.args("compose")
     assert (captions, final, log) == (out / "captions.ass", out / "final.mp4", out / "logs" / "compose.log")
     video, voice, timings, words = fakes.args("qa")
@@ -151,6 +153,7 @@ def test_steps_get_the_script_text_and_paths(tmp_path: Path, fakes: Fakes) -> No
 def test_default_cache_dir(tmp_path: Path, fakes: Fakes) -> None:
     render_one.main([str(SAMPLE), str(tmp_path / "out")])
     assert fakes.args("voice")[2] == render_one.DEFAULT_CACHE_DIR
+    assert fakes.args("align")[2] == render_one.DEFAULT_CACHE_DIR
 
 
 def test_qa_failure_exits_non_zero_and_names_checks(tmp_path: Path, fakes: Fakes,

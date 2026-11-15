@@ -38,3 +38,26 @@ def assert_safe(workflow: dict[str, Any]) -> None:
         if uses and not uses.startswith("./"):
             assert PINNED.match(uses), f"{uses} is not pinned to a full commit SHA"
         assert "${{" not in str(step.get("run", "")), f"expression inside run: {step.get('name')}"
+
+
+TORCH_INDEX_INSTALL = "--index-url https://download.pytorch.org/whl/cpu"
+
+
+def assert_torch_from_cpu_index_first(run: str) -> None:
+    """In one `run:` text, torch is installed from the PyTorch CPU index alone before the heavy
+    requirements, which then resolve from PyPI only (no extra index, no dependency confusion)."""
+    assert "--extra-index-url" not in run
+    torch_at = run.index(TORCH_INDEX_INSTALL)
+    assert torch_at < run.index("-r requirements-heavy.txt")
+
+
+def model_cache_keys(workflow: dict[str, Any]) -> list[str]:
+    caches = [s for s in steps(workflow) if str(s.get("uses", "")).startswith("actions/cache@")]
+    return [str(s["with"]["key"]) for s in caches]
+
+
+def assert_model_cache_tracks_pins(workflow: dict[str, Any]) -> None:
+    """The model cache key changes whenever the heavy pins or the weight revision change."""
+    keys = model_cache_keys(workflow)
+    assert keys, "model weights must be cached"
+    assert any("requirements-heavy.txt" in k and "pipeline/constants.py" in k for k in keys)

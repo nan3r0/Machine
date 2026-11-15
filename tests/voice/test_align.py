@@ -7,6 +7,7 @@ import pytest
 from hypothesis import given, settings
 from hypothesis import strategies as st
 
+from pipeline import render_one
 from pipeline.schema import WordTiming
 from pipeline.voice import align
 from pipeline.voice.align import AlignError
@@ -14,6 +15,8 @@ from pipeline.voice.align import AlignError
 FIXTURES = Path(__file__).resolve().parent.parent / "fixtures"
 WAV = FIXTURES / "align_sample.wav"
 TEXT = (FIXTURES / "align_sample.txt").read_text(encoding="utf-8").strip()
+# The folder CI caches between runs, shared with the voice tests.
+CACHE = Path(__file__).resolve().parent.parent.parent / render_one.DEFAULT_CACHE_DIR
 
 
 def wav_seconds(path: Path) -> float:
@@ -35,7 +38,7 @@ def assert_valid(timings: list[WordTiming], words: list[str], duration: float) -
 def test_acceptance() -> None:
     """R3.1 and R3.2 on the committed speech fixture."""
     duration = wav_seconds(WAV)
-    timings = align.align_words(WAV, TEXT)
+    timings = align.align_words(WAV, TEXT, CACHE)
     assert_valid(timings, TEXT.split(), duration)
     assert timings[0].start < 2.0
     assert timings[-1].end > duration / 2
@@ -45,7 +48,7 @@ def test_acceptance() -> None:
 @pytest.mark.heavy
 def test_unicode_and_punctuation_survive() -> None:
     text = TEXT.replace("dollars.", "dóllars…").replace("Why", "“Why").replace("much?", "much?”")
-    timings = align.align_words(WAV, text)
+    timings = align.align_words(WAV, text, CACHE)
     assert_valid(timings, text.split(), wav_seconds(WAV))
 
 
@@ -54,13 +57,13 @@ def test_unreadable_audio_raises(tmp_path: Path) -> None:
     bad = tmp_path / "bad.wav"
     bad.write_bytes(b"not audio")
     with pytest.raises(AlignError):
-        align.align_words(bad, TEXT)
+        align.align_words(bad, TEXT, CACHE)
 
 
 @pytest.mark.parametrize("text", ["", "   "])
 def test_blank_text_raises_before_loading_model(text: str) -> None:
     with pytest.raises(AlignError):
-        align.align_words(WAV, text)
+        align.align_words(WAV, text, CACHE)
 
 
 def test_pieces_map_one_to_one() -> None:

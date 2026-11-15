@@ -1,6 +1,7 @@
 # Heavy runtime dependencies: installed only in CI and the render workflow, never locally.
-# torch and torchaudio come from the CPU-only index and must share a minor version.
---extra-index-url https://download.pytorch.org/whl/cpu
+# torch and torchaudio must share a minor version. CI installs these two lines first, from the
+# PyTorch CPU index only; the rest then comes from PyPI only, with torch already satisfied. No extra
+# index here, so no package name can be resolved from both indexes.
 torch==2.11.0+cpu
 torchaudio==2.11.0+cpu
 stable-ts==2.19.1
@@ -11,4 +12,4 @@ misaki[en]==0.9.4
 transformers==5.22.1
 spacy==3.8.18
 # misaki downloads this spaCy model at runtime if it is missing; installing it here avoids that.
-en_core_web_sm @ https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.8.0/en_core_web_sm-3.8.0-py3-none-any.whl
+en_core_web_sm @ https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.8.0/en_core_web_sm-3.8.0-py3-none-any.whl#sha256=1932429db727d4bff3deed6b34cfc05df17794f4a52eeb26cf8928f7c1a0fb85

@@ -13,11 +13,15 @@ class AlignError(RuntimeError):
     """Alignment failed or its output could not be mapped back to the script words."""
 
 
-def align_words(audio: Path, text: str) -> list[WordTiming]:
+def align_words(audio: Path, text: str, cache_dir: Path) -> list[WordTiming]:
     """Align `text` to `audio` on CPU and return one WordTiming per word of `text.split()`.
 
+    Uses the ALIGN_MODEL_NAME whisper model, downloaded once into `cache_dir` (whisper's
+    `download_root`), so the caller can cache that folder between runs, as for Kokoro.
+
     Same words, same order, punctuation and unicode unchanged. Timings follow the rules of
-    `to_word_timings`. Raises AlignError for blank text, unreadable audio or aligner failure.
+    `to_word_timings`. Raises AlignError for blank text (before loading the model), unreadable
+    audio or aligner failure.
     """
     raise NotImplementedError
 

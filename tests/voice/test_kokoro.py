@@ -8,7 +8,7 @@ from pathlib import Path
 
 import pytest
 
-from pipeline import constants
+from pipeline import constants, render_one
 from pipeline.voice import kokoro
 from pipeline.voice.kokoro import VoiceError
 from tests.wavs import write_wav
@@ -19,8 +19,9 @@ TEXT = (ROOT / "tests" / "fixtures" / "align_sample.txt").read_text(
 
 
 @pytest.fixture(scope="module")
-def cache_dir(tmp_path_factory: pytest.TempPathFactory) -> Path:
-    return tmp_path_factory.mktemp("kokoro_cache")
+def cache_dir() -> Path:
+    """The folder CI caches between runs, so heavy tests do not download the weights each time."""
+    return ROOT / render_one.DEFAULT_CACHE_DIR
 
 
 def expected_seconds(text: str) -> float:
@@ -38,19 +39,36 @@ def test_acceptance(tmp_path: Path, cache_dir: Path) -> None:
     duration = kokoro.check_wav(out)
     expected = expected_seconds(TEXT)
     assert abs(duration - expected) <= expected * constants.SPEECH_RATE_TOLERANCE
-    assert any(cache_dir.rglob("*")), "model weights were not stored in cache_dir"
+    repo_folder = "models--" + constants.VOICE_REPO_ID.replace("/", "--")
+    snapshot = cache_dir / repo_folder / "snapshots" / constants.VOICE_REPO_REVISION
+    assert snapshot.is_dir(), "weights were not downloaded at VOICE_REPO_REVISION into cache_dir"
 
 
 @pytest.mark.heavy
 def test_second_run_uses_cache_offline(tmp_path: Path, cache_dir: Path) -> None:
     """R2.2: once cached, synthesis needs no network.
 
-    The offline run is a fresh process, because huggingface_hub reads HF_HUB_OFFLINE at import.
+    The offline run is a fresh process with every socket connection refused before anything is
+    imported, so a download by any library (Hugging Face, spaCy, misaki) fails the test.
     """
     kokoro.synthesize("Warm the cache.", tmp_path / "warm.wav", cache_dir)
     out = tmp_path / "offline.wav"
-    code = ("import sys; from pathlib import Path; from pipeline.voice import kokoro; "
-            "kokoro.synthesize('Cached voice works offline.', Path(sys.argv[1]), Path(sys.argv[2]))")
+    code = """
+import socket
+import sys
+from pathlib import Path
+
+def refuse(*args, **kwargs):
+    raise OSError("network is blocked in the offline test")
+
+socket.socket.connect = refuse
+socket.socket.connect_ex = refuse
+socket.create_connection = refuse
+
+from pipeline.voice import kokoro
+
+kokoro.synthesize("Cached voice works offline.", Path(sys.argv[1]), Path(sys.argv[2]))
+"""
     env = {**os.environ, "HF_HUB_OFFLINE": "1", "TRANSFORMERS_OFFLINE": "1"}
     result = subprocess.run([sys.executable, "-c", code, str(out), str(cache_dir)], cwd=ROOT, env=env,
                             capture_output=True, text=True)
@@ -58,13 +76,14 @@ def test_second_run_uses_cache_offline(tmp_path: Path, cache_dir: Path) -> None:
     assert kokoro.check_wav(out) > 0
 
 
-@pytest.mark.heavy
-def test_unknown_voice_fails_without_file(tmp_path: Path, cache_dir: Path) -> None:
-    """R2.3: a Kokoro failure raises and leaves no file."""
+def test_unpinned_voice_fails_before_any_download(tmp_path: Path) -> None:
+    """R2.3: a voice without a pinned hash raises, leaves no file and downloads nothing."""
     out = tmp_path / "voice.wav"
+    cache = tmp_path / "cache"
     with pytest.raises(VoiceError):
-        kokoro.synthesize(TEXT, out, cache_dir, voice="zz_no_such_voice")
+        kokoro.synthesize(TEXT, out, cache, voice="zz_no_such_voice")
     assert not out.exists()
+    assert not cache.exists() or not any(cache.iterdir())
 
 
 @pytest.mark.heavy

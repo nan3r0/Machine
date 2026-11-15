@@ -65,6 +65,11 @@ jobs:
           sudo apt-get update -q
           sudo apt-get install -y -q --no-install-recommends ffmpeg espeak-ng
 
+      - name: Install torch from the PyTorch CPU index only
+        run: |
+          grep -E '^torch(audio)?==' requirements-heavy.txt > "$RUNNER_TEMP/torch.txt"
+          python -m pip install -q --index-url https://download.pytorch.org/whl/cpu -r "$RUNNER_TEMP/torch.txt"
+
       - name: Install Python packages
         run: python -m pip install -q -r requirements.txt -r requirements-dev.txt -r requirements-heavy.txt
 
@@ -88,7 +93,7 @@ jobs:
             ~/.cache/huggingface
             ~/.cache/whisper
             .cache/models
-          key: models-${{ hashFiles('requirements-heavy.txt') }}
+          key: models-${{ hashFiles('requirements-heavy.txt', 'pipeline/constants.py') }}
 
       - name: Gate 1
         run: make check
@@ -121,6 +126,8 @@ jobs:
         run: |
           sudo apt-get update -q
           sudo apt-get install -y -q --no-install-recommends ffmpeg espeak-ng
+          grep -E '^torch(audio)?==' requirements-heavy.txt > "$RUNNER_TEMP/torch.txt"
+          python -m pip install -q --index-url https://download.pytorch.org/whl/cpu -r "$RUNNER_TEMP/torch.txt"
           python -m pip install -q -r requirements.txt -r requirements-dev.txt -r requirements-heavy.txt
 
       - name: Phase-end reports (mutation, coverage, licences, audit)

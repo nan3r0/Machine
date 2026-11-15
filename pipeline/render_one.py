@@ -4,8 +4,8 @@ Usage: python -m pipeline.render_one SCRIPT_JSON OUT_DIR [--cache-dir DIR]
 
 Wiring only. Steps are called through their modules (`kokoro.synthesize`, `align.align_words`,
 `captions_ass.build_ass`, `compose.compose`, `qa.run_qa`), never imported by name, so tests can
-replace them with fakes. `--cache-dir` (default DEFAULT_CACHE_DIR) holds the model weights; the
-Actions workflow caches it between runs.
+replace them with fakes. `--cache-dir` (default DEFAULT_CACHE_DIR) holds the model weights for
+both voice and alignment; the Actions workflow caches it between runs.
 """
 
 from pathlib import Path

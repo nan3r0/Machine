@@ -25,7 +25,14 @@ def synthesize(
     Model weights and voices download once into `cache_dir` (used as the Hugging Face cache), so
     the caller can cache that folder between runs. Returns `out_path`.
 
-    Raises VoiceError for blank text, an unknown voice, any Kokoro failure, or output that
+    Weights are pinned: every file comes from `hf_hub_download(VOICE_REPO_ID, ...,
+    revision=VOICE_REPO_REVISION, cache_dir=cache_dir)`, and its sha256 must equal the
+    VOICE_FILE_SHA256 entry for its repo path before it is loaded. Kokoro is then given the local
+    paths (`KModel(config=..., model=...)` and the voice `.pt` path), so it never downloads by
+    itself without the revision.
+
+    Raises VoiceError for blank text, a voice with no `voices/<voice>.pt` entry in
+    VOICE_FILE_SHA256 (before any download), a hash mismatch, any Kokoro failure, or output that
     `check_wav` rejects. On any error no file is left at `out_path`. No retry.
     """
     raise NotImplementedError

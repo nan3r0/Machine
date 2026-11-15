@@ -33,6 +33,11 @@ def test_caches_models_and_pip() -> None:
     assert any(u.startswith("actions/cache@") for u in used), "model weights must be cached"
     assert any(u.startswith("actions/setup-python@") for u in used)
     assert "--cache-dir" in rules.run_text(wf)
+    rules.assert_model_cache_tracks_pins(wf)
+
+
+def test_installs_torch_from_cpu_index_only() -> None:
+    rules.assert_torch_from_cpu_index_first(rules.run_text(rules.load("render.yml")))
 
 
 def test_uploads_output_with_short_retention() -> None:

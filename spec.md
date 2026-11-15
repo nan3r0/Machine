@@ -81,7 +81,7 @@ Coverage must not drop. Harness tests run separately: `pytest .harness/tests`.
 
 ## 7. Approved dependencies
 
-Pinned by p1-contracts on 2026-11-16 to the newest stable release at least two weeks old. The pins live in three files so the local install stays light:
+Pinned by p1-contracts on 2026-11-15 to the newest stable release at least two weeks old. The pins live in three files so the local install stays light:
 
 - `requirements.txt` (runtime, light): `pydantic` 2.14.2, `pyyaml` 6.0.3, `soundfile` 0.14.0, `numpy` 2.4.6 (2.5 needs Python 3.12).
 - `requirements-dev.txt`: `pytest` 9.2.0, `pytest-cov` 7.1.0, `hypothesis` 6.170.14, `ruff` 0.17.3, `mypy` 2.4.1, `types-PyYAML` 6.0.12.20261030, `bandit` 1.9.4, `pip-audit` 2.10.1, `pip-licenses` 5.5.5, and on Linux only `semgrep` 1.183.0 and `mutmut` 3.8.1.
@@ -89,6 +89,8 @@ Pinned by p1-contracts on 2026-11-16 to the newest stable release at least two w
 - CI binaries, checksum verified in `ci.yml`: `gitleaks` 8.30.1, `actionlint` 1.7.12.
 - System: `ffmpeg` and `espeak-ng` (apt).
 
-Voice package: `kokoro`, by owner decision (2026-11-16), over `kokoro-onnx`. Weights come from the Hugging Face repo `hexgrad/Kokoro-82M` into the cache folder the caller passes. kokoro-onnx would be lighter (no transformers or spaCy) and is the fallback if the kokoro chain breaks; its v1.0 weights are on the GitHub release `thewh1teagle/kokoro-onnx` `model-files-v1.0` with sha256 `7d5df8ec...3636a6c5` (model) and `bca610b8...1f1fbf7d` (voices), full values in `.harness/handoffs/p1-contracts.md`.
+Voice package: `kokoro` (PyTorch, misaki G2P), by owner decision, for voice and timing quality. Weights come from the Hugging Face repo `hexgrad/Kokoro-82M` at commit `f3ff3571791e39611d31c381e3a41a3af07b4987` (`VOICE_REPO_REVISION`) into the cache folder the caller passes, and each loaded file (`config.json`, `kokoro-v1_0.pth`, `voices/af_heart.pt`) is checked against its sha256 in `VOICE_FILE_SHA256` before use. Alignment uses the whisper `base.en` model (`ALIGN_MODEL_NAME`), downloaded into the same cache folder; openai-whisper checks its sha256 itself.
+
+Install order: CI installs `torch` and `torchaudio` from the PyTorch CPU index alone (`--index-url https://download.pytorch.org/whl/cpu`), then every requirements file from PyPI alone. No requirements file names an extra index, so no package can be resolved from both. Direct wheel URLs carry a `#sha256=` fragment.
 
 Anything else needs owner approval first.
