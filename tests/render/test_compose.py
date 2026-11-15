@@ -2,6 +2,7 @@
 
 import os
 import re
+import wave
 from pathlib import Path, PurePosixPath, PureWindowsPath
 
 import pytest
@@ -12,6 +13,7 @@ from pipeline.render.compose import ComposeError
 from tests import media
 
 VOICE = Path(__file__).resolve().parent.parent / "fixtures" / "align_sample.wav"
+FRAME_TIMES_S = (1.0, 4.0, 8.0)
 
 
 def args_for(tmp_path: Path) -> list[str]:
@@ -42,7 +44,14 @@ def test_acceptance(tmp_path: Path) -> None:
     assert abs(media.integrated_loudness(out) - constants.LOUDNESS_LUFS) <= constants.LOUDNESS_TOLERANCE_LU
     assert abs(media.duration(out) - media.duration(VOICE)) <= constants.DURATION_MATCH_TOLERANCE_S
     assert (tmp_path / "work" / "logs" / "compose.log").exists()
-    media.extract_frames(out, "compose", (1.0, 4.0, 8.0))
+    media.extract_frames(out, "compose", FRAME_TIMES_S)
+
+
+def test_frames_and_captions_fall_inside_the_voice_fixture() -> None:
+    """Frame times past the fixture would extract nothing; captions past it would never show."""
+    with wave.open(str(VOICE), "rb") as wav:
+        seconds = wav.getnframes() / wav.getframerate()
+    assert max(FRAME_TIMES_S) < media.CAPTIONS_END_S <= seconds
 
 
 @pytest.mark.heavy

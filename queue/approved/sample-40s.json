@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "id": "sample-40s-sliding-rocks",
+  "id": "sample-40s",
   "topic": "How the sliding rocks of Racetrack Playa move",
   "template": "steps",
   "hook": "Rocks in Death Valley leave trails across a lakebed, but since the 1940s nobody had seen one move.",
@@ -12,7 +12,7 @@
       "source_fact_ids": [1, 2]
     },
     {
-      "narration": "On December 20, 2013, they caught more than 60 rocks moving at once.",
+      "narration": "On December 20, 2013, they watched more than 60 rocks move.",
       "on_screen_text": "December 20, 2013: 60+ rocks move",
       "visual": {"type": "steps", "data": {"step": 2, "label": "Catch them moving"}},
       "source_fact_ids": [3]
@@ -24,7 +24,7 @@
       "source_fact_ids": [4, 5]
     },
     {
-      "narration": "One tagged rock travelled 224 metres in one winter.",
+      "narration": "By January, some rocks had travelled up to 224 metres.",
       "on_screen_text": "Up to 224 m",
       "visual": {"type": "steps", "data": {"step": 4, "label": "224 metres"}},
       "source_fact_ids": [6]

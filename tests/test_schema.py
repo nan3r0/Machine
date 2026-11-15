@@ -31,6 +31,7 @@ def test_acceptance() -> None:
     script = Script.model_validate_json(SAMPLE.read_text(encoding="utf-8"))
     low, high = constants.RETENTION_WORDS
     assert low <= len(script.narration_words()) <= high
+    assert script.id == SAMPLE.stem, "queue files are named <id>.json"
 
     data = sample_dict()
     data["scenes"][0]["source_fact_ids"] = ["one"]

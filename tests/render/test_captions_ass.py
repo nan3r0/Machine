@@ -10,10 +10,12 @@ from pipeline import constants
 from pipeline.render import captions_ass
 from pipeline.render.captions_ass import build_ass, escape_ass_text
 from pipeline.schema import WordTiming
+from tests import media
 
 CS = 0.011  # one centisecond of ASS time rounding, plus float noise
 OVERRIDE = re.compile(r"(?<!\\)\{.*?(?<!\\)\}")
-POS = re.compile(r"\\pos\(\s*(-?[\d.]+)\s*,\s*(-?[\d.]+)\s*\)")
+SAFE_CENTRE_X = (constants.SAFE_LEFT_PX + constants.SAFE_RIGHT_PX) / 2
+LINE_ROOM = 2 * constants.CAPTION_FONT_SIZE
 
 
 def ass_time(text: str) -> float:
@@ -21,13 +23,44 @@ def ass_time(text: str) -> float:
     return int(hours) * 3600 + int(minutes) * 60 + float(seconds)
 
 
+def dialogue_fields(ass: str) -> list[list[str]]:
+    prefix = "Dialogue:"
+    return [line[len(prefix):].split(",", 9) for line in ass.splitlines() if line.startswith(prefix)]
+
+
 def dialogues(ass: str) -> list[tuple[float, float, str]]:
-    events = []
-    for line in ass.splitlines():
-        if line.startswith("Dialogue:"):
-            fields = line[len("Dialogue:"):].split(",", 9)
-            events.append((ass_time(fields[1]), ass_time(fields[2]), fields[9]))
-    return events
+    return [(ass_time(f[1]), ass_time(f[2]), f[9]) for f in dialogue_fields(ass)]
+
+
+def styles(ass: str) -> dict[str, dict[str, str]]:
+    """Each `Style:` line of [V4+ Styles] as {field name: value}, keyed by style name."""
+    lines = ass.splitlines()
+    start = lines.index("[V4+ Styles]")
+    names: list[str] = []
+    found = {}
+    for line in lines[start + 1:]:
+        if line.startswith("["):
+            break
+        key, _, value = line.partition(":")
+        if key == "Format":
+            names = [n.strip() for n in value.split(",")]
+        elif key == "Style":
+            style = dict(zip(names, (v.strip() for v in value.split(",")), strict=True))
+            found[style["Name"]] = style
+    return found
+
+
+def assert_wraps_inside_safe_zone(ass: str) -> None:
+    """Every event wraps to the safe width, centred on it, so no line can run past its edges."""
+    assert not re.search(r"(?m)^WrapStyle:\s*2\s*$", ass)
+    used = styles(ass)
+    for fields in dialogue_fields(ass):
+        style = used[fields[3].strip()]
+        assert style["Alignment"] == "5"
+        assert int(style["MarginL"]) == constants.SAFE_LEFT_PX
+        assert int(style["MarginR"]) == constants.WIDTH - constants.SAFE_RIGHT_PX
+        assert int(fields[5]) == 0 and int(fields[6]) == 0, "event margins would replace the style's"
+        assert "\\q2" not in fields[9] and "\\an" not in fields[9]
 
 
 def timings_for(words: list[str], step: float = 0.4, gap: float = 0.05) -> list[WordTiming]:
@@ -46,11 +79,12 @@ def assert_captions_match(ass: str, timings: list[WordTiming], words_per_line: i
         plain = OVERRIDE.sub("", text)
         assert escape_ass_text(timing.word) in plain
         assert len(plain.split()) <= words_per_line
-        match = POS.search(text)
-        assert match, f"no \\pos in {text!r}"
-        x, y = float(match.group(1)), float(match.group(2))
-        assert constants.SAFE_LEFT_PX <= x <= constants.SAFE_RIGHT_PX
-        assert constants.SAFE_TOP_PX <= y <= constants.SAFE_BOTTOM_PX
+        positions = media.ASS_POS.findall(text)
+        assert len(positions) == 1, f"need exactly one \\pos in {text!r}"
+        x, y = map(float, positions[0])
+        assert x == pytest.approx(SAFE_CENTRE_X)
+        assert constants.SAFE_TOP_PX + LINE_ROOM <= y <= constants.SAFE_BOTTOM_PX - LINE_ROOM
+    assert_wraps_inside_safe_zone(ass)
 
 
 def test_acceptance() -> None:

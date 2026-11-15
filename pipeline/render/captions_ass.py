@@ -24,8 +24,15 @@ def build_ass(timings: list[WordTiming], words_per_line: int = CAPTION_MAX_WORDS
       `H:MM:SS.cc`, rounded to the nearest centisecond.
     - Each Dialogue shows the current line of at most `words_per_line` words with the current
       word highlighted; its text contains `escape_ass_text(word)` outside override blocks.
-    - Each Dialogue places its text with `\\pos(x,y)`, inside the safe zone from constants.py
-      (SAFE_LEFT_PX <= x <= SAFE_RIGHT_PX, SAFE_TOP_PX <= y <= SAFE_BOTTOM_PX).
+    - Each Dialogue places its text with one `\\pos(x,y)`, x and y plain numbers, at the
+      horizontal centre of the safe zone (x == (SAFE_LEFT_PX + SAFE_RIGHT_PX) / 2) and with room
+      for wrapped lines above and below (SAFE_TOP_PX + 2 * CAPTION_FONT_SIZE <= y <=
+      SAFE_BOTTOM_PX - 2 * CAPTION_FONT_SIZE).
+    - Nothing is cut off: libass wraps every event, `\\pos` or not, to the width the margins
+      leave. So the style has Alignment 5 (centred), MarginL == SAFE_LEFT_PX and
+      MarginR == WIDTH - SAFE_RIGHT_PX; each Dialogue's own MarginL and MarginR are 0 (use the
+      style's); `WrapStyle` is not 2 and no override uses `\\q2` or `\\an`. A line too wide for
+      the safe zone then wraps inside it instead of running past its edges.
     - The style uses CAPTION_FONT_NAME at CAPTION_FONT_SIZE.
 
     Raises ValueError if `timings` is empty or `words_per_line` is below 1.
