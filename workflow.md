@@ -76,5 +76,5 @@ Locked by p1-contracts. Every task's acceptance test is `test_acceptance` in its
 | Task | Status | Review |
 |---|---|---|
 | Harness setup (hook, config, agents, logger, status file) | done, 25 harness tests pass, hook confirmed live | none yet |
-| p1-contracts | review round 1 fixed locally 2026-11-15, awaiting CI and Gate 2 (security review for `ci.yml`) | |
+| p1-contracts | done, merged 2026-11-15 (PR #6), 100 passed, 110 skipped, CI green | Gate 2 and security approved after 5 fix rounds |
 | p1-tts-kokoro to p1-phase-review | not started | |
