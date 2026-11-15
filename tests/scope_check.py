@@ -18,7 +18,18 @@ from typing import Any
 import yaml
 
 CONTRACT_OWNER_ROLES = {"architect", "test_author"}
-ADMIN_PATHS = [".claude/hooks/*", ".claude/settings*.json", ".claude/agents/*"]
+# Same list as the hook, matched against "/" + the repo path, so it covers nested .claude folders too.
+ADMIN_PATHS = [
+    "*/.claude/hooks/*",
+    "*/.claude/settings*.json",
+    "*/.claude/agents/*",
+    "*/.claude/commands/*",
+    "*/.claude/skills/*",
+    "*/.claude/plugins/*",
+    "*/.claude.json",
+    "*/.mcp.json",
+    "*managed-settings*.json",
+]
 HARNESS_PATHS = [".harness/locks.yaml", ".harness/config.yaml", ".harness/status.yaml", ".harness/tasks/*"]
 TASK_ID = re.compile(r"^[a-z0-9]+(-[a-z0-9]+)*$")
 
@@ -34,7 +45,7 @@ def violations(task: dict[str, Any], locked: list[str], changed: list[str]) -> l
     owner = task.get("role") in CONTRACT_OWNER_ROLES
     found = []
     for path in changed:
-        if matches(path, ADMIN_PATHS):
+        if matches("/" + path, ADMIN_PATHS):
             found.append(f"{path}: Claude Code admin file, owner-only")
         elif not owner and matches(path, locked):
             found.append(f"{path}: locked in .harness/locks.yaml")
@@ -65,10 +76,14 @@ def find_task(base: str, task_id: str) -> dict[str, Any] | None:
 
 def main(argv: list[str]) -> int:
     branch, base = argv
-    # Case-insensitive, so "Task/x" cannot dodge the check; the id regex then rejects it.
     if not branch.lower().startswith("task/"):
         print(f"scope check skipped: {branch} is not a task/<task-id> branch")
         return 0
+    # CI sets LOOM_TASK only for a lowercase "task/" prefix, so any other case would pass with the
+    # task's tests skipped.
+    if not branch.startswith("task/"):
+        print(f"scope check failed: {branch} must start with lowercase task/")
+        return 1
     task_id = branch[len("task/"):]
     if not TASK_ID.match(task_id):
         print(f"scope check failed: {task_id!r} is not a valid task id")

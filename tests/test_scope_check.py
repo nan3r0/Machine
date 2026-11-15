@@ -1,5 +1,6 @@
 """The CI scope check enforces the same rules as the lock hook, server side."""
 
+import ast
 import subprocess
 from pathlib import Path
 
@@ -44,11 +45,22 @@ def test_contract_owner_may_change_locked_paths_in_scope() -> None:
     assert scope_check.violations(TEST_AUTHOR, LOCKED, ["tests/conftest.py", ".harness/locks.yaml"]) == []
 
 
-@pytest.mark.parametrize("path", [".claude/hooks/enforce_locks.py", ".claude/settings.json",
-                                  ".claude/settings.local.json", ".claude/agents/reviewer.md"])
+@pytest.mark.parametrize("path", [
+    ".claude/hooks/enforce_locks.py", ".claude/settings.json", ".claude/settings.local.json",
+    ".claude/agents/reviewer.md", ".claude/commands/go.md", ".claude/skills/x/SKILL.md",
+    ".claude/plugins/p.json", ".claude.json", ".mcp.json", "managed-settings.json",
+    "sub/dir/.claude/hooks/x.py", "tests/fixtures/.mcp.json"])
 def test_admin_files_fail_even_for_contract_owner(path: str) -> None:
     task = dict(TEST_AUTHOR, paths_allowed=["**"])
     assert scope_check.violations(task, [], [path]) == [f"{path}: Claude Code admin file, owner-only"]
+
+
+def test_admin_paths_match_the_hook() -> None:
+    hook = Path(__file__).resolve().parent.parent / ".claude" / "hooks" / "enforce_locks.py"
+    tree = ast.parse(hook.read_text(encoding="utf-8"))
+    assigned = next(node.value for node in tree.body if isinstance(node, ast.Assign)
+                    and any(isinstance(t, ast.Name) and t.id == "ADMIN_PATHS" for t in node.targets))
+    assert ast.literal_eval(assigned) == scope_check.ADMIN_PATHS
 
 
 def test_case_is_ignored_like_the_hook() -> None:
@@ -121,9 +133,11 @@ def test_bad_task_id_fails(repo: Path) -> None:
     assert scope_check.main(["task/../../etc", "main"]) == 1
 
 
-def test_task_prefix_in_other_case_is_not_skipped(repo: Path) -> None:
-    commit(repo, "README.md")
-    assert scope_check.main(["Task/p1-captions-ass", "main"]) == 1
+@pytest.mark.parametrize("branch", ["Task/p1-captions-ass", "TASK/p1-captions-ass"])
+def test_task_prefix_in_other_case_fails_even_in_scope(repo: Path, branch: str) -> None:
+    """CI would not set LOOM_TASK for this branch, so the task's tests would silently skip."""
+    commit(repo, "pipeline/render/captions_ass.py")
+    assert scope_check.main([branch, "main"]) == 1
 
 
 def test_non_task_branch_is_skipped(repo: Path) -> None:
