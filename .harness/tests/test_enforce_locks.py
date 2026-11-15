@@ -200,6 +200,33 @@ def test_windows_path_tricks_are_blocked(project: Path, path: str) -> None:
     assert "path" in result.stderr
 
 
+def test_admin_files_outside_project_blocked_without_task(project: Path) -> None:
+    for path in (project.parent / "home" / ".claude" / "settings.json",
+                 project.parent / "parent-repo" / ".claude" / "hooks" / "x.py",
+                 project / "nested" / ".claude" / "agents" / "implementer.md"):
+        result = run_hook(project, str(path))
+        assert result.returncode == 2, path
+        assert "LOOM_ADMIN" in result.stderr
+
+
+def test_admin_env_allows_admin_file_outside_project(project: Path) -> None:
+    path = project.parent / "home" / ".claude" / "settings.json"
+    assert run_hook(project, str(path), admin=True).returncode == 0
+
+
+def test_plain_file_outside_project_allowed_without_task(project: Path) -> None:
+    """Planning sessions still write Claude's memory files outside the repo."""
+    path = project.parent / "home" / ".claude" / "projects" / "memory" / "note.md"
+    assert run_hook(project, str(path)).returncode == 0
+
+
+@pytest.mark.parametrize("prefix", ["\\\\?\\", "\\\\.\\", "//?/", "//./"])
+def test_device_path_prefixes_are_blocked(project: Path, prefix: str) -> None:
+    result = run_hook(project, prefix + str(project / "tests" / "x.py"))
+    assert result.returncode == 2
+    assert "path" in result.stderr
+
+
 def test_symlink_into_locked_dir_is_blocked(project: Path) -> None:
     (project / "tests").mkdir()
     try:

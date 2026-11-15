@@ -35,7 +35,7 @@ Pipeline Phase 1 (core render), Harness Stage 0. Harness set up; Phase 1 task gr
 - Paths in `.harness/locks.yaml` (contracts and tests) are never edited by implementers. The PreToolUse hook blocks it.
 - If a locked test looks wrong, write `CONTRACT_CHANGE.md` (which test, why it contradicts PLAN.md, what it should say) and stop.
 - Never write files through Bash to get around the hook. CI diffs every task branch against `paths_allowed`, so it gets caught anyway.
-- Hooks, `.claude/settings*.json` and agent files are owner-only (sessions launched with `LOOM_ADMIN=1`).
+- Hook, settings and agent files in any `.claude` folder, including `~/.claude`, are owner-only (sessions launched with `LOOM_ADMIN=1`).
 
 **Stay inside `paths_allowed`.**
 - Edit only files that match your task's `paths_allowed`, plus your own `.harness/handoffs/<task-id>.md`, `CONTRACT_CHANGE.md` and `ENV_ISSUE.md`.
