@@ -91,7 +91,9 @@ def test_makefile_check_runs_every_gate_tool() -> None:
 
 def test_makefile_audits_only_project_requirements() -> None:
     makefile = (ROOT / "Makefile").read_text(encoding="utf-8")
-    assert "pip-audit -r requirements.txt -r requirements-heavy.txt " in makefile
+    assert "sed 's/+cpu//' requirements-heavy.txt > " in makefile
+    assert "pip-audit -r requirements.txt -r $$audit " in makefile
+    assert "-r requirements-heavy.txt" not in makefile
     assert "requirements-dev" not in makefile
 
 

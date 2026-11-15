@@ -102,6 +102,10 @@ done after review round 2 (`.harness/reviews/p1-contracts-round2.md`): every ite
 - Then the five implementer tasks can run in file-name order.
 
 ## Evidence
+Review round 4, 2026-11-15 (pip-audit resolution only):
+- Makefile audits a `mktemp` copy of requirements-heavy.txt with `+cpu` stripped via sed (the local versions do not exist on PyPI), same two ignores; `test_makefile_audits_only_project_requirements` updated to match.
+- `ruff check .`: All checks passed. `mypy --strict pipeline/`: no issues in 11 source files. `pytest --cov=pipeline`: 100 passed, 110 skipped, 0 failed; coverage 89%. CI pip-audit not run locally (awaiting CI).
+
 Review round 3, 2026-11-15 (pip-audit only):
 - Makefile now runs `pip-audit -r requirements.txt -r requirements-heavy.txt`; ci.yml has an "Upgrade build tooling" step (`setuptools>=84.1.0`) before every other install; two tests added to `tests/test_ci_workflow.py`.
 - Conflict found and resolved by owner decision: `requirements-heavy.txt` pins `setuptools==81.0.0` (torch needs `<82`), so the later heavy install downgrades the runner's setuptools and pip-audit reads that pin from the file. The Makefile now ignores the two setuptools 81.0.0 advisories (`PYSEC-2026-3447`, `GHSA-xmj3-9gf7-h52w`, found by running pip-audit on that pin) with a comment saying to drop them when torch lifts the cap. Test `test_makefile_ignores_only_the_known_setuptools_advisories` stops the list growing silently.
