@@ -24,7 +24,7 @@ You are the Stage 0 orchestrator (HARNESS.md section 10, Stage 0). Model: Sonnet
 
 ## State (2026-11-15, second orchestrator session)
 - Merged to main: p1-contracts (#6), p1-tts-kokoro (#22), p1-docs-check (#23). Alignment model is `small.en` (merged, #21).
-- Running (Sonnet, own windows and worktrees under `.claude/worktrees/`): `p1-align` (worktree `align`), `p1-captions-ass` (worktree `captions`), started from main `ca16ad3`. One watcher each; on TASK_DONE run Gate 1, Gate 2 review, push, PR, wait_ci.
+- Running (Sonnet, own windows and worktrees under `.claude/worktrees/`): `p1-align` (worktree `align`), `p1-captions-ass` (worktree `captions`), started from main `ca16ad3`. Watchers died with the previous session: restart one per task with `sh .harness/scripts/wait_task.sh <worktree> <id> ca16ad3 <claude-pid>` (pids 32168 for p1-align, 2296 for p1-captions-ass if still alive; else find the `cmd.exe` child of the task's `open_task_window.ps1` powershell, and if a task already committed, check git state directly first). On TASK_DONE run Gate 1, Gate 2 review, push, PR, wait_ci.
 - Next after those: `p1-compose` (security and visual_qa specialist reviews apply), `p1-qa`, then `p1-render-cli`, `p1-actions-workflow`, phase-end reviews.
 - Gotchas: run launch and worktree commands from the main checkout, not from a worktree session (isolation blocks them). Create each task venv with an absolute path; chained `cd` leaks between parallel Bash calls.
 
