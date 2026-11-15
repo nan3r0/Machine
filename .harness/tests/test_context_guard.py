@@ -87,6 +87,17 @@ def test_first_crossing_blocks_with_message(guard, project, launches, capsys, mo
     assert launches == []
 
 
+def test_started_marker_keeps_first_block_time(guard, project, launches, monkeypatch):
+    monkeypatch.setenv("LOOM_TASK", "t1")
+    transcript = write_transcript(project, 700)
+    assert run(guard, transcript) == 2
+    marker = project / ".harness" / "rotate" / "s1.started"
+    first = time.time() - 100
+    os.utime(marker, (first, first))
+    assert run(guard, transcript) == 2
+    assert marker.stat().st_mtime == pytest.approx(first, abs=1)
+
+
 def test_stale_handoff_still_blocks(guard, project, launches, monkeypatch):
     monkeypatch.setenv("LOOM_TASK", "t1")
     handoff = project / ".harness" / "handoffs" / "t1.md"

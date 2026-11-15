@@ -106,7 +106,8 @@ def rotate(name, model, project, session_id, active, pct_used):
     if active or pct_used is None:
         return 0
     rotate_dir.mkdir(parents=True, exist_ok=True)
-    started.touch()
+    if not started.exists():  # mtime must stay the first block time
+        started.touch()
     print(BLOCK_MESSAGE.format(pct=pct_used), file=sys.stderr)
     return 2
 
