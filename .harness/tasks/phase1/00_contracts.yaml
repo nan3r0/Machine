@@ -20,7 +20,11 @@ notes: |
     pipeline/render_one.py) with the public signatures and docstrings the tests call, bodies raising
     NotImplementedError. No Protocols: each has one implementation.
   - Empty pipeline/*/__init__.py files.
-  - queue/approved/sample-40s.json: one hand-written ~40 s script (about 105 words) in the owner's niche.
+  - queue/approved/sample-40s.json: one hand-written ~40 s script (about 105 words) in the niche
+    "Solved Internet & Everyday Mysteries", following the content rules in PLAN.md section 4: an
+    everyday mystery with a documented, sourced answer, no private individuals, no violence. Include
+    real source facts so the script's numbers and names are checkable. Pick a topic with a few numbers
+    or dates, so captions and QA are exercised on digits too.
   - tests/fixtures/: a short committed wav plus its exact text, for align and QA tests.
   - Unit tests per task, one test_acceptance per task. Then add every test path, schema.py,
     constants.py and tests/conftest.py to locks.yaml.
@@ -39,6 +43,12 @@ notes: |
     `permissions: contents: read`, never pull_request_target, third-party actions pinned to a commit SHA.
     Plus a workflow_dispatch job that runs mutmut and pip-licenses and uploads the reports for the
     phase-end QA Lead and Auditor.
+  - Scope check in ci.yml (the server-side control the local hook cannot give, since Bash can write
+    files): on a task/<task-id> branch, fail if `git diff --name-only origin/main...HEAD` contains any
+    file outside that task's paths_allowed (plus its handoff, CONTRACT_CHANGE.md and ENV_ISSUE.md), any
+    path in locks.yaml (unless the task role is test_author or architect), or anything under
+    .claude/hooks, .claude/settings*.json or .claude/agents. A small locked script under tests/ does
+    the matching so CI and the hook agree on the rules.
   - .github/dependabot.yml for pip and github-actions.
   - hypothesis property tests for caption timing (every word shown once, in order, inside the audio).
   - Golden-render test (heavy): render the sample, check duration, resolution, caption timing and safe

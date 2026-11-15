@@ -98,6 +98,7 @@ Confirmed by the owner:
 - 2026-11-15: PLAN.md updated for Kokoro-only voice, the alignment QA rule and the Phase 1 contract files.
 - 2026-11-15: The "Office / dashboard" in HARNESS.md sections 6b and 10b is the owner's general-purpose tool, not part of this project. Nothing is built for it here.
 - 2026-11-15: Code lives in the private GitHub repo `nan3r0/Machine`, default branch `main`.
+- 2026-11-15: Niche is "Solved Internet & Everyday Mysteries", with the content rules in PLAN.md section 4 (sourced resolutions only, no private individuals, no graphic violence). Proposed by Claude, pending owner OK: the rules themselves.
 
 Assumed by Claude (owner can overrule):
 - 2026-11-15: The hook learns the current task from the `LOOM_TASK` environment variable set at launch, not from a file the agent could edit.
@@ -114,7 +115,6 @@ Assumed by Claude (owner can overrule):
 
 ## 8. Open questions
 
-- **[Decision needed]** Niche for the sample script and Phase 2 sources (PLAN.md section 4 recommends tech, business or science explainers). Owner, before p1-contracts writes the sample.
 - **[Decision needed]** Phase 2: Workflow A writes `used_facts.json` on a PR branch while Workflow B writes it on main, so a week-old PR will conflict. Derive used facts from queue files instead? Also: drop `queue/pending/` and `on_merge_approve.yml`, since merge already is approval?
 - **[Decision needed]** Phase 2: Gemini free-tier request limits were cut in late 2025. Check current limits; batch the meaning check into one call per script.
 - **[Decision needed]** Phase 4: Instagram Reels publishing pulls from a public `video_url`. An Actions artifact is not public, so a host or Meta's resumable upload is needed. Long-lived Instagram tokens also expire after about 60 days and need a scheduled refresh.

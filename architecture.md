@@ -79,8 +79,12 @@ All task tests are written and locked by p1-contracts before implementation.
 
 ## 7. Known weak points
 
-- The lock hook only watches Edit, Write, MultiEdit and NotebookEdit. A Bash command can still write a file. Gate 1 must diff changed files against `paths_allowed` and `locks.yaml` to catch it (manual in Stage 0).
+- The lock hook only watches Edit, Write, MultiEdit and NotebookEdit. A Bash command can still write a file. The control that holds is CI's scope check on `task/<id>` branches (diff against `paths_allowed`, `locks.yaml` and the admin files), added by p1-contracts. Until then it is a manual Gate 1 check.
 - The hook matches globs with `fnmatch`, where `*` also crosses `/`. Patterns are slightly more permissive than they look.
+- The hook blocks Windows aliasing forms (UNC and device paths in any slash mix, 8.3 names, trailing dots or spaces, `:` streams) and resolves symlinks and junctions. A legitimate file name containing `~` is blocked too; rename it.
+- Claude Code files that run code or change configuration (hooks, settings, agents, commands, skills, plugins, `.claude.json`, `.mcp.json`, managed settings), anywhere on disk, need a session launched with `LOOM_ADMIN=1`. That includes retrospective sessions that add skills.
+- Outside the repo, planning sessions may only write Claude's memory (`~/.claude/projects/*/memory/`) and job scratch (`~/.claude/jobs/*/tmp/`); tasks may not write outside at all. A new legitimate outside location needs an `OUTSIDE_ALLOWED` entry.
+- The hook is a best-effort local guard. Bash, and anything not routed through the edit tools, bypasses it. The CI scope check and PR review are the controls that hold. The private repo on a free plan has no branch protection, so nothing server-side stops a direct push to `main`; the owner reviews every PR diff.
 - If `python` itself is missing from PATH, the hook cannot start and Claude Code allows the edit. A missing PyYAML is handled: the hook blocks.
 - A new or changed `.claude/settings.json` is picked up only at session start (or after opening `/hooks`).
 - Stage 0 relies on the owner launching each implementer with `LOOM_TASK` set. Without it, only locks are enforced, not `paths_allowed`.

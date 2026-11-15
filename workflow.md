@@ -21,6 +21,8 @@ Failures repeat step 2 with the failing output in context. Escalation thresholds
 
 **Rotation (HARNESS.md section 7a).** Failed tests or review changes: keep the same session. Context above about 50% (`/context`) or `max_turns` hit: ask for a partial handoff, then start a fresh session on the same task from it, and log `--result rotated --rotation-reason context_limit` (or `max_turns`). After 3 rotations on one task, the Architect splits it.
 
+**Changing the harness itself.** Hooks, settings, agents, commands, skills, plugins and `.mcp.json` are blocked in every session unless you launch it with `LOOM_ADMIN=1` (retrospectives that add skills need it too) (PowerShell: `$env:LOOM_ADMIN='1'; claude`). Never set it for an implementer session.
+
 **Pausing (HARNESS.md section 10a).** Press `Esc`, then: "Stop here. Write handoff.md for this task (status: partial) and commit WIP." Next time, start a fresh session from the task YAML and handoff. Use `claude --continue` only if the task was nearly done.
 
 **Usage limits (HARNESS.md section 10b).** Not a failure: log `--result usage_limit`, no attempt counted. Save each real limit message (5-hour and weekly) verbatim to `.harness/tests/fixtures/limit_messages/<type>-<date>.txt`; Stage 1's parser is built from them. After the reset, resume the same session if its context is under about 50%, otherwise rotate.

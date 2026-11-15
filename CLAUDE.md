@@ -17,7 +17,7 @@ A $0, cloud-only pipeline that scripts, voices, renders and publishes faceless s
 
 ## Status
 
-Pipeline Phase 1 (core render), Harness Stage 0. Harness set up; Phase 1 task graph approved (Kokoro-only voice). Repo: private `nan3r0/Machine`. Next: p1-contracts (needs the niche for the sample script). No pipeline code yet. Done tasks: `.harness/status.yaml`. Weak points: architecture.md section 7.
+Pipeline Phase 1 (core render), Harness Stage 0. Harness set up; Phase 1 task graph approved (Kokoro-only voice). Repo: private `nan3r0/Machine`. Niche: Solved Internet & Everyday Mysteries (content rules in PLAN.md section 4). Next: p1-contracts. No pipeline code yet. Done tasks: `.harness/status.yaml`. Weak points: architecture.md section 7.
 
 ## Commands
 
@@ -34,7 +34,8 @@ Pipeline Phase 1 (core render), Harness Stage 0. Harness set up; Phase 1 task gr
 **Locked files are off-limits.**
 - Paths in `.harness/locks.yaml` (contracts and tests) are never edited by implementers. The PreToolUse hook blocks it.
 - If a locked test looks wrong, write `CONTRACT_CHANGE.md` (which test, why it contradicts PLAN.md, what it should say) and stop.
-- Never write files through Bash to get around the hook. Gate 1 diffs the change, so it gets caught anyway.
+- Never write files through Bash to get around the hook. CI diffs every task branch against `paths_allowed`, so it gets caught anyway.
+- Claude Code config and execution files (hooks, settings, agents, commands, skills, plugins, `.mcp.json`), anywhere, are owner-only (`LOOM_ADMIN=1`). Outside the repo, only memory and job scratch folders are writable.
 
 **Stay inside `paths_allowed`.**
 - Edit only files that match your task's `paths_allowed`, plus your own `.harness/handoffs/<task-id>.md`, `CONTRACT_CHANGE.md` and `ENV_ISSUE.md`.
