@@ -25,11 +25,17 @@ def synthesize(
     Model weights and voices download once into `cache_dir` (used as the Hugging Face cache), so
     the caller can cache that folder between runs. Returns `out_path`.
 
-    Weights are pinned: every file comes from `hf_hub_download(VOICE_REPO_ID, ...,
-    revision=VOICE_REPO_REVISION, cache_dir=cache_dir)`, and its sha256 must equal the
-    VOICE_FILE_SHA256 entry for its repo path before it is loaded. Kokoro is then given the local
-    paths (`KModel(config=..., model=...)` and the voice `.pt` path), so it never downloads by
-    itself without the revision.
+    Weights are pinned: each of `config.json`, `kokoro-v1_0.pth` and `voices/<voice>.pt` comes from
+    `hf_hub_download(VOICE_REPO_ID, <repo path>, revision=VOICE_REPO_REVISION, cache_dir=cache_dir)`,
+    and all three sha256 hashes must equal their VOICE_FILE_SHA256 entries before anything from
+    kokoro is constructed. Kokoro is then given the local paths, so it never downloads by itself
+    without the revision: `KPipeline(lang_code=VOICE_LANG_CODE, model=KModel(config=..., model=...))`,
+    called with the text, the voice `.pt` path and `speed`.
+
+    The only heavy imports, made inside this function, are `from huggingface_hub import
+    hf_hub_download` and `from kokoro import KModel, KPipeline`; torch is not imported directly
+    (Kokoro's audio converts with numpy). Kokoro loads on every call, never cached at module level.
+    The non-heavy tests replace both modules in `sys.modules` and rely on this.
 
     Raises VoiceError for blank text or a voice with no `voices/<voice>.pt` entry in
     VOICE_FILE_SHA256, both checked before kokoro or torch is imported and before any download;

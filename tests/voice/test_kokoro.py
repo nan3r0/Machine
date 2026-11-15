@@ -1,10 +1,14 @@
 """R2: Kokoro voice (task p1-tts-kokoro)."""
 
+import hashlib
 import os
 import subprocess
 import sys
 import wave
 from pathlib import Path
+from types import ModuleType, SimpleNamespace
+from typing import Any
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -26,6 +30,49 @@ def cache_dir() -> Path:
 
 def expected_seconds(text: str) -> float:
     return len(text.split()) / constants.SPEECH_WPM * 60
+
+
+DEFAULT_VOICE_FILES = {"config.json", "kokoro-v1_0.pth", f"voices/{constants.VOICE_NAME}.pt"}
+
+
+def fake_bytes(repo_path: str) -> bytes:
+    return f"fake {repo_path}".encode()
+
+
+@pytest.fixture
+def fake_kokoro(monkeypatch: pytest.MonkeyPatch) -> SimpleNamespace:
+    """Replace huggingface_hub and kokoro with fakes, so synthesize runs without heavy packages.
+
+    The fake download writes small files into cache_dir, and the pinned hashes are set to match them.
+    A repo path added to `tampered` gets other bytes, so its hash no longer matches.
+    """
+    fake = SimpleNamespace(downloads=[], tampered=set(), module=ModuleType("kokoro"))
+
+    def hf_hub_download(repo_id: str, filename: str, **kwargs: Any) -> str:
+        fake.downloads.append({"repo_id": repo_id, "filename": filename, **kwargs})
+        path = Path(kwargs["cache_dir"]) / "fake" / filename
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(b"tampered" if filename in fake.tampered else fake_bytes(filename))
+        return str(path)
+
+    hub = ModuleType("huggingface_hub")
+    hub.hf_hub_download = hf_hub_download  # type: ignore[attr-defined]
+    fake.module.KModel = MagicMock(name="KModel")
+    fake.module.KPipeline = MagicMock(name="KPipeline")
+    monkeypatch.setitem(sys.modules, "huggingface_hub", hub)
+    monkeypatch.setitem(sys.modules, "kokoro", fake.module)
+    for repo_path in constants.VOICE_FILE_SHA256:
+        digest = hashlib.sha256(fake_bytes(repo_path)).hexdigest()
+        monkeypatch.setitem(constants.VOICE_FILE_SHA256, repo_path, digest)
+    return fake
+
+
+def assert_pinned_downloads(downloads: list[dict[str, Any]], cache: Path) -> None:
+    assert {d["filename"] for d in downloads} == DEFAULT_VOICE_FILES
+    for d in downloads:
+        assert d["repo_id"] == constants.VOICE_REPO_ID
+        assert d.get("revision") == constants.VOICE_REPO_REVISION
+        assert Path(d.get("cache_dir", "")) == cache
 
 
 @pytest.mark.heavy
@@ -84,6 +131,33 @@ def test_unpinned_voice_fails_before_any_download(tmp_path: Path) -> None:
         kokoro.synthesize(TEXT, out, cache, voice="zz_no_such_voice")
     assert not out.exists()
     assert not cache.exists() or not any(cache.iterdir())
+
+
+@pytest.mark.parametrize("tampered", sorted(DEFAULT_VOICE_FILES))
+def test_tampered_weights_fail_before_kokoro_loads(tmp_path: Path, fake_kokoro: SimpleNamespace,
+                                                   tampered: str) -> None:
+    """R2.3: one pinned file with the wrong bytes raises before any Kokoro class is constructed."""
+    fake_kokoro.tampered.add(tampered)
+    out = tmp_path / "voice.wav"
+    with pytest.raises(VoiceError):
+        kokoro.synthesize(TEXT, out, tmp_path / "cache")
+    assert not out.exists()
+    assert tampered in {d["filename"] for d in fake_kokoro.downloads}, "the tampered file was never fetched"
+    assert fake_kokoro.module.KModel.call_count == 0
+    assert fake_kokoro.module.KPipeline.call_count == 0
+
+
+def test_kokoro_failure_raises_voice_error(tmp_path: Path, fake_kokoro: SimpleNamespace) -> None:
+    """R2.3: an error inside Kokoro's synthesis becomes VoiceError and leaves no file."""
+    pipeline = fake_kokoro.module.KPipeline.return_value
+    pipeline.side_effect = RuntimeError("Kokoro failed mid-synthesis")
+    out = tmp_path / "voice.wav"
+    cache = tmp_path / "cache"
+    with pytest.raises(VoiceError):
+        kokoro.synthesize(TEXT, out, cache)
+    assert pipeline.call_count == 1, "the error must come from Kokoro's synthesis, not before it"
+    assert not out.exists()
+    assert_pinned_downloads(fake_kokoro.downloads, cache)
 
 
 @pytest.mark.heavy

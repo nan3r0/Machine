@@ -40,12 +40,13 @@ def assert_safe(workflow: dict[str, Any]) -> None:
         assert "${{" not in str(step.get("run", "")), f"expression inside run: {step.get('name')}"
 
 
-TORCH_INDEX_INSTALL = "--index-url https://download.pytorch.org/whl/cpu"
+TORCH_INDEX_INSTALL = "--no-deps --index-url https://download.pytorch.org/whl/cpu"
 
 
 def assert_torch_from_cpu_index_first(run: str) -> None:
-    """In one `run:` text, torch is installed from the PyTorch CPU index alone before the heavy
-    requirements, which then resolve from PyPI only (no extra index, no dependency confusion)."""
+    """In one `run:` text, torch is installed from the PyTorch CPU index alone, without its
+    dependencies, before the heavy requirements. Those, torch's pinned dependencies included, then
+    resolve from PyPI only (no extra index, no dependency confusion)."""
     assert "--extra-index-url" not in run
     torch_at = run.index(TORCH_INDEX_INSTALL)
     assert torch_at < run.index("-r requirements-heavy.txt")

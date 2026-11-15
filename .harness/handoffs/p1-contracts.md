@@ -4,7 +4,7 @@
 Tooling, contracts, fixtures and locked tests for Phase 1, so the five implementer tasks can start against fixed interfaces.
 
 ## Status
-done after review round 1 (`.harness/reviews/p1-contracts-round1.md`): every item fixed, local gates green. Heavy tests and the CI install are still unverified until the next CI run.
+done after review round 2 (`.harness/reviews/p1-contracts-round2.md`): every item fixed, local gates green. Heavy tests and the CI install are still unverified until the next CI run.
 
 ## What changed
 - `pyproject.toml`: ruff (E, F, I, B; line length 110), mypy strict with the pydantic plugin, pytest (`testpaths`, `pythonpath = ["."]`, `-p pytester`, `heavy` marker), mutmut paths. mypy `ignore_missing_imports` for every heavy import an implementer may need (`kokoro`, `misaki`, `stable_whisper`, `whisper`, `torch`, `torchaudio`) and for `soundfile`, which ships no type information.
@@ -12,7 +12,7 @@ done after review round 1 (`.harness/reviews/p1-contracts-round1.md`): every ite
 - `pipeline/constants.py`: every number from spec.md section 4, plus voice, safe-zone, file-size, caption and golden-frame values.
 - `pipeline/schema.py`: strict Pydantic models (`extra="forbid"`, no type coercion, frozen). `Script.narration_text()` and `narration_words()` are the one tokenisation voice, align, captions and QA share. `WordTiming` rejects end before start; `QAReport` requires `passed` to match `failures`; `QAFailure.check` is a fixed set of names.
 - Stubs with signatures and docstrings, bodies raising NotImplementedError: `voice/kokoro.py` (`synthesize`, `check_wav`, `VoiceError`), `voice/align.py` (`align_words`, `to_word_timings`, `AlignError`), `render/captions_ass.py` (`escape_ass_text`, `build_ass`), `render/compose.py` (`subtitles_filter_value`, `build_ffmpeg_args`, `compose`, `ComposeError`), `render/qa.py` (`VideoStats`, `duration_range_for`, `evaluate`, `measure`, `run_qa`), `render_one.py` (`render`, `main`, `DEFAULT_CACHE_DIR`). Each heavy step has a pure, locally testable part.
-- `queue/approved/sample-40s.json`: the Racetrack Playa sliding rocks, 99 written words after review round 1 (first trimmed from 106: Kokoro speaks numbers in full and pauses at sentence ends, which could push 106 words past 45 s). Every number and name is from the PLOS ONE paper's abstract (doi 10.1371/journal.pone.0105948): speculation since the 1940s, more than 60 rocks moved on December 20, 2013, ice 3 to 6 mm thick, up to 224 m of travel, a team including Scripps Institution of Oceanography scientists. No individuals are named.
+- `queue/approved/sample-40s.json`: the Racetrack Playa sliding rocks, 98 written words after review round 2 (first trimmed from 106: Kokoro speaks numbers in full and pauses at sentence ends, which could push 106 words past 45 s). Every number and name is from the PLOS ONE paper's abstract (doi 10.1371/journal.pone.0105948): the hook says "for decades nobody had seen one move" (the abstract dates speculation to the 1940s; the old "since the 1940s" wording implied someone had seen one before), more than 60 rocks moved on December 20, 2013, ice 3 to 6 mm thick, up to 224 m of travel, a team including Scripps Institution of Oceanography scientists. No individuals are named.
 - `tests/conftest.py`: task-aware selection; unknown `LOOM_TASK` is a usage error; heavy tests run only when `CI=true`.
 - Tests: `test_schema.py`, `test_conftest_selection.py` (pytester), `voice/test_kokoro.py`, `voice/test_align.py`, `render/test_captions_ass.py`, `render/test_compose.py`, `render/test_qa.py`, `test_render_one.py` (fakes for wiring, heavy golden render), `test_workflows.py` (render.yml), `test_ci_workflow.py`, `test_scope_check.py`. Helpers: `wavs.py`, `media.py`, `workflow_rules.py`.
 - `tests/scope_check.py`: the server-side twin of the lock hook. Reads the task YAML and `locks.yaml` from the base ref, diffs with `--no-renames`.
@@ -36,7 +36,16 @@ done after review round 1 (`.harness/reviews/p1-contracts-round1.md`): every ite
 - Also: an automated security review of the first round-1 commit found that `git diff --name-only` quotes non-ASCII paths, which would hide a `.claude/hooks/` file from the patterns. The checker now uses `-z`, with a regression test on a non-ASCII hook file name.
 - Removed the kokoro-onnx fallback notes from spec.md and this handoff (owner decision). spec.md's pin date corrected to 2026-11-15.
 
+## Review round 2 fixes
+1. Tampered weights: `test_tampered_weights_fail_before_kokoro_loads`, parametrized over the three default voice files, tampers one file at a time and expects `VoiceError`, no `out_path`, the file fetched, and no `KModel` or `KPipeline` constructed. The `synthesize` docstring now says all three hashes are checked before anything from kokoro is constructed.
+2. Kokoro runtime failure: `test_kokoro_failure_raises_voice_error` makes the fake pipeline raise when called, expects `VoiceError`, no `out_path`, and that the pipeline was called once (so the error came from synthesis). It also checks every download used `VOICE_REPO_ID`, `VOICE_REPO_REVISION` and the given cache dir, which closes the old risk that only the pin format was tested. Both tests use a `fake_kokoro` fixture that puts fake `huggingface_hub` and `kokoro` modules in `sys.modules` and sets the pinned hashes to match the fake files. The docstring names those entry points, rules out a direct torch import and module-level caching. workflow.md's R2 row lists both tests.
+3. ci.yml: a missing `origin/$base` now prints `origin/$base not found` before exiting (asserted in `test_ci_scope_check_uses_pr_base_or_main`).
+4. torch and torchaudio install with `--no-deps` from the CPU index; torch's dependencies (from the 2.11.0+cpu wheel's `Requires-Dist`, fetched from download.pytorch.org) and theirs are pinned in requirements-heavy.txt and come from PyPI. `workflow_rules.TORCH_INDEX_INSTALL` now includes `--no-deps`, so render.yml must do the same. `test_torch_dependencies_are_pinned` checks the list. spec.md section 7 records the pins and the install order.
+5. Sample hook: "for decades nobody had seen one move". 98 words.
+- `ALIGN_MODEL_NAME` stays `base.en`: the owner gave no answer on `small.en` in this session.
+
 ## Decisions made (and why)
+- torch installs with `--no-deps` instead of using a constraints file: the CPU index then supplies only torch and torchaudio, and every other package comes pinned from PyPI, so fewer packages depend on the second index.
 - Voice package is `kokoro` 0.9.4 (PyTorch, misaki G2P), confirmed by the owner in review round 1 for voice and timing quality. kokoro leaves transformers, spaCy and the spaCy model loose, so they are pinned, and `en_core_web_sm` is installed from its release wheel so misaki never pip-installs at runtime.
 - Whisper model `base.en` for alignment: neither PLAN.md nor spec.md names one. The words come from the script, so the model only supplies timing; base.en is English-only and quick on CPU. Move up a size if alignment drifts.
 - Cache keys hash `pipeline/constants.py` instead of repeating the revision literal, so a revision bump cannot leave a stale key.
@@ -78,7 +87,8 @@ done after review round 1 (`.harness/reviews/p1-contracts-round1.md`): every ite
 - The compose heavy test's hand-written captions use DejaVu Sans, which `ubuntu-latest` is expected to have.
 - On a push run of a stacked branch, the scope check diffs against `origin/main`, as instructed; the PR run (against `github.base_ref`) is the authoritative one.
 - An automated security review of the commits flagged two issues, both addressed in the last commit: (1) CI ran the scope checker from the branch, so a branch could edit it. It now runs the copy from the base ref; only the `task/p1-contracts` branch may fall back to its own copy when the base has none, and any other branch fails. A second review round also led to dropping `git fetch` (the checkout has no credentials; `fetch-depth: 0` already provides `origin/*`). `ci.yml` and `Makefile` are now locked too. Still open: a branch can edit `ci.yml` itself and drop the step. The hook blocks that locally and the scope check flags it on later task PRs, but nothing server side stops it on a free private repo without required workflows, so the owner's PR diff review remains the backstop. (2) `Task/x` skipped the check; the prefix is now matched case-insensitively (regression test `test_task_prefix_in_other_case_is_not_skipped`). Non-task branches are still skipped on purpose: the owner's own branches edit harness and admin files.
-- Kokoro weights are pinned by contract, but only the p1-tts-kokoro implementation enforces it; the light test checks only the format of the constants.
+- Kokoro weights: the light tests now exercise the revision, cache dir and hash checks through fakes. They rely on the docstring's entry points (`hf_hub_download`, `from kokoro import KModel, KPipeline`, no direct torch import). An implementation that imports kokoro differently fails them and should write `CONTRACT_CHANGE.md` rather than work around it. Checked against a throwaway inline reference implementation (not committed): all four new cases pass, and the stub fails them with NotImplementedError.
+- `--no-deps` torch install: if the torch 2.11.0+cpu wheel needs a package not in the pinned list, the PyPI step still installs it unpinned; `test_torch_dependencies_are_pinned` holds a hardcoded list that must be updated when torch is bumped. Whether pip accepts the installed torch against these pins is unverified until CI runs.
 - The `kokoro-v1_0.pth` hash is the Hugging Face LFS sha256 from the API, not hashed locally. `config.json` (2351 bytes) and `af_heart.pt` were downloaded at the pinned revision and hashed, and `af_heart.pt` matched its LFS hash.
 - Captions: a single word wider than the 864 px safe width at 96 px cannot wrap and would spill past the edges. Nothing in the sample comes close ("Oceanography" is the longest); a script with a very long word would need a smaller font, and visual-qa should watch for it.
 - Captions: the room above and below the `\pos` y (two font sizes) fits three wrapped lines at the default 3 words per line; more words per line could need more.
@@ -92,6 +102,16 @@ done after review round 1 (`.harness/reviews/p1-contracts-round1.md`): every ite
 - Then the five implementer tasks can run in file-name order.
 
 ## Evidence
+Review round 2, 2026-11-15:
+- `.venv/Scripts/python.exe -m ruff check .`: All checks passed.
+- `.venv/Scripts/python.exe -m mypy --strict pipeline/`: Success, no issues found in 11 source files.
+- `.venv/Scripts/python.exe -m pytest -q --tb=short --cov=pipeline` (LOOM_TASK=p1-contracts): 97 passed, 110 skipped, 0 failed; coverage 89%.
+- `LOOM_TASK=p1-tts-kokoro`, `tests/voice/test_kokoro.py`: 15 failed (all NotImplementedError), 3 skipped (heavy).
+- `.venv/Scripts/python.exe -m pytest -q --tb=short .harness/tests`: 51 passed.
+- torch and torchaudio 2.11.0+cpu `Requires-Dist` read from the cp312 manylinux wheel `.metadata` files on download.pytorch.org; dependency versions from PyPI's JSON API.
+
+Docs: spec.md section 7 (torch dependency pins, `--no-deps` install order), workflow.md R2 row.
+
 Review round 1, 2026-11-15:
 - `.venv/Scripts/python.exe -m ruff check .`: All checks passed.
 - `.venv/Scripts/python.exe -m mypy --strict pipeline/`: Success, no issues found in 11 source files.

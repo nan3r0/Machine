@@ -57,6 +57,7 @@ def test_ci_scope_check_uses_pr_base_or_main() -> None:
     assert 'git show "origin/$base:tests/scope_check.py"' in text
     assert "git fetch" not in text, "checkout has no credentials; fetch-depth 0 already has origin/*"
     assert '[ "$BRANCH" = "task/p1-contracts" ]' in text, "only the bootstrap PR may use its own checker"
+    assert '|| { echo "origin/$base not found" >&2; exit 1; }' in text, "a missing base must say so"
     assert wf["jobs"]["check"]["steps"][0]["with"]["fetch-depth"] == 0
     assert 'python "$checker" "$BRANCH" "origin/$base"' in text
 
@@ -99,6 +100,17 @@ def test_requirements_are_pinned_exactly() -> None:
             line = line.split("#")[0].strip()
             if line and not line.startswith("--"):
                 assert "==" in line or " @ https://" in line, f"{name}: {line} is not pinned"
+
+
+def test_torch_dependencies_are_pinned() -> None:
+    """torch installs with --no-deps, so its dependencies must be pinned for PyPI to supply them."""
+    # Requires-Dist of the torch 2.11.0+cpu wheel (torchaudio declares none), plus mpmath (sympy)
+    # and markupsafe (jinja2). Update this list when torch is bumped.
+    needed = {"filelock", "typing-extensions", "setuptools", "sympy", "mpmath", "networkx", "jinja2",
+              "markupsafe", "fsspec"}
+    text = (ROOT / "requirements-heavy.txt").read_text(encoding="utf-8")
+    pinned = set(re.findall(r"^([A-Za-z0-9_.-]+)==", text, flags=re.MULTILINE))
+    assert needed <= {name.lower() for name in pinned}, needed - pinned
 
 
 def test_requirements_use_no_extra_index_and_hash_direct_urls() -> None:

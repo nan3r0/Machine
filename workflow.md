@@ -55,7 +55,7 @@ Locked by p1-contracts. Every task's acceptance test is `test_acceptance` in its
 | PRD criterion | Test |
 |---|---|
 | R1.1, R1.2 | `tests/test_schema.py` |
-| R2.1 to R2.3 | `tests/voice/test_kokoro.py` (`test_acceptance`, `test_second_run_uses_cache_offline`, `test_unpinned_voice_fails_before_any_download`, `check_wav` tests); weight pins in `tests/test_pins.py` |
+| R2.1 to R2.3 | `tests/voice/test_kokoro.py` (`test_acceptance`, `test_second_run_uses_cache_offline`, `test_unpinned_voice_fails_before_any_download`, `test_tampered_weights_fail_before_kokoro_loads`, `test_kokoro_failure_raises_voice_error`, `check_wav` tests); weight pins in `tests/test_pins.py` |
 | R3.1, R3.2 | `tests/voice/test_align.py` (heavy acceptance on the fixture wav, plus a hypothesis property on `to_word_timings`) |
 | R4.1 to R4.3 | `tests/render/test_captions_ass.py` (hypothesis property `test_every_word_shown_once_in_order_inside_the_audio`) |
 | R5.1 to R5.3 | `tests/render/test_compose.py::test_acceptance` (heavy; also writes `out/frames/compose-*.png`) |
