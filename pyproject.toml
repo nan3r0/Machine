@@ -48,5 +48,9 @@ markers = [
     "heavy: needs ffmpeg, torch or Kokoro; runs only in CI (CI=true), skipped locally",
 ]
 
+[tool.mutmut]
+paths_to_mutate = ["pipeline/"]
+tests_dir = ["tests/"]
+
 [tool.coverage.run]
 source = ["pipeline"]

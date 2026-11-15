@@ -80,7 +80,8 @@ def test_split_word_spans_its_pieces() -> None:
 
 def test_unicode_words_are_kept_exactly() -> None:
     words = ["Café", "{x}", "naïve\\", "日本"]
-    pieces = [(" Café", 0.0, 0.3), (" {x}", 0.3, 0.6), (" naïve\\", 0.6, 0.9), (" 日", 0.9, 1.0), ("本", 1.0, 1.2)]
+    pieces = [(" Café", 0.0, 0.3), (" {x}", 0.3, 0.6), (" naïve\\", 0.6, 0.9),
+              (" 日", 0.9, 1.0), ("本", 1.0, 1.2)]
     timings = align.to_word_timings(words, pieces, 2.0)
     assert [t.word for t in timings] == words
     assert timings[3].end == 1.2

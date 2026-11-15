@@ -1,3 +1,7 @@
 # Paths implementers may never edit (glob patterns, project-relative).
 # Filled in by the contracts task (p1-contracts) and approved by merge.
-locked: []
+# tests/** covers every test file, tests/conftest.py, the fixtures, the helpers and tests/scope_check.py.
+locked:
+  - tests/**
+  - pipeline/schema.py
+  - pipeline/constants.py
