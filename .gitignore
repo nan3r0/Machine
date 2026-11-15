@@ -1,5 +1,13 @@
 __pycache__/
 .pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.hypothesis/
+.coverage
+.venv/
 out/
 .harness/reviews/
+.harness/PAUSE
+.harness/loom.lock
+.harness/limit_state.json
 .claude/worktrees/

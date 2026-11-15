@@ -1,0 +1,51 @@
+[project]
+name = "shorts-pipeline"
+version = "0.1.0"
+requires-python = ">=3.11"
+
+[tool.ruff]
+target-version = "py311"
+line-length = 110
+extend-exclude = [".claude"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B"]
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+plugins = ["pydantic.mypy"]
+
+# Heavy packages are installed only in CI and the render workflow (requirements-heavy.txt),
+# so local mypy runs must not fail on their missing imports.
+[[tool.mypy.overrides]]
+module = [
+    "kokoro_onnx",
+    "kokoro_onnx.*",
+    "onnxruntime",
+    "onnxruntime.*",
+    "stable_whisper",
+    "stable_whisper.*",
+    "whisper",
+    "whisper.*",
+    "torch",
+    "torch.*",
+    "torchaudio",
+    "torchaudio.*",
+]
+ignore_missing_imports = true
+
+# soundfile is light but ships no type information.
+[[tool.mypy.overrides]]
+module = ["soundfile"]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-p pytester"
+markers = [
+    "heavy: needs ffmpeg, torch or Kokoro; runs only in CI (CI=true), skipped locally",
+]
+
+[tool.coverage.run]
+source = ["pipeline"]
