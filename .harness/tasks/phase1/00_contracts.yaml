@@ -20,7 +20,11 @@ notes: |
     pipeline/render_one.py) with the public signatures and docstrings the tests call, bodies raising
     NotImplementedError. No Protocols: each has one implementation.
   - Empty pipeline/*/__init__.py files.
-  - queue/approved/sample-40s.json: one hand-written ~40 s script (about 105 words) in the owner's niche.
+  - queue/approved/sample-40s.json: one hand-written ~40 s script (about 105 words) in the niche
+    "Solved Internet & Everyday Mysteries", following the content rules in PLAN.md section 4: an
+    everyday mystery with a documented, sourced answer, no private individuals, no violence. Include
+    real source facts so the script's numbers and names are checkable. Pick a topic with a few numbers
+    or dates, so captions and QA are exercised on digits too.
   - tests/fixtures/: a short committed wav plus its exact text, for align and QA tests.
   - Unit tests per task, one test_acceptance per task. Then add every test path, schema.py,
     constants.py and tests/conftest.py to locks.yaml.

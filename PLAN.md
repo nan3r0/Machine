@@ -153,6 +153,14 @@ flowchart TD
 
 Ad revenue alone won't pay much. Plan for **affiliate links, sponsorships, and Shorts as a funnel into long-form videos**.
 
+### Chosen niche: Solved Internet & Everyday Mysteries
+
+Evergreen, and every "solved" claim can be checked against a source, which suits the fact-check layer. Content rules:
+- Only mysteries with a documented, sourced resolution. Never present speculation as the answer; skip cases where the solution is disputed.
+- Name only public figures and organisations. No private individuals, no unproven accusations.
+- No graphic violence, gore or detailed crime; skip cases centred on a death or victim.
+- The "solved" source goes in `source_fact_ids` like any other fact, so the exact and meaning checks cover the resolution too.
+
 ### Niche risk
 
 - **Finance / health / legal:** YouTube's inauthentic-content enforcement targets mass-produced AI "expert" content here. If you choose one: no advice, stricter fact-checking, and read every script.
