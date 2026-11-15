@@ -1,4 +1,4 @@
 # Tasks that passed all three gates. The owner adds an id here after Gate 3.
 # tests/conftest.py runs only these tasks' tests, plus the LOOM_TASK task's tests,
 # so main stays green while later tasks are unbuilt.
-done: []
+done: [p1-contracts]

@@ -24,8 +24,8 @@ You are the Stage 0 orchestrator (HARNESS.md section 10, Stage 0). Model: Sonnet
 
 ## State (2026-11-15, end of first orchestrator session)
 - Merged to main: harness, hook hardening, plan research, doc sync, orchestrator scripts, rotation hook, Stop hook registration, context guard moved to `.claude/hooks/` (PRs #1 to #5, #7 to #13).
-- **p1-contracts:** PR #6 is ready for review and awaiting the owner's approval and merge (main checkpoint: locked tests). Branch `task/p1-contracts`, worktree `.claude/worktrees/hook-hardening`. Five fix rounds done; Gate 2 and security approve; CI fully green at `b16cad0`. Do not push to it again unless the owner asks for changes.
-- After PR #6 merges: close-out (add `p1-contracts` to `.harness/status.yaml`, etc.), then `p1-docs-check` (test_author) and the five implementer tasks (`p1-tts-kokoro`, `p1-align`, `p1-captions-ass`, `p1-compose`, `p1-qa`; Sonnet, at most 2 at once, separate worktrees), then `p1-render-cli`, `p1-actions-workflow`, phase-end reviews.
+- **p1-contracts:** merged (PR #6), close-out done on branch `docs/p1-contracts-closeout` (status.yaml, workflow.md, CLAUDE.md, outcome log).
+- Next: `p1-docs-check` (test_author) and the five implementer tasks (`p1-tts-kokoro`, `p1-align`, `p1-captions-ass`, `p1-compose`, `p1-qa`; Sonnet, at most 2 at once, separate worktrees), then `p1-render-cli`, `p1-actions-workflow`, phase-end reviews.
 
 ## Open items
 - Owner decision pending: alignment model `base.en` vs `small.en` (orchestrator recommends `small.en` for tighter caption timing).
