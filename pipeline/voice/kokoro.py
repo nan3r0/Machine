@@ -31,8 +31,9 @@ def synthesize(
     paths (`KModel(config=..., model=...)` and the voice `.pt` path), so it never downloads by
     itself without the revision.
 
-    Raises VoiceError for blank text, a voice with no `voices/<voice>.pt` entry in
-    VOICE_FILE_SHA256 (before any download), a hash mismatch, any Kokoro failure, or output that
+    Raises VoiceError for blank text or a voice with no `voices/<voice>.pt` entry in
+    VOICE_FILE_SHA256, both checked before kokoro or torch is imported and before any download;
+    also for a hash mismatch, any Kokoro failure, or output that
     `check_wav` rejects. On any error no file is left at `out_path`. No retry.
     """
     raise NotImplementedError

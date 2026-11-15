@@ -8,7 +8,9 @@ from typing import Any
 
 ROOT = Path(__file__).resolve().parent.parent
 FRAMES_DIR = ROOT / "out" / "frames"
-# The `\pos(x,y)` override in caption text; the one pattern captions and golden-render tests share.
+# An override block in caption text; escaped braces (`\{`, `\}`) do not open or close one.
+ASS_OVERRIDE = re.compile(r"(?<!\\)\{.*?(?<!\\)\}")
+# The `\pos(x,y)` override tag; search only inside ASS_OVERRIDE blocks, since words show as plain text.
 ASS_POS = re.compile(r"\\pos\(\s*(-?[\d.]+)\s*,\s*(-?[\d.]+)\s*\)")
 # Last caption End in CAPTIONS, in seconds.
 CAPTIONS_END_S = 9.5

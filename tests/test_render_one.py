@@ -115,7 +115,7 @@ def test_acceptance(tmp_path: Path) -> None:
     dialogues = [line for line in ass.splitlines() if line.startswith("Dialogue:")]
     assert len(dialogues) == len(SCRIPT.narration_words())
     for line in dialogues:
-        positions = media.ASS_POS.findall(line)
+        positions = media.ASS_POS.findall("".join(media.ASS_OVERRIDE.findall(line)))
         assert len(positions) == 1, line
         x, y = map(float, positions[0])
         assert constants.SAFE_LEFT_PX <= x <= constants.SAFE_RIGHT_PX

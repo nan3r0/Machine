@@ -13,7 +13,7 @@ from pipeline.schema import WordTiming
 from tests import media
 
 CS = 0.011  # one centisecond of ASS time rounding, plus float noise
-OVERRIDE = re.compile(r"(?<!\\)\{.*?(?<!\\)\}")
+OVERRIDE = media.ASS_OVERRIDE
 SAFE_CENTRE_X = (constants.SAFE_LEFT_PX + constants.SAFE_RIGHT_PX) / 2
 LINE_ROOM = 2 * constants.CAPTION_FONT_SIZE
 
@@ -60,7 +60,8 @@ def assert_wraps_inside_safe_zone(ass: str) -> None:
         assert int(style["MarginL"]) == constants.SAFE_LEFT_PX
         assert int(style["MarginR"]) == constants.WIDTH - constants.SAFE_RIGHT_PX
         assert int(fields[5]) == 0 and int(fields[6]) == 0, "event margins would replace the style's"
-        assert "\\q2" not in fields[9] and "\\an" not in fields[9]
+        blocks = "".join(OVERRIDE.findall(fields[9]))
+        assert "\\q2" not in blocks and "\\an" not in blocks
 
 
 def timings_for(words: list[str], step: float = 0.4, gap: float = 0.05) -> list[WordTiming]:
@@ -79,7 +80,8 @@ def assert_captions_match(ass: str, timings: list[WordTiming], words_per_line: i
         plain = OVERRIDE.sub("", text)
         assert escape_ass_text(timing.word) in plain
         assert len(plain.split()) <= words_per_line
-        positions = media.ASS_POS.findall(text)
+        # Only override blocks count: an escaped word may show "\pos(...)" as plain text.
+        positions = media.ASS_POS.findall("".join(OVERRIDE.findall(text)))
         assert len(positions) == 1, f"need exactly one \\pos in {text!r}"
         x, y = map(float, positions[0])
         assert x == pytest.approx(SAFE_CENTRE_X)
