@@ -17,6 +17,7 @@ Check, in order (HARNESS.md section 6a):
 5. security: no secrets in code or logs, no shell injection in FFmpeg or subprocess calls, no unpinned dependencies.
 6. fit: follows existing interfaces and CLAUDE.md rules, no duplicate helpers, nothing outside paths_allowed.
 7. maintainability: clear names, no dead code, docstrings on public interfaces.
+8. docs: the handoff's Docs section is complete, and nothing in the diff makes PLAN.md, PRD.md, spec.md, architecture.md or workflow.md false. A doc the diff makes false is blocking.
 
 Reply with this JSON only:
 
@@ -25,7 +26,7 @@ Reply with this JSON only:
  "blocking": [{"file": "...", "line": 0, "severity": "high", "issue": "...", "scenario": "...", "fix_hint": "..."}],
  "non_blocking": [{"file": "...", "issue": "..."}],
  "checklist": {"contract": "pass", "test_integrity": "pass", "edge_cases": "pass",
-               "failure_handling": "pass", "security": "pass", "fit": "pass", "maintainability": "pass"}}
+               "failure_handling": "pass", "security": "pass", "fit": "pass", "maintainability": "pass", "docs": "pass"}}
 ```
 
 Only real defects are blocking. Style preferences are non_blocking. A blocking finding needs file:line, severity (critical/high/medium/low), a concrete failure scenario and a fix hint (HARNESS.md section 6b); without a scenario it goes in non_blocking.
