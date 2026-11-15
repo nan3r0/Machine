@@ -91,8 +91,14 @@ def test_makefile_check_runs_every_gate_tool() -> None:
 
 def test_makefile_audits_only_project_requirements() -> None:
     makefile = (ROOT / "Makefile").read_text(encoding="utf-8")
-    assert "pip-audit -r requirements.txt -r requirements-heavy.txt\n" in makefile
+    assert "pip-audit -r requirements.txt -r requirements-heavy.txt " in makefile
     assert "requirements-dev" not in makefile
+
+
+def test_makefile_ignores_only_the_known_setuptools_advisories() -> None:
+    makefile = (ROOT / "Makefile").read_text(encoding="utf-8")
+    ignored = re.findall(r"--ignore-vuln (\S+)", makefile)
+    assert sorted(ignored) == ["GHSA-xmj3-9gf7-h52w", "PYSEC-2026-3447"]
 
 
 def test_ci_upgrades_setuptools_before_any_install() -> None:
