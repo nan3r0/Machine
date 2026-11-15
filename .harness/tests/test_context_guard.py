@@ -1,4 +1,4 @@
-"""Tests for .harness/scripts/context_guard.py (Stop hook that rotates sessions at the context threshold).
+"""Tests for .claude/hooks/context_guard.py (Stop hook that rotates sessions at the context threshold).
 
 Each test builds a throwaway project and calls the hook's main() with a Stop payload.
 The window launcher is monkeypatched, so nothing is ever started.
@@ -12,7 +12,7 @@ from pathlib import Path
 
 import pytest
 
-GUARD = Path(__file__).resolve().parents[1] / "scripts" / "context_guard.py"
+GUARD = Path(__file__).resolve().parents[2] / ".claude" / "hooks" / "context_guard.py"
 
 CONFIG = """\
 rotation:

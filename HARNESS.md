@@ -295,7 +295,7 @@ Thresholds live in `.harness/config.yaml` (`rotate_context_pct: 60`) so the retr
 4. **Claude Code auto-compact:** left on as the last resort only, for a single step that overshoots. Rotation should normally happen first; the outcome log records `auto_compacted: true` if it didn't, so the retrospective can lower the threshold.
 
 ### Automatic rotation (Stage 0)
-A Stop hook, `.harness/scripts/context_guard.py` (plain Python, no model), rotates sessions so the owner does not watch context:
+A Stop hook, `.claude/hooks/context_guard.py` (plain Python, no model; owner-only like every hook, because it runs automatically in every session), rotates sessions so the owner does not watch context:
 1. After each reply it reads the last assistant message in the transcript and sums `input_tokens`, `cache_read_input_tokens` and `cache_creation_input_tokens`, divided by `rotation.context_window_tokens`.
 2. It only guards sessions the launcher marked: `LOOM_TASK` set (task, threshold `rotate_context_pct`) or `LOOM_ROLE=orchestrator` (threshold `orchestrator_rotate_context_pct`). Manual and headless reviewer sessions are never touched. Below the threshold it does nothing.
 3. At or above it, with no fresh handoff, it creates `.harness/rotate/<session_id>.started` (if missing; its mtime is the first block time) and blocks the stop, telling the session to update its handoff and docs, commit and reply ROTATE. `stop_hook_active` only suppresses a second block.
@@ -513,6 +513,7 @@ shorts-pipeline/
 ├── .claude/
 │   ├── settings.json               # hooks registration
 │   ├── hooks/enforce_locks.py      # blocks locked paths + paths outside paths_allowed
+│   ├── hooks/context_guard.py      # Stop hook: automatic rotation at the context threshold
 │   ├── agents/                     # role definitions with model frontmatter
 │   │   ├── architect.md            # model: opus
 │   │   ├── implementer.md          # model: sonnet
@@ -523,7 +524,7 @@ shorts-pipeline/
 │   ├── config.yaml                 # role → model, limits, concurrency
 │   ├── locks.yaml
 │   ├── tasks/<phase>/*.yaml
-│   ├── scripts/                    # context_guard.py (Stop hook), open_task_window.ps1, wait_*.sh
+│   ├── scripts/                    # open_task_window.ps1, run_review.sh, wait_*.sh
 │   ├── rotate/                     # per-session rotation markers (gitignored)
 │   ├── handoffs/<task-id>.md
 │   ├── log/outcomes.jsonl
