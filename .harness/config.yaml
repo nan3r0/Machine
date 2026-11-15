@@ -27,7 +27,9 @@ limits:
   review_rounds_before_escalation: 2
 
 rotation:                            # HARNESS.md section 7a
-  rotate_context_pct: 60             # Stage 0 manual sessions rotate at about 50%
+  rotate_context_pct: 60             # task sessions
+  orchestrator_rotate_context_pct: 50
+  context_window_tokens: 200000      # verify with /context; a smaller value only rotates earlier
   rotations_before_split: 3          # then the Architect splits the task (section 6)
 
 escalation:                          # HARNESS.md section 6

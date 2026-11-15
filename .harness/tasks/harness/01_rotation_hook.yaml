@@ -1,0 +1,51 @@
+id: h-rotation-hook
+title: Automatic session rotation at the context threshold
+depends_on: []
+role: implementer
+notes: |
+  Owner decision 2026-11-15: sessions rotate themselves; the owner should not have to watch context.
+  Build `.harness/scripts/context_guard.py`, a Claude Code Stop hook (plain Python + PyYAML, no model):
+  1. Read the hook JSON from stdin (`transcript_path`, `stop_hook_active`, `session_id`). Tokens in use =
+     input_tokens + cache_read_input_tokens + cache_creation_input_tokens of the last assistant message
+     in the transcript. Percent = tokens / `rotation.context_window_tokens` in `.harness/config.yaml`.
+  2. Threshold: `rotate_context_pct` when LOOM_TASK is set, `orchestrator_rotate_context_pct` otherwise.
+     Below it, or if `stop_hook_active` is true, exit 0 (never loop).
+  3. At or above it, if the session's handoff (`.harness/handoffs/<LOOM_TASK>.md`, or
+     `.harness/handoffs/orchestrator.md` for the orchestrator) was not modified after the marker
+     `.harness/rotate/<session_id>.started`: create that marker if missing, then block the stop
+     (exit 2) with stderr: "Context at N%. Update your handoff (status partial if unfinished) and the
+     docs it lists, commit, then reply ROTATE."
+  4. If the handoff is newer than the marker: launch the replacement window with
+     `open_task_window.ps1` (same task and model; orchestrator uses Task "orchestrator" with no
+     LOOM_TASK and Message "continue as orchestrator"; tasks use "Read your handoff and continue the
+     task"), passing `-ClosePid <this session's parent powershell pid>`. Then exit 0.
+  Extend `open_task_window.ps1`:
+  - `-ClosePid`: after the new `claude` process starts, stop that PowerShell process (the old window).
+  - an orchestrator mode (no LOOM_TASK set, title "Loom orchestrator").
+  - security finding: replace the `.venv/Scripts/python.exe:*` allowlist entry with only
+    `-m pytest`, `-m ruff`, `-m mypy` and `-m pip install -r` forms.
+  - optional Windows toast: skip unless built in; a console line is enough.
+  Tests first in `.harness/tests/test_context_guard.py`: below threshold, stop_hook_active, first
+  crossing blocks with the message, fresh handoff launches (monkeypatch the launcher call), orchestrator
+  vs task thresholds, malformed transcript exits 0 without launching (a broken guard must never block
+  a session forever).
+  Docs: HARNESS.md section 7a (automatic rotation) and section 11 layout; orchestrator handoff's Token rules.
+  The owner registers the hook in `.claude/settings.json` afterwards (admin step); write the exact JSON
+  block to add in the handoff's Next step.
+paths_allowed:
+  - .harness/scripts/context_guard.py
+  - .harness/scripts/open_task_window.ps1
+  - .harness/tests/test_context_guard.py
+  - .gitignore
+  - HARNESS.md
+  - .harness/handoffs/orchestrator.md
+tests:
+  - .harness/tests/test_context_guard.py
+acceptance: .harness/tests/test_context_guard.py::test_acceptance
+context_files:
+  - HARNESS.md#7a
+  - .harness/config.yaml
+  - .harness/scripts/open_task_window.ps1
+  - .harness/scripts/wait_task.sh
+  - .harness/handoffs/orchestrator.md
+max_turns: 40
