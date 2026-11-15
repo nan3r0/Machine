@@ -20,10 +20,10 @@ plugins = ["pydantic.mypy"]
 # so local mypy runs must not fail on their missing imports.
 [[tool.mypy.overrides]]
 module = [
-    "kokoro_onnx",
-    "kokoro_onnx.*",
-    "onnxruntime",
-    "onnxruntime.*",
+    "kokoro",
+    "kokoro.*",
+    "misaki",
+    "misaki.*",
     "stable_whisper",
     "stable_whisper.*",
     "whisper",
@@ -42,10 +42,17 @@ ignore_missing_imports = true
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+pythonpath = ["."]
 addopts = "-p pytester"
 markers = [
     "heavy: needs ffmpeg, torch or Kokoro; runs only in CI (CI=true), skipped locally",
 ]
+
+[tool.mutmut]
+paths_to_mutate = ["pipeline/"]
+tests_dir = ["tests/"]
+# Tests read these from the repo root, so mutmut must copy them into its working tree.
+also_copy = ["queue/", ".harness/", "assets/"]
 
 [tool.coverage.run]
 source = ["pipeline"]

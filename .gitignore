@@ -5,6 +5,8 @@ __pycache__/
 .hypothesis/
 .coverage
 .venv/
+.cache/
+mutants/
 out/
 .harness/reviews/
 .harness/PAUSE
