@@ -7,7 +7,7 @@ A free, model-free CI check (`tests/docs_check.py`) that fails when the docs dri
 done (local Gate 1 green; CI not yet run, branch not pushed)
 
 ## What changed
-- `tests/docs_check.py` (new, locked by `tests/**`): `problems(root)` returns one line per problem; `main` prints them plus a summary line and exits 1 if any. Checks, in output order: status.yaml `done` vs task YAMLs and the workflow.md Phase 1 status table (both directions); backticked `tests/...` refs in the workflow.md criterion-to-test map (file exists, `path::name` names a function found by `ast.walk`, so class methods count); task ids in the CLAUDE.md `## Status` section have a task YAML; every done task has a handoff with a non-empty `## Docs` section; every lessons.md entry under `## Entries` has a non-empty value for every field of the `## Entry format` template. Optional argument: repo root (used by the tests).
+- `tests/docs_check.py` (new, locked by `tests/**`): `problems(root)` returns one line per problem; `main` prints them plus a summary line and exits 1 if any. Checks, in output order: status.yaml `done` vs task YAMLs and the workflow.md Phase 1 status table (both directions); backticked `tests/...` refs in the workflow.md criterion-to-test map (file exists, `path::name` names a function found by `ast.walk`, so class methods count); task ids in the CLAUDE.md `## Status` section have a task YAML; every done task has a handoff with a non-empty `## Docs` section; every lessons.md entry under `## Entries` has a non-empty value for every field of the `## Entry format` template; each heading those rules read exists (`REQUIRED_SECTIONS`), and the Entry format lists at least one field. Optional argument: repo root (used by the tests).
 - `tests/test_docs_check.py` (new, locked): a clean temporary fixture repo with its own "no problems" test (and a CRLF variant), one negative test per rule asserting the exact message, a CLI test, wiring tests for Makefile and ci.yml, a lock test, and `test_acceptance` running the script on the real repo.
 - `Makefile`: `python tests/docs_check.py` is the first line of `make check` (fastest step, fails first).
 - `.github/workflows/ci.yml`: new `Docs check` step right after the scope check, before the installs, so drift fails in seconds. PyYAML is already installed by the scope check step on every branch.
@@ -19,14 +19,15 @@ done (local Gate 1 green; CI not yet run, branch not pushed)
 - Lessons fields are read from the `## Entry format` template (text before the first `:`), so changing the template changes the check. An empty value counts as a missing field.
 - Status table rows count only when the first cell (backticks stripped) is a whole task id and the status cell starts with `done`, so "Harness setup (...)" and range rows like "p1-tts-kokoro to p1-phase-review" are ignored.
 - Task ids in the CLAUDE.md Status section are matched as `p<N>-...` or `h-...`, the two prefixes in use.
-- No sections found (heading missing) for the status table, criterion map, CLAUDE.md Status or lessons sections means no problems from that rule, not an error. Missing `workflow.md`, `CLAUDE.md`, `lessons.md` or `status.yaml` raise (traceback, exit 1).
+- A missing heading the rules depend on is reported as a problem (`workflow.md: no '### Criterion to test map' section`), so renaming a heading fails the check instead of silently switching its rule off (fail closed, per lessons.md). Added after the advisor review flagged the first version as failing open.
+- A missing `workflow.md`, `CLAUDE.md`, `lessons.md` or `status.yaml` raises (traceback, exit 1) rather than printing a problem line. Still loud; kept simple.
 
 ## Tried and abandoned
 - Running the tests with the system Python: it has a stray `tests` package in site-packages that shadows the repo's `tests` package (`cannot import name 'docs_check' from 'tests'`), and `test_scope_check.py` fails the same way. Used `.venv/Scripts/python` instead; no repo change needed.
 
 ## Known risks / fragile spots
 - Bare test names in the criterion map (the parenthesised names in the R2.1 row, `check_wav`) are not checked; only backticked `tests/...` refs are.
-- Headings are matched exactly (`### Phase 1 status`, `### Criterion to test map`, `## Status`, `## Entries`, `## Entry format`, `## Docs`). Renaming one silently disables that rule. A Phase 2 status table needs the heading added to `workflow_done`.
+- Headings are matched exactly. Renaming one now fails the check, so a doc heading change needs `REQUIRED_SECTIONS` changed in the same PR (a locked file, so the Architect or a test_author does it). A Phase 2 status table needs its heading added to `workflow_done` and `REQUIRED_SECTIONS`.
 - Task ids with a prefix other than `p<N>-` or `h-` in the CLAUDE.md Status section are not seen.
 - Once `p1-docs-check` is in status.yaml `done`, `test_acceptance` runs on main: from then on any doc drift fails the main suite, not only the CI step.
 
@@ -38,14 +39,16 @@ done (local Gate 1 green; CI not yet run, branch not pushed)
 - workflow.md: Phase 1 status table gets a `p1-docs-check` done row in the same commit that adds it to status.yaml (see Next step). Step 4 (Gate 1 locally) adds `python tests/docs_check.py`. Row R7.5 can name `tests/test_docs_check.py` next to the scope check.
 - CLAUDE.md: Commands, Gate 1 line: add `python tests/docs_check.py` to the local commands and "docs check" to what `make check` adds. Status line: p1-docs-check done; next is the five implementer tasks.
 - spec.md section 6 (Gate 1 list, line 70): add the docs check to what `make check` runs.
+- architecture.md section on docs sync (line 54) and the HARNESS.md section 11 tree comment for `docs_check.py` (line 535): both say it covers status, task ids and the criterion map; add handoff Docs sections, lessons.md entries and required headings.
 - PRD.md R7.5: optionally add the docs check to the list of tools `make check` runs.
 - HARNESS.md section 10 Stage 0 close-out: state that status.yaml and the workflow.md status row must change in the same commit (the check fails otherwise).
 - lessons.md, Traps: "Run tests with the project venv (`.venv/Scripts/python -m pytest`); the system Python has a `tests` package in site-packages that shadows the repo's `tests` imports." Not a mistake in this task, so no entry; owner's call whether it belongs in Traps.
 
 ## Evidence
-- `LOOM_TASK=p1-docs-check .venv/Scripts/python -m pytest -q --tb=short tests/test_docs_check.py tests/test_ci_workflow.py tests/test_scope_check.py`: 77 passed.
-- Before the script existed: collection failed (import error). Before the Makefile and ci.yml edits: only the wiring test failed, the other 20 passed.
-- `LOOM_TASK=p1-docs-check .venv/Scripts/python -m pytest -q --tb=short`: 121 passed, 110 skipped (heavy and unbuilt tasks).
+- `LOOM_TASK=p1-docs-check .venv/Scripts/python -m pytest -q tests/test_docs_check.py`: 27 passed.
+- Before the script existed: collection failed (import error). Before the Makefile and ci.yml edits: only the wiring test failed, the other 20 passed. Before the missing-section fix: the 6 new section tests failed, the other 21 passed.
+- `LOOM_TASK=p1-docs-check .venv/Scripts/python -m pytest -q --tb=short`: 127 passed, 110 skipped (heavy and unbuilt tasks).
+- `.venv/Scripts/python tests/scope_check.py task/p1-docs-check main`: scope check passed, 5 changed files.
 - `.venv/Scripts/python -m pytest -q .harness/tests`: 69 passed.
 - `.venv/Scripts/ruff check .`: all checks passed. `.venv/Scripts/mypy --strict tests/docs_check.py`: no issues.
 - `.venv/Scripts/python tests/docs_check.py` on this branch: `docs check passed`.

@@ -167,6 +167,19 @@ def test_lessons_fields_come_from_the_entry_format(repo: Path) -> None:
         "lessons.md: entry '2026-11-15: A mistake' lacks the field 'Rule going forward'"] * 2
 
 
+@pytest.mark.parametrize(("doc", "heading"), [
+    ("workflow.md", "### Phase 1 status"), ("workflow.md", "### Criterion to test map"),
+    ("CLAUDE.md", "## Status"), ("lessons.md", "## Entry format"), ("lessons.md", "## Entries")])
+def test_missing_section_is_a_problem_not_a_pass(repo: Path, doc: str, heading: str) -> None:
+    edit(repo, doc, f"{heading}\n", "")
+    assert f"{doc}: no '{heading}' section" in docs_check.problems(repo)
+
+
+def test_entry_format_without_fields_is_a_problem(repo: Path) -> None:
+    edit(repo, "lessons.md", LESSON_FORMAT, "## Entry format\n\nSee the entries below.\n")
+    assert docs_check.problems(repo) == ["lessons.md: the '## Entry format' section lists no fields"]
+
+
 def test_cli_prints_one_line_per_problem_and_fails(repo: Path) -> None:
     (repo / ".harness/handoffs/p1-a.md").unlink()
     edit(repo, "CLAUDE.md", "Next: h-hook", "Next: p1-ghost")

@@ -10,6 +10,7 @@ Prints one line per problem and exits 1 if there are any (HARNESS.md section 10,
   `path::name` names a test function in that file
 - every task id in the CLAUDE.md `## Status` section has a task YAML
 - every lessons.md entry under `## Entries` fills each field of the `## Entry format` template
+- each heading those rules read (REQUIRED_SECTIONS) exists, so a renamed heading fails the check
 """
 
 import ast
@@ -24,6 +25,11 @@ TASK_ID = re.compile(r"^[a-z0-9]+(-[a-z0-9]+)*$")
 # Task ids as they appear in prose: p1-contracts, h-rotation-hook.
 TASK_ID_IN_TEXT = re.compile(r"\b(?:p\d+|h)-[a-z0-9]+(?:-[a-z0-9]+)*\b")
 TEST_REF = re.compile(r"`(tests/[^`]+)`")
+REQUIRED_SECTIONS = {
+    "workflow.md": ["### Phase 1 status", "### Criterion to test map"],
+    "CLAUDE.md": ["## Status"],
+    "lessons.md": ["## Entry format", "## Entries"],
+}
 
 
 def read_lines(path: Path) -> list[str]:
@@ -117,8 +123,10 @@ def handoff_problems(root: Path, done: list[str]) -> list[str]:
 
 
 def lessons_problems(lessons: list[str]) -> list[str]:
-    template = section(lessons, "## Entry format") or []
-    fields = [line.split(":")[0] for line in template if ":" in line and not line.startswith("#")]
+    template = section(lessons, "## Entry format")
+    fields = [line.split(":")[0] for line in template or [] if ":" in line and not line.startswith("#")]
+    if template is not None and not fields:
+        return ["lessons.md: the '## Entry format' section lists no fields"]
     found = []
     entries = section(lessons, "## Entries") or []
     for i, line in enumerate(entries):
@@ -131,16 +139,23 @@ def lessons_problems(lessons: list[str]) -> list[str]:
     return found
 
 
+def missing_sections(docs: dict[str, list[str]]) -> list[str]:
+    """A renamed heading would silently switch its rule off, so it is a problem in itself."""
+    return [f"{doc}: no '{heading}' section" for doc, headings in REQUIRED_SECTIONS.items()
+            for heading in headings if heading not in docs[doc]]
+
+
 def problems(root: Path) -> list[str]:
     known = task_ids(root)
     done = [str(t) for t in load_yaml(root / ".harness" / "status.yaml").get("done") or []]
-    workflow = read_lines(root / "workflow.md")
+    docs = {doc: read_lines(root / doc) for doc in REQUIRED_SECTIONS}
     return [
-        *status_problems(done, known, workflow_done(workflow)),
-        *map_problems(root, workflow),
-        *claude_status_problems(read_lines(root / "CLAUDE.md"), known),
+        *missing_sections(docs),
+        *status_problems(done, known, workflow_done(docs["workflow.md"])),
+        *map_problems(root, docs["workflow.md"]),
+        *claude_status_problems(docs["CLAUDE.md"], known),
         *handoff_problems(root, done),
-        *lessons_problems(read_lines(root / "lessons.md")),
+        *lessons_problems(docs["lessons.md"]),
     ]
 
 
