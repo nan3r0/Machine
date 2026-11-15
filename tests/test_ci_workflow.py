@@ -36,6 +36,9 @@ def test_ci_scope_check_uses_pr_base_or_main() -> None:
     text = rules.run_text(wf)
     assert 'base="${BASE_REF:-main}"' in text
     assert 'git show "origin/$base:tests/scope_check.py"' in text
+    assert "git fetch" not in text, "checkout has no credentials; fetch-depth 0 already has origin/*"
+    assert '[ "$BRANCH" = "task/p1-contracts" ]' in text, "only the bootstrap PR may use its own checker"
+    assert wf["jobs"]["check"]["steps"][0]["with"]["fetch-depth"] == 0
     assert 'python "$checker" "$BRANCH" "origin/$base"' in text
 
 

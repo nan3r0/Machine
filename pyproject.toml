@@ -51,6 +51,8 @@ markers = [
 [tool.mutmut]
 paths_to_mutate = ["pipeline/"]
 tests_dir = ["tests/"]
+# Tests read these from the repo root, so mutmut must copy them into its working tree.
+also_copy = ["queue/", ".harness/", "assets/"]
 
 [tool.coverage.run]
 source = ["pipeline"]

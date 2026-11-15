@@ -27,17 +27,23 @@ jobs:
           cache: pip
           cache-dependency-path: requirements*.txt
 
-      # The checker runs from the base ref, so a branch cannot weaken it. Only a base that does not
-      # have it yet (the contracts PR that adds it) falls back to the branch's copy.
+      # The checker script comes from the base ref, so a branch cannot weaken the script itself
+      # (it can still edit this workflow; the owner's PR diff review covers that). Only the
+      # contracts task, which adds the checker, may fall back to its own copy.
       - name: Scope check (task branches only)
         run: |
           base="${BASE_REF:-main}"
-          git fetch --no-tags origin "$base"
+          git rev-parse --verify --quiet "origin/$base" > /dev/null
           python -m pip install -q pyyaml==6.0.3
           checker="$RUNNER_TEMP/scope_check.py"
-          if ! git show "origin/$base:tests/scope_check.py" > "$checker" 2>/dev/null; then
-            echo "base has no scope checker yet; using the branch copy"
+          if git cat-file -e "origin/$base:tests/scope_check.py"; then
+            git show "origin/$base:tests/scope_check.py" > "$checker"
+          elif [ "$BRANCH" = "task/p1-contracts" ]; then
+            echo "base has no scope checker yet; p1-contracts adds it, so using the branch copy"
             cp tests/scope_check.py "$checker"
+          else
+            echo "base origin/$base has no tests/scope_check.py" >&2
+            exit 1
           fi
           python "$checker" "$BRANCH" "origin/$base"
 

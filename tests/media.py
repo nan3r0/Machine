@@ -24,7 +24,7 @@ Style: Default,DejaVu Sans,96,&H00FFFFFF,&H00FFFFFF,&H00000000,&H00000000,1,0,0,
 Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
 Dialogue: 0,0:00:00.00,0:00:03.00,Default,,0,0,0,,{\\pos(486,1100)}In 1938, a
 Dialogue: 0,0:00:03.00,0:00:06.00,Default,,0,0,0,,{\\pos(486,1100)}ballpoint pen
-Dialogue: 0,0:00:06.00,0:00:09.50,Default,,0,0,0,,{\\pos(486,1100)}cost $10
+Dialogue: 0,0:00:06.00,0:00:09.50,Default,,0,0,0,,{\\pos(486,1100)}cost \\{10\\} $
 """
 
 

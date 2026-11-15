@@ -1,6 +1,8 @@
 """R2: Kokoro voice (task p1-tts-kokoro)."""
 
 import os
+import subprocess
+import sys
 import wave
 from pathlib import Path
 
@@ -11,7 +13,8 @@ from pipeline.voice import kokoro
 from pipeline.voice.kokoro import VoiceError
 from tests.wavs import write_wav
 
-TEXT = (Path(__file__).resolve().parent.parent / "fixtures" / "align_sample.txt").read_text(
+ROOT = Path(__file__).resolve().parent.parent.parent
+TEXT = (ROOT / "tests" / "fixtures" / "align_sample.txt").read_text(
     encoding="utf-8").strip()
 
 
@@ -39,12 +42,19 @@ def test_acceptance(tmp_path: Path, cache_dir: Path) -> None:
 
 
 @pytest.mark.heavy
-def test_second_run_uses_cache_offline(tmp_path: Path, cache_dir: Path,
-                                       monkeypatch: pytest.MonkeyPatch) -> None:
-    """R2.2: once cached, synthesis needs no network."""
+def test_second_run_uses_cache_offline(tmp_path: Path, cache_dir: Path) -> None:
+    """R2.2: once cached, synthesis needs no network.
+
+    The offline run is a fresh process, because huggingface_hub reads HF_HUB_OFFLINE at import.
+    """
     kokoro.synthesize("Warm the cache.", tmp_path / "warm.wav", cache_dir)
-    monkeypatch.setenv("HF_HUB_OFFLINE", "1")
-    out = kokoro.synthesize("Cached voice works offline.", tmp_path / "offline.wav", cache_dir)
+    out = tmp_path / "offline.wav"
+    code = ("import sys; from pathlib import Path; from pipeline.voice import kokoro; "
+            "kokoro.synthesize('Cached voice works offline.', Path(sys.argv[1]), Path(sys.argv[2]))")
+    env = {**os.environ, "HF_HUB_OFFLINE": "1", "TRANSFORMERS_OFFLINE": "1"}
+    result = subprocess.run([sys.executable, "-c", code, str(out), str(cache_dir)], cwd=ROOT, env=env,
+                            capture_output=True, text=True)
+    assert result.returncode == 0, result.stderr[-2000:]
     assert kokoro.check_wav(out) > 0
 
 

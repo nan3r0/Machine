@@ -56,8 +56,9 @@ class Fakes:
         out.write_bytes(b"mp4")
         return out
 
-    def run_qa(self, video: Path, voice: Path, timings: list[WordTiming], words: list[str]) -> QAReport:
-        self.calls.append(("qa", (video, voice, timings, words)))
+    def run_qa(self, video: Path, voice: Path, timings: list[WordTiming],
+               script_words: list[str]) -> QAReport:
+        self.calls.append(("qa", (video, voice, timings, script_words)))
         return self.report
 
     def steps(self) -> list[str]:
