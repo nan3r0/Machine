@@ -22,13 +22,13 @@ You are the Stage 0 orchestrator (HARNESS.md section 10, Stage 0). Model: Sonnet
 - One watcher per task; no polling loops in your own turns.
 - One Gate 2 pass per task; chase only blocking findings.
 
-## State (2026-11-15, end of first orchestrator session)
-- Merged to main: harness, hook hardening, plan research, doc sync, orchestrator scripts, rotation hook, Stop hook registration, context guard moved to `.claude/hooks/` (PRs #1 to #5, #7 to #13).
-- **p1-contracts:** merged (PR #6), close-out done on branch `docs/p1-contracts-closeout` (status.yaml, workflow.md, CLAUDE.md, outcome log).
-- Next: `p1-docs-check` (test_author) and the five implementer tasks (`p1-tts-kokoro`, `p1-align`, `p1-captions-ass`, `p1-compose`, `p1-qa`; Sonnet, at most 2 at once, separate worktrees), then `p1-render-cli`, `p1-actions-workflow`, phase-end reviews.
+## State (2026-11-15, second orchestrator session)
+- Merged to main: p1-contracts (#6), p1-tts-kokoro (#22), p1-docs-check (#23). Alignment model is `small.en` (merged, #21).
+- Running (Sonnet, own windows and worktrees under `.claude/worktrees/`): `p1-align` (worktree `align`), `p1-captions-ass` (worktree `captions`), started from main `ca16ad3`. One watcher each; on TASK_DONE run Gate 1, Gate 2 review, push, PR, wait_ci.
+- Next after those: `p1-compose` (security and visual_qa specialist reviews apply), `p1-qa`, then `p1-render-cli`, `p1-actions-workflow`, phase-end reviews.
+- Gotchas: run launch and worktree commands from the main checkout, not from a worktree session (isolation blocks them). Create each task venv with an absolute path; chained `cd` leaks between parallel Bash calls.
 
 ## Open items
-- Owner decided 2026-11-15: alignment model `small.en`. `ALIGN_MODEL_NAME` in locked `pipeline/constants.py:35` still says `base.en`; owner must change it (LOOM_ADMIN) before `p1-align` starts.
 - Usage-limit fixture saved (`.harness/tests/fixtures/limit_messages/session_5h-2026-11-15.txt`). Add the weekly one when it happens.
 - Known risk: pip-audit ignores two setuptools 81.0.0 advisories because torch 2.11 caps setuptools below 82; drop the ignores when torch lifts the cap (Makefile comment). It also ignores torch PYSEC-2025-194 (fixed in 2.13) because no torchaudio for torch 2.13 exists and stable-ts imports torchaudio at load; move both pins when one ships.
 - **Owner to-do, remind them after the first implementer task closes out:** create a reusable skill for this setup, or expand the existing `graph-engineering` skill, with `skill-creator` in an owner-launched admin window (`~/.claude/skills` is protected). It packages the HARNESS.md and CLAUDE.md templates, task, handoff and orchestrator files, all `.harness/scripts`, the lock hook and the rotation hook. It must bake in:
@@ -36,3 +36,4 @@ You are the Stage 0 orchestrator (HARNESS.md section 10, Stage 0). Model: Sonnet
   - safety: contracts-first locked tests with a task-aware conftest, lock hook plus CI scope check, `LOOM_ADMIN` for config files, read-only reviewers, specialist reviews only when triggered, clean child-session environments, self-closing windows
   - docs: handoff Docs section, Scribe close-out, CI docs check, lessons logged the same turn
   - cost and limits: $0 rule, heavy tests in CI only, usage-limit pause and resume, at most 2 parallel task sessions
+- Doc follow-ups not yet applied: architecture.md line 54 and HARNESS.md section 11 tree comment for `docs_check.py` (add handoff Docs sections, lessons entries, required headings); HARNESS.md section 10 close-out should say status.yaml and the workflow.md row change in the same commit. Pin `huggingface_hub` in `requirements-heavy.txt` (needs owner approval, outside any task's paths). Review notes on kokoro.py (streaming hash, NaN guard, `repo_id`) were non-blocking and are not chased.

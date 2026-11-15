@@ -67,7 +67,7 @@ Never allowed: a render that continues after voice failure, an empty or silent w
 
 ## 6. Quality gates
 
-Gate 1, before any review (HARNESS.md sections 6a and 6b), is `make check` in CI: ruff, `mypy --strict pipeline/`, `pytest --cov=pipeline`, bandit, semgrep, gitleaks, pip-audit and actionlint. Any high-severity finding fails it. Locally (Windows, no make) run the light part:
+Gate 1, before any review (HARNESS.md sections 6a and 6b), is `make check` in CI: ruff, `mypy --strict pipeline/`, `pytest --cov=pipeline`, the docs check (`tests/docs_check.py`), bandit, semgrep, gitleaks, pip-audit and actionlint. Any high-severity finding fails it. Locally (Windows, no make) run the light part:
 
 ```
 ruff check .
