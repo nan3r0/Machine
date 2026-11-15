@@ -56,7 +56,7 @@ In Stage 0 the "orchestrator" is one long-running Claude Code session acting as 
 | **Implementer** | **Claude Sonnet 5.5** (`claude-sonnet-5-5`) | Best balance of coding quality, speed and usage cost for scoped tasks with clear tests | Each implementation task, inside its worktree |
 | **Escalation Engineer** | **Claude Opus 5.5** | Takes over a task after the implementer gets stuck (see §6), with the full failure history | On escalation |
 | **Reviewer** | **Claude Opus 5.5**, read-only, fresh context | Independent review catches what the author missed; read-only so it can't "fix" its way into approval. A different model from the implementer, so it doesn't share Sonnet's blind spots | **After every task**, before that task merges (§6a). Never batched to the end |
-| **Scribe** | **Claude Haiku 5.5** (`claude-haiku-5-5`) | Mechanical, high-volume, low-risk work: formatting handoffs, updating README/docstrings from diffs, sorting outcome-log entries into failure categories, writing the weekly digest | After merges; nightly/weekly |
+| **Scribe** | **Claude Haiku 5.5** (`claude-haiku-5-5`) | Mechanical, high-volume, low-risk work: **doc sync at every task close-out** (status lines, workflow status, outcome log, the mechanical items from the handoff's Docs section), formatting handoffs, updating README/docstrings from diffs, sorting outcome-log entries into failure categories, writing the weekly digest. Never writes decisions or lessons; those need the orchestrator or Architect | After every task merge; nightly/weekly |
 | **Retrospective Analyst** | **Claude Opus 5.5** | Spots patterns in failure logs and proposes rule/prompt/skill changes | Weekly, or every 10 completed tasks |
 
 **Claude Fable 5.2:** deliberately not in the routing. The work isn't hard enough to justify it, and it would use up plan limits quickly. If your plan includes it, keep it as a manual break-glass option for a task that fails even after Opus escalation. Never route to it automatically.
@@ -159,6 +159,7 @@ flowchart LR
 5. **Security:** no secrets in code/logs, no shell injection in FFmpeg/subprocess calls, no unpinned or untrusted dependencies.
 6. **Fit with the codebase:** follows existing interfaces and CLAUDE.md rules; no duplicate helpers; no scope creep outside `paths_allowed`.
 7. **Maintainability:** clear names, no dead code, docstrings on public interfaces.
+8. **Docs aligned:** the handoff's Docs section is complete, and nothing in the diff contradicts PLAN.md, PRD.md, spec.md, architecture.md or workflow.md. A doc that the diff makes false is a blocking issue.
 
 The output is structured, so Loom can act on it without interpretation:
 
@@ -244,9 +245,13 @@ done | partial | blocked
 - ...
 ## Next step for whoever picks this up
 - ...
+## Docs
+- <doc file>: <what must change because of this work>   ← REQUIRED, write "none" if none
 ## Evidence
 - tests: <passed/failed counts>   - commands run: <...>
 ```
+
+The **Docs** section lists every doc change this work needs: decisions (PRD.md section 7), structure (architecture.md), rules and numbers (spec.md), the criterion-to-test map and status (workflow.md), the CLAUDE.md status line, and any lessons.md entry. The implementer edits the docs inside its `paths_allowed`; everything else listed here is applied at task close-out (§10, Stage 0).
 
 ---
 
@@ -378,8 +383,12 @@ No orchestrator code yet. One long-running **orchestrator session** (Claude Code
 - the window is launched without `-NoExit`, so it **closes on its own** when the session ends (`/exit`). The orchestrator never kills only the `claude` process, which leaves a broken terminal
 - a background watcher tells the orchestrator when the handoff and commit land; it then runs Gate 1 itself, checks the diff against `paths_allowed`, launches read-only reviewer sessions (no edit tools, no shell) plus any specialist reviews, pushes and opens the PR
 - tests written and locked first (Opus session), implementation in Sonnet sessions
-- implementer writes `handoff.md` from the template
-- the **orchestrator** appends an outcome line per task (`log_outcome.py`), on a separate bookkeeping branch, never the task branch
+- implementer writes `handoff.md` from the template, including its Docs section
+- **task close-out (doc sync)**, after the task's PR merges, every time:
+  1. the orchestrator writes any lessons.md entry and decision (PRD.md section 7, architecture.md) the task produced
+  2. it launches a **Scribe** session (Haiku, own window, closes when done) that applies the mechanical doc updates: `.harness/status.yaml`, the workflow.md status table, the CLAUDE.md status line, the outcome log (`log_outcome.py`) and the remaining items in the handoff's Docs section
+  3. both go on one docs branch and PR, never the task branch
+- CI runs `tests/docs_check.py` on every push: plain code, no model, so free. It fails when the docs disagree with each other or with the repo (see §11)
 - install the lock/paths `PreToolUse` hook now; it's cheap and catches problems immediately
 - you approve the contracts PR and merge PRs; nothing else needs you
 
@@ -510,6 +519,7 @@ shorts-pipeline/
 │   └── loom/                       # orchestrator code (Stage 1+)
 ├── pipeline/ ...                   # the product (PLAN.md §9)
 └── tests/ ...
+    └── docs_check.py               # locked; CI fails when docs drift (status, criterion map, task ids)
 ```
 
 ---

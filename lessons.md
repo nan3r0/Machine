@@ -88,3 +88,11 @@ How it was caught: a research pass the owner asked for while the contracts task 
 Fix: PLAN.md and PRD.md updated with sources (PR #5).
 Rule going forward: before the Architect plans a phase that touches an external API, check that API's current official docs and record the source and date in PRD.md section 7.
 Test added: none, process rule.
+
+### 2026-11-15: Docs drifted behind the work
+What happened: for several hours, mistakes and decisions (a merge-order slip, the voice package choice, the orchestration setup, five lessons) were not written into lessons.md, PRD.md, architecture.md or HARNESS.md until the owner noticed.
+Why it happened (root cause, not symptom): updating docs depended on the orchestrating session remembering to do it. No step in the harness required it, and nothing failed when docs were stale.
+How it was caught: the owner asked why lessons.md and other docs were not being updated.
+Fix: doc sync built into the harness (owner decision 2026-11-15): a required Docs section in every handoff, a "Docs aligned" item in the Gate 2 checklist, a Haiku Scribe close-out session after every task merge, and the CI check `tests/docs_check.py` (task p1-docs-check).
+Rule going forward: a mistake gets its lessons.md entry, and a decision gets its PRD.md entry, in the same turn it happens, on a docs branch. A task is not closed until its close-out doc sync has merged.
+Test added: `tests/test_docs_check.py` (written by p1-docs-check).
