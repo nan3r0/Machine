@@ -13,7 +13,7 @@ A $0, cloud-only pipeline that scripts, voices, renders and publishes faceless s
 | `architecture.md` | Layers, flows, decisions, testing map, known weak points |
 | `workflow.md` | Stage 0 how-to, module order, criterion to test map, status |
 | `lessons.md` | Mistakes and the rule each produced. Read before changing code |
-| `.harness/tasks/` | Task YAMLs. Your task is the one named in `LOOM_TASK` |
+| `.harness/tasks/` | Task YAMLs. Your task is the one named in `LOOM_TASK`. No `LOOM_TASK` means you are the orchestrator: read `.harness/handoffs/orchestrator.md` first |
 
 ## Status
 
@@ -45,7 +45,7 @@ Pipeline Phase 1 (core render), Harness Stage 0. Harness set up; Phase 1 task gr
 
 **Rotate before the context fills** (HARNESS.md section 7a). Check `/context`; above about 50% on an unfinished task, write a partial handoff and stop, so a fresh session continues from it. To pause, write the handoff with status `partial` and commit WIP. Rotations and usage limits are not failed attempts.
 
-**Keep tool output small** (HARNESS.md section 7b):
+**Spend few tokens** (HARNESS.md section 7b). Chat replies terse (caveman style); code minimal (ponytail: simplest thing that works); docs, commits and PRs in normal English. Tool output small:
 - `pytest -q --tb=short`, single files or test IDs while iterating, full suite only before finishing.
 - FFmpeg and subprocess: `-hide_banner -loglevel error`; long logs go to `out/logs/<step>.log`, then grep them.
 - Search first (`grep -n`), then read only the line ranges you need. Use a subagent for wide searches.
