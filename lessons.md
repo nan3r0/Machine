@@ -96,3 +96,35 @@ How it was caught: the owner asked why lessons.md and other docs were not being 
 Fix: doc sync built into the harness (owner decision 2026-11-15): a required Docs section in every handoff, a "Docs aligned" item in the Gate 2 checklist, a Haiku Scribe close-out session after every task merge, and the CI check `tests/docs_check.py` (task p1-docs-check).
 Rule going forward: a mistake gets its lessons.md entry, and a decision gets its PRD.md entry, in the same turn it happens, on a docs branch. A task is not closed until its close-out doc sync has merged.
 Test added: `tests/test_docs_check.py` (written by p1-docs-check).
+
+### 2026-11-15: A task session wrote to the main checkout instead of its worktree
+What happened: the contracts session used an absolute path under the main repo folder instead of its worktree, so the edit targeted the wrong copy of the repo.
+Why it happened (root cause, not symptom): absolute paths were built from the repo name, not from the session's working directory.
+How it was caught: the lock hook blocked the edit as out of scope.
+Fix: the session redid the edit under the worktree root.
+Rule going forward: in a worktree, build absolute paths only from the worktree root (the session's working directory), never the main checkout.
+Test added: none; the hook already blocks it.
+
+### 2026-11-15: git diff quoted unusual file names and could hide them from the scope check
+What happened: without `-z`, `git diff --name-only` wraps non-ASCII and other unusual paths in quotes with escapes, so a pattern check sees a different string and an edit to a protected file can slip past.
+Why it happened (root cause, not symptom): the checker parsed git's human-readable output instead of its machine format.
+How it was caught: an automated security review of the contracts commits.
+Fix: `tests/scope_check.py` reads `git diff --name-only -z` and splits on NUL.
+Rule going forward: any code that reads file lists from git uses `-z`.
+Test added: regression test for non-ASCII paths in `tests/test_scope_check.py`.
+
+### 2026-11-15: Python written through a Bash heredoc lost its backslashes
+What happened: code with escape sequences, written into test files through a Bash heredoc, came out with halved backslashes: a NUL byte and a broken `\n` landed in the tests.
+Why it happened (root cause, not symptom): the shell and Python each interpreted the backslashes, so non-raw strings were unescaped twice.
+How it was caught: the contracts session's own test run.
+Fix: rewritten with the Edit tool.
+Rule going forward: write or change code containing backslashes with the Edit or Write tool, never through a shell heredoc or `echo`.
+Test added: none, tooling rule.
+
+### 2026-11-15: A Windows-only hook test failed on the Linux CI runner
+What happened: CI's Gate 1 failed on `test_windows_backslashes_and_case_are_normalised`. Linux treats a backslash as part of a file name, so the hook correctly saw no Windows path there. `make check` stopped at that failure, so the main suite and heavy tests never ran.
+Why it happened (root cause, not symptom): harness tests were only ever run on the owner's Windows machine, and nothing marked which ones depend on Windows path rules.
+How it was caught: the second CI run on the contracts PR.
+Fix: the test is skipped off Windows.
+Rule going forward: a test that depends on one operating system's behaviour carries a `skipif` for the others, and every test file is assumed to run on Linux in CI.
+Test added: the test itself, now marked Windows-only.
