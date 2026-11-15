@@ -10,6 +10,7 @@
 .PHONY: check
 
 check:
+	python tests/docs_check.py
 	ruff check .
 	mypy --strict pipeline/
 	pytest -q --tb=short --cov=pipeline --cov-report=term

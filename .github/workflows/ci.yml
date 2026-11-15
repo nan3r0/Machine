@@ -50,6 +50,11 @@ jobs:
           fi
           python "$checker" "$BRANCH" "origin/$base"
 
+      # Runs here as well as in make check so docs drift fails in seconds, before the installs.
+      # The branch copy is fine: the scope check above already blocks implementer edits to tests/.
+      - name: Docs check
+        run: python tests/docs_check.py
+
       - name: Set LOOM_TASK from the branch name
         run: |
           case "$BRANCH" in
