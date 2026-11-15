@@ -294,6 +294,16 @@ Thresholds live in `.harness/config.yaml` (`rotate_context_pct: 60`) so the retr
 3. **Rotation at 60%:** a structured, validated handoff, then a fresh session.
 4. **Claude Code auto-compact:** left on as the last resort only, for a single step that overshoots. Rotation should normally happen first; the outcome log records `auto_compacted: true` if it didn't, so the retrospective can lower the threshold.
 
+### Automatic rotation (Stage 0)
+A Stop hook, `.harness/scripts/context_guard.py` (plain Python, no model), rotates sessions so the owner does not watch context:
+1. After each reply it reads the last assistant message in the transcript and sums `input_tokens`, `cache_read_input_tokens` and `cache_creation_input_tokens`, divided by `rotation.context_window_tokens`.
+2. Below `rotate_context_pct` (task sessions, `LOOM_TASK` set) or `orchestrator_rotate_context_pct` (no `LOOM_TASK`), or when `stop_hook_active` is true, it does nothing.
+3. At or above it, with no fresh handoff, it creates `.harness/rotate/<session_id>.started` and blocks the stop, telling the session to update its handoff and docs, commit and reply ROTATE.
+4. Once the handoff is newer than that marker, it opens the replacement window with `open_task_window.ps1` (same task and model; message "Read your handoff and continue the task", or "continue as orchestrator"), writes `<session_id>.launched` so it fires once, and the old window's PowerShell is stopped (`-ClosePid`, taken from `LOOM_WINDOW_PID`). An orchestrator started by hand has no `LOOM_WINDOW_PID`, so its old window stays open.
+5. Any unreadable input, missing config or launch failure exits 0 with a stderr line: a broken guard never blocks a session.
+
+The owner registers the hook in `.claude/settings.json` (admin step).
+
 ### Stage 0 (manual) equivalent
 - Task done → the session writes its handoff and commits → the session ends with `/exit` and its window closes. The next task starts in a new window.
 - Review findings and CI failures go back to the same session (resume) while its context is small. If its context is large (above ~50%, or a long transcript), the orchestrator rotates instead: a fresh session reads the handoff plus a fix list in `.harness/reviews/<task-id>-round<N>.md`.
@@ -513,6 +523,8 @@ shorts-pipeline/
 │   ├── config.yaml                 # role → model, limits, concurrency
 │   ├── locks.yaml
 │   ├── tasks/<phase>/*.yaml
+│   ├── scripts/                    # context_guard.py (Stop hook), open_task_window.ps1, wait_*.sh
+│   ├── rotate/                     # per-session rotation markers (gitignored)
 │   ├── handoffs/<task-id>.md
 │   ├── log/outcomes.jsonl
 │   ├── retros/<date>.md

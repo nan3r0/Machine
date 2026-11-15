@@ -11,3 +11,4 @@ out/
 .harness/loom.lock
 .harness/limit_state.json
 .claude/worktrees/
+.harness/rotate/
