@@ -1,0 +1,39 @@
+id: p1-docs-check
+title: CI check that fails when the docs drift from each other or the repo
+depends_on: [p1-contracts]
+role: test_author
+notes: |
+  Owner decision 2026-11-15: docs must stay aligned with the project automatically (HARNESS.md
+  section 10, Stage 0, task close-out). This task adds the free, model-free part: a locked script CI
+  runs on every push. Role test_author because it edits locked CI files.
+  tests/docs_check.py exits non-zero with one line per problem when:
+  - a task id in .harness/status.yaml "done" has no task YAML, or is not marked done in the
+    workflow.md Phase 1 status table
+  - a task marked done in workflow.md is missing from status.yaml
+  - a test path in the workflow.md criterion-to-test map does not exist, or a test id
+    (path::name) names a test function that does not exist
+  - a task id named in the CLAUDE.md Status line has no task YAML
+  - a handoff for a task in status.yaml "done" is missing, or its Docs section is missing or empty
+    (the literal "none" counts as filled)
+  - a lessons.md entry under "## Entries" lacks any of the template fields
+  Keep it plain Python plus PyYAML, no model calls. Parse only what the checks need; match the
+  existing headings and table formats in those files rather than inventing new ones.
+  Add a `docs` step to `make check` and ci.yml, after the scope check. Lock the script and its test.
+paths_allowed:
+  - tests/docs_check.py
+  - tests/test_docs_check.py
+  - Makefile
+  - .github/workflows/ci.yml
+  - .harness/locks.yaml
+tests:
+  - tests/test_docs_check.py
+acceptance: tests/test_docs_check.py::test_acceptance
+context_files:
+  - HARNESS.md#7
+  - HARNESS.md#10
+  - workflow.md
+  - CLAUDE.md
+  - lessons.md
+  - .harness/status.yaml
+  - .harness/tasks/phase1/
+max_turns: 40

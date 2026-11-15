@@ -79,6 +79,7 @@ def test_relative_path_is_resolved_against_project(project: Path) -> None:
     assert run_hook(project, "pipeline/schema.py").returncode == 2
 
 
+@pytest.mark.skipif(sys.platform != "win32", reason="backslash is a path separator only on Windows")
 def test_windows_backslashes_and_case_are_normalised(project: Path) -> None:
     path = str(project).replace("/", "\\") + "\\PIPELINE\\Schema.py"
     assert run_hook(project, path).returncode == 2

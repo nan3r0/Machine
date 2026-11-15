@@ -91,6 +91,9 @@ Confirmed by the owner:
 - 2026-11-15: Phase 1 runs at Harness Stage 0: manual sessions, one fresh session per task.
 - 2026-11-15: Phase 1 task graph approved.
 - 2026-11-15: Kokoro is the only voice. edge-tts is dropped (overrides PLAN.md sections 3 and 7).
+- 2026-11-15: Voice package is the PyTorch `kokoro` package with misaki pronunciation, not `kokoro-onnx`. Owner's bar: no loss in voice or timing quality, it must sound human and the captions must sit on the speech with no lag. `kokoro-onnx` is only reconsidered if a side-by-side listen proves it equal. Weights are pinned to a Hugging Face revision and sha256 hashes.
+- 2026-11-15: The owner is hands-off for Stage 0. An orchestrating Claude session launches each task session (in a visible window the owner can watch and type into), runs the gates and reviews, pushes, opens PRs and logs outcomes. The owner approves the contracts PR and merges PRs.
+- 2026-11-15: Docs must stay aligned with the project automatically, through the harness rather than loops or scheduled agents (owner: "extremely important"). Four parts: a required Docs section in every handoff; Gate 2 checklist item 8 "Docs aligned"; a Haiku Scribe doc-sync session at every task close-out, with lessons and decisions written by the orchestrator; and a free, model-free CI check `tests/docs_check.py` (task p1-docs-check). Rejected: `/loop`, which dies with the session, and a scheduled cloud agent, which spends usage even when nothing changed.
 - 2026-11-15: QA's 150 ms speech-rate rule is replaced by alignment sanity checks (R3.2).
 - 2026-11-15: Heavy tests run in CI only, never locally.
 - 2026-11-15: Main stays green with a locked, task-aware `tests/conftest.py` driven by `.harness/status.yaml`.
@@ -98,6 +101,14 @@ Confirmed by the owner:
 - 2026-11-15: PLAN.md updated for Kokoro-only voice, the alignment QA rule and the Phase 1 contract files.
 - 2026-11-15: The "Office / dashboard" in HARNESS.md sections 6b and 10b is the owner's general-purpose tool, not part of this project. Nothing is built for it here.
 - 2026-11-15: Code lives in the private GitHub repo `nan3r0/Machine`, default branch `main`.
+- 2026-11-15: Everything must be completely free. Free tiers only, and no payment method on any account (GitHub, Google Cloud, Meta, TikTok, Cloudflare), so nothing can ever bill.
+- 2026-11-15: Platform research applied to PLAN.md. Sources: developers.google.com/youtube (v3 quota, videos.insert, revision history, Analytics metrics), support.google.com/cloud (OAuth testing and verification), aistudio.google.com/docs (Gemini pricing, rate limits, structured output), developers.facebook.com/docs/instagram-platform (content publishing, token refresh), developers.tiktok.com (Content Posting API, updated 2026-08-04), developers.cloudflare.com/workers-ai (pricing, updated 2026-11-12), docs.github.com (Actions billing), Pexels and Pixabay API docs and licences.
+  - YouTube: no audit needed for public uploads since 2 Nov 2026; uploads use their own quota (1 unit each, 100/day). OAuth consent screen "In production" as a personal unverified app.
+  - Gemini: strongest free model writes scripts, Flash-Lite runs the meaning check (one call per script), large batches spread over several days.
+  - Instagram: Facebook Login for Business with resumable upload, so no public video hosting. Weekly scheduled token refresh (60-day tokens) writing back to GitHub Secrets with a fine-grained token.
+  - TikTok: inbox upload needs only `video.upload` scope approval; one tap per video, at most 5 drafts pending.
+  - Analytics: engaged views, average percentage viewed and retention for Shorts, pulled at days 3 and 7 (no swipe-away metric; 48–72 h lag).
+  - Images: Flux output fitted to 9:16 over a blurred fill. Pexels clips credited in the description.
 - 2026-11-15: Niche is "Solved Internet & Everyday Mysteries", with the content rules in PLAN.md section 4 (sourced resolutions only, no private individuals, no graphic violence). Proposed by Claude, pending owner OK: the rules themselves.
 
 Assumed by Claude (owner can overrule):
@@ -116,8 +127,5 @@ Assumed by Claude (owner can overrule):
 ## 8. Open questions
 
 - **[Decision needed]** Phase 2: Workflow A writes `used_facts.json` on a PR branch while Workflow B writes it on main, so a week-old PR will conflict. Derive used facts from queue files instead? Also: drop `queue/pending/` and `on_merge_approve.yml`, since merge already is approval?
-- **[Decision needed]** Phase 2: Gemini free-tier request limits were cut in late 2025. Check current limits; batch the meaning check into one call per script.
-- **[Decision needed]** Phase 4: Instagram Reels publishing pulls from a public `video_url`. An Actions artifact is not public, so a host or Meta's resumable upload is needed. Long-lived Instagram tokens also expire after about 60 days and need a scheduled refresh.
-- **[Decision needed]** Phase 0: confirm a TikTok app can use the inbox upload scope without audit, before any TikTok code is planned.
-- **[Decision needed]** Phase 5: swipe-away rate is probably not available in the YouTube Analytics API, and data lags 2 to 3 days, so a day-1 pull returns little. Verify before planning Workflow C.
-- Unverified: the YouTube quota cost per upload (PLAN.md says about 1,600 units). Check during Phase 4.
+- To verify in Phase 4: one test upload confirms an unaudited YouTube project's uploads and `publishAt` schedules go public (official docs say yes since 2 Nov 2026, but no example covers an unaudited project).
+- To verify in Phase 2: Gemini free-tier limits for the chosen models in the owner's AI Studio dashboard (published figures come from third parties).

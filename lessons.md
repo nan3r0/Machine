@@ -48,3 +48,83 @@ How it was caught: background security review of the pushed commit.
 Fix: aliasing path forms are blocked, symlinks and junctions are resolved, and hooks, settings and agents need `LOOM_ADMIN=1` at launch. p1-contracts adds a CI scope check, since the hook can never see Bash writes.
 Rule going forward: match protected paths on the resolved file, never the raw string. Enforcement files are protected by default, not only inside tasks. Every local guard gets a server-side check.
 Test added: `test_admin_files_blocked_without_task`, `test_admin_files_blocked_even_for_contract_owner_task`, `test_windows_path_tricks_are_blocked`, `test_symlink_into_locked_dir_is_blocked` in `.harness/tests/test_enforce_locks.py`
+
+### 2026-11-15: PR merged before its last commits were pushed
+What happened: the orchestrating session kept pushing hook fixes and the niche to PR #1's branch after asking the owner to review it. The owner merged the earlier state, so four commits were missing from main and needed a follow-up PR (#2).
+Why it happened (root cause, not symptom): a PR was treated as still open to new work after it had been handed to the owner for review.
+How it was caught: comparing main with the branch after the owner said it was merged.
+Fix: follow-up PR #2.
+Rule going forward: once a PR is handed to the owner, never push to its branch. New work goes on a new branch and PR, or the owner is told "don't merge yet" before any push.
+Test added: none, process rule.
+
+### 2026-11-15: An owner message in a task window was read as a decision it was not
+What happened: the owner typed "stick with kokoro for now" in the contracts window. The session read it as "use the PyTorch `kokoro` package", replaced its own `kokoro-onnx` choice, and dropped the pinned weight hashes, which two reviews then flagged.
+Why it happened (root cause, not symptom): a short, ambiguous message changed a recorded decision without the orchestrating session or the owner confirming what it meant.
+How it was caught: the orchestrating session compared the new handoff with the previous one.
+Fix: the owner chose explicitly (PyTorch `kokoro`, no quality loss allowed) and the weights get pinned by revision and sha256.
+Rule going forward: a task session that reads an owner message as changing a recorded decision states the change in its handoff under Decisions, and the orchestrating session confirms it with the owner before review.
+Test added: none, process rule.
+
+### 2026-11-15: Killing a task session left its window broken
+What happened: stopping the `claude` process in a task window opened with PowerShell `-NoExit` left the terminal in mouse-tracking mode, printing escape codes at the prompt.
+Why it happened (root cause, not symptom): the process was killed instead of exiting, so it never restored the terminal, and `-NoExit` kept the broken window open.
+How it was caught: the owner asked what the junk was.
+Fix: task windows are launched without `-NoExit`, so they close when Claude exits.
+Rule going forward: end a task session with `/exit` or by closing its whole window, never by killing only the `claude` process.
+Test added: none, launcher change.
+
+### 2026-11-15: CI ran git network commands without credentials
+What happened: the first CI run on the contracts PR failed in the scope check: `git fetch` could not authenticate because checkout uses `persist-credentials: false`.
+Why it happened (root cause, not symptom): the step fetched a ref the checkout had already fetched (`fetch-depth: 0`), and network git commands were never tried on the private repo before pushing.
+How it was caught: the first CI run.
+Fix: the redundant fetch is removed (contracts review round 1).
+Rule going forward: with `persist-credentials: false`, CI steps make no git network calls; fetch everything needed in the checkout step.
+Test added: covered by the CI run on every push.
+
+### 2026-11-15: Platform facts in the plan were out of date
+What happened: research found five plan assumptions wrong, including the YouTube audit (no longer needed), upload quota cost, Gemini free limits, Instagram's upload method and a missing analytics metric.
+Why it happened (root cause, not symptom): the plan was written from memory of how the platforms used to work, not checked against current official docs.
+How it was caught: a research pass the owner asked for while the contracts task ran.
+Fix: PLAN.md and PRD.md updated with sources (PR #5).
+Rule going forward: before the Architect plans a phase that touches an external API, check that API's current official docs and record the source and date in PRD.md section 7.
+Test added: none, process rule.
+
+### 2026-11-15: Docs drifted behind the work
+What happened: for several hours, mistakes and decisions (a merge-order slip, the voice package choice, the orchestration setup, five lessons) were not written into lessons.md, PRD.md, architecture.md or HARNESS.md until the owner noticed.
+Why it happened (root cause, not symptom): updating docs depended on the orchestrating session remembering to do it. No step in the harness required it, and nothing failed when docs were stale.
+How it was caught: the owner asked why lessons.md and other docs were not being updated.
+Fix: doc sync built into the harness (owner decision 2026-11-15): a required Docs section in every handoff, a "Docs aligned" item in the Gate 2 checklist, a Haiku Scribe close-out session after every task merge, and the CI check `tests/docs_check.py` (task p1-docs-check).
+Rule going forward: a mistake gets its lessons.md entry, and a decision gets its PRD.md entry, in the same turn it happens, on a docs branch. A task is not closed until its close-out doc sync has merged.
+Test added: `tests/test_docs_check.py` (written by p1-docs-check).
+
+### 2026-11-15: A task session wrote to the main checkout instead of its worktree
+What happened: the contracts session used an absolute path under the main repo folder instead of its worktree, so the edit targeted the wrong copy of the repo.
+Why it happened (root cause, not symptom): absolute paths were built from the repo name, not from the session's working directory.
+How it was caught: the lock hook blocked the edit as out of scope.
+Fix: the session redid the edit under the worktree root.
+Rule going forward: in a worktree, build absolute paths only from the worktree root (the session's working directory), never the main checkout.
+Test added: none; the hook already blocks it.
+
+### 2026-11-15: git diff quoted unusual file names and could hide them from the scope check
+What happened: without `-z`, `git diff --name-only` wraps non-ASCII and other unusual paths in quotes with escapes, so a pattern check sees a different string and an edit to a protected file can slip past.
+Why it happened (root cause, not symptom): the checker parsed git's human-readable output instead of its machine format.
+How it was caught: an automated security review of the contracts commits.
+Fix: `tests/scope_check.py` reads `git diff --name-only -z` and splits on NUL.
+Rule going forward: any code that reads file lists from git uses `-z`.
+Test added: regression test for non-ASCII paths in `tests/test_scope_check.py`.
+
+### 2026-11-15: Python written through a Bash heredoc lost its backslashes
+What happened: code with escape sequences, written into test files through a Bash heredoc, came out with halved backslashes: a NUL byte and a broken `\n` landed in the tests.
+Why it happened (root cause, not symptom): the shell and Python each interpreted the backslashes, so non-raw strings were unescaped twice.
+How it was caught: the contracts session's own test run.
+Fix: rewritten with the Edit tool.
+Rule going forward: write or change code containing backslashes with the Edit or Write tool, never through a shell heredoc or `echo`.
+Test added: none, tooling rule.
+
+### 2026-11-15: A Windows-only hook test failed on the Linux CI runner
+What happened: CI's Gate 1 failed on `test_windows_backslashes_and_case_are_normalised`. Linux treats a backslash as part of a file name, so the hook correctly saw no Windows path there. `make check` stopped at that failure, so the main suite and heavy tests never ran.
+Why it happened (root cause, not symptom): harness tests were only ever run on the owner's Windows machine, and nothing marked which ones depend on Windows path rules.
+How it was caught: the second CI run on the contracts PR.
+Fix: the test is skipped off Windows.
+Rule going forward: a test that depends on one operating system's behaviour carries a `skipif` for the others, and every test file is assumed to run on Linux in CI.
+Test added: the test itself, now marked Windows-only.

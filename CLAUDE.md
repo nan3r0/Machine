@@ -17,7 +17,7 @@ A $0, cloud-only pipeline that scripts, voices, renders and publishes faceless s
 
 ## Status
 
-Pipeline Phase 1 (core render), Harness Stage 0. Harness set up; Phase 1 task graph approved (Kokoro-only voice). Repo: private `nan3r0/Machine`. Niche: Solved Internet & Everyday Mysteries (content rules in PLAN.md section 4). In progress: p1-contracts, paused 2026-11-15 (tooling and pins committed on `task/p1-contracts`; remaining steps in `.harness/handoffs/p1-contracts.md` on that branch). No pipeline code yet. Done tasks: `.harness/status.yaml`. Weak points: architecture.md section 7.
+Pipeline Phase 1 (core render), Harness Stage 0. Harness set up; Phase 1 task graph approved (Kokoro-only voice). Repo: private `nan3r0/Machine`. Niche: Solved Internet & Everyday Mysteries (content rules in PLAN.md section 4). In progress: p1-contracts, in review (draft PR #6; fix round 1 running). Voice: PyTorch `kokoro`, weights pinned. Everything must stay $0: free tiers only, no payment method on any account. No pipeline code yet. Done tasks: `.harness/status.yaml`. Weak points: architecture.md section 7.
 
 ## Commands
 
@@ -41,7 +41,7 @@ Pipeline Phase 1 (core render), Harness Stage 0. Harness set up; Phase 1 task gr
 - Edit only files that match your task's `paths_allowed`, plus your own `.harness/handoffs/<task-id>.md`, `CONTRACT_CHANGE.md` and `ENV_ISSUE.md`.
 - Need a file outside it? Say so in the handoff and stop. Don't widen the scope yourself.
 
-**Write the handoff before finishing.** `.harness/handoffs/<task-id>.md`, from HARNESS.md section 7: Goal, Status, What changed (and why), Decisions made, Tried and abandoned (required, "none" if none), Known risks, Next step, Evidence (test counts, commands run). A task without a complete handoff is not done.
+**Write the handoff before finishing.** `.harness/handoffs/<task-id>.md`, from HARNESS.md section 7: Goal, Status, What changed (and why), Decisions made, Tried and abandoned (required, "none" if none), Known risks, Next step, Docs (required, "none" if none: every doc change this work needs), Evidence (test counts, commands run). A task without a complete handoff is not done. Edit the docs inside your `paths_allowed`; the rest is applied at close-out (HARNESS.md section 10).
 
 **Rotate before the context fills** (HARNESS.md section 7a). Check `/context`; above about 50% on an unfinished task, write a partial handoff and stop, so a fresh session continues from it. To pause, write the handoff with status `partial` and commit WIP. Rotations and usage limits are not failed attempts.
 
@@ -62,6 +62,7 @@ Pipeline Phase 1 (core render), Harness Stage 0. Harness set up; Phase 1 task gr
 5. Security: no secrets in code or logs, no shell injection in FFmpeg or subprocess, pinned dependencies
 6. Fit: existing interfaces, no duplicate helpers, nothing outside `paths_allowed`
 7. Maintainability: clear names, no dead code, docstrings on public interfaces
+8. Docs aligned: handoff Docs section complete; no doc made false by the diff
 
 Every blocking finding from any reviewer needs file:line, severity, a concrete failure scenario and a fix hint; otherwise it is a note. Specialist reviews (security, visual QA, phase-end QA Lead, CSO, Auditor) follow HARNESS.md section 6b and the triggers in `.harness/config.yaml`.
 

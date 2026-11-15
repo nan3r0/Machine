@@ -30,18 +30,20 @@ It's built in four stages that line up with the pipeline phases. Phase 1 of the 
 
 | Step | Stage 0 (Phase 1) | Stage 1+ (Phase 2 onward) |
 |---|---|---|
-| Breaking work into tasks | You run an Opus session | **Automatic** (Architect) |
-| Writing + locking tests | You run an Opus session | **Automatic** (Test Author) |
+| Breaking work into tasks | Orchestrator session (Opus) | **Automatic** (Architect) |
+| Writing + locking tests | Orchestrator launches an Opus session | **Automatic** (Test Author) |
 | Approving contracts/tests | **You** (merge PR) | **You** (merge PR), once per batch of tasks |
-| Implementing tasks | You start Sonnet sessions | **Automatic** |
-| Test → fix loops, retries, escalation | Manual | **Automatic** |
-| **Per-task review** | You run an Opus review session | **Automatic**, after every task (§6a) |
-| Merging + integration tests | Manual | **Automatic** |
-| Handoffs + outcome log | Agent writes the handoff; you log | **Automatic** |
+| Implementing tasks | Orchestrator launches Sonnet sessions | **Automatic** |
+| Test → fix loops, retries, escalation | Orchestrator, by hand | **Automatic** |
+| **Per-task review** | Orchestrator launches read-only Opus reviewers | **Automatic**, after every task (§6a) |
+| Merging + integration tests | **You** merge; orchestrator checks CI | **Automatic** |
+| Handoffs + outcome log | Agent writes the handoff; orchestrator logs | **Automatic** |
 | Retrospective changes | — | Proposed automatically; **you** merge the PR |
 | Blocked tasks | — | **You**, only when Opus has failed twice |
 
 From Stage 1, your job is: **approve contracts per batch, approve retrospective PRs, and handle the rare blocked task.** Everything between those checkpoints runs on its own.
+
+In Stage 0 the "orchestrator" is one long-running Claude Code session acting as a manual Loom (see §10, Stage 0). Your job in Stage 0 is the same as from Stage 1: approve contracts and merge PRs.
 
 ---
 
@@ -54,7 +56,7 @@ From Stage 1, your job is: **approve contracts per batch, approve retrospective 
 | **Implementer** | **Claude Sonnet 5.5** (`claude-sonnet-5-5`) | Best balance of coding quality, speed and usage cost for scoped tasks with clear tests | Each implementation task, inside its worktree |
 | **Escalation Engineer** | **Claude Opus 5.5** | Takes over a task after the implementer gets stuck (see §6), with the full failure history | On escalation |
 | **Reviewer** | **Claude Opus 5.5**, read-only, fresh context | Independent review catches what the author missed; read-only so it can't "fix" its way into approval. A different model from the implementer, so it doesn't share Sonnet's blind spots | **After every task**, before that task merges (§6a). Never batched to the end |
-| **Scribe** | **Claude Haiku 5.5** (`claude-haiku-5-5`) | Mechanical, high-volume, low-risk work: formatting handoffs, updating README/docstrings from diffs, sorting outcome-log entries into failure categories, writing the weekly digest | After merges; nightly/weekly |
+| **Scribe** | **Claude Haiku 5.5** (`claude-haiku-5-5`) | Mechanical, high-volume, low-risk work: **doc sync at every task close-out** (status lines, workflow status, outcome log, the mechanical items from the handoff's Docs section), formatting handoffs, updating README/docstrings from diffs, sorting outcome-log entries into failure categories, writing the weekly digest. Never writes decisions or lessons; those need the orchestrator or Architect | After every task merge; nightly/weekly |
 | **Retrospective Analyst** | **Claude Opus 5.5** | Spots patterns in failure logs and proposes rule/prompt/skill changes | Weekly, or every 10 completed tasks |
 
 **Claude Fable 5.2:** deliberately not in the routing. The work isn't hard enough to justify it, and it would use up plan limits quickly. If your plan includes it, keep it as a manual break-glass option for a task that fails even after Opus escalation. Never route to it automatically.
@@ -90,7 +92,7 @@ stateDiagram-v2
 
 ```mermaid
 flowchart LR
-    P1[Pipeline Phase 1<br/>core render · sequential] --> S0[Stage 0<br/>manual harness discipline]
+    P1[Pipeline Phase 1<br/>core render · sequential] --> S0[Stage 0<br/>orchestrator session runs the rules by hand]
     P2[Phase 2<br/>scripts + fact-check] --> S1[Stage 1<br/>Loom runs tasks sequentially]
     P34[Phases 3–4<br/>templates + publishers · parallel] --> S2[Stage 2<br/>worktrees · 2 parallel agents]
     P56[Phases 5–6<br/>analytics + scale] --> S3[Stage 3<br/>learning loop automated]
@@ -157,6 +159,7 @@ flowchart LR
 5. **Security:** no secrets in code/logs, no shell injection in FFmpeg/subprocess calls, no unpinned or untrusted dependencies.
 6. **Fit with the codebase:** follows existing interfaces and CLAUDE.md rules; no duplicate helpers; no scope creep outside `paths_allowed`.
 7. **Maintainability:** clear names, no dead code, docstrings on public interfaces.
+8. **Docs aligned:** the handoff's Docs section is complete, and nothing in the diff contradicts PLAN.md, PRD.md, spec.md, architecture.md or workflow.md. A doc that the diff makes false is a blocking issue.
 
 The output is structured, so Loom can act on it without interpretation:
 
@@ -242,9 +245,13 @@ done | partial | blocked
 - ...
 ## Next step for whoever picks this up
 - ...
+## Docs
+- <doc file>: <what must change because of this work>   ← REQUIRED, write "none" if none
 ## Evidence
 - tests: <passed/failed counts>   - commands run: <...>
 ```
+
+The **Docs** section lists every doc change this work needs: decisions (PRD.md section 7), structure (architecture.md), rules and numbers (spec.md), the criterion-to-test map and status (workflow.md), the CLAUDE.md status line, and any lessons.md entry. The implementer edits the docs inside its `paths_allowed`; everything else listed here is applied at task close-out (§10, Stage 0).
 
 ---
 
@@ -288,7 +295,8 @@ Thresholds live in `.harness/config.yaml` (`rotate_context_pct: 60`) so the retr
 4. **Claude Code auto-compact:** left on as the last resort only, for a single step that overshoots. Rotation should normally happen first; the outcome log records `auto_compacted: true` if it didn't, so the retrospective can lower the threshold.
 
 ### Stage 0 (manual) equivalent
-- Task done → ask for the handoff → `/clear` or a new window for the next task.
+- Task done → the session writes its handoff and commits → the session ends with `/exit` and its window closes. The next task starts in a new window.
+- Review findings and CI failures go back to the same session (resume) while its context is small. If its context is large (above ~50%, or a long transcript), the orchestrator rotates instead: a fresh session reads the handoff plus a fix list in `.harness/reviews/<task-id>-round<N>.md`.
 - Run `/context` periodically. Above ~50% on an unfinished task → ask for a partial handoff and start a fresh session from it, rather than letting the conversation auto-compact.
 
 ---
@@ -368,13 +376,21 @@ This is how the harness gets better: changes come from evidence, are applied as 
 
 ## 10. Build Stages
 
-### Stage 0 — Manual discipline (during pipeline Phase 1)
-No orchestrator code yet. You run Claude Code by hand, following the harness rules:
+### Stage 0: Orchestrated by hand (during pipeline Phase 1)
+No orchestrator code yet. One long-running **orchestrator session** (Claude Code, Opus) plays Loom by hand, following the harness rules, so you stay hands-off:
 - task files in `.harness/tasks/phase1/`, worked one per fresh session
-- tests written and locked first (Opus session), implementation in Sonnet sessions (`/model`)
-- implementer writes `handoff.md` from the template
-- **you** append an outcome line per task (a 10-line `log_outcome.py` helper)
+- the orchestrator **launches each task session** with a clean environment, `LOOM_TASK` set, the task's model, auto-approved edits and a narrow shell allowlist, in a **visible PowerShell window** titled `Loom task: <task-id>`. You can watch and type in it; your messages take priority
+- the window is launched without `-NoExit`, so it **closes on its own** when the session ends (`/exit`). The orchestrator never kills only the `claude` process, which leaves a broken terminal
+- a background watcher tells the orchestrator when the handoff and commit land; it then runs Gate 1 itself, checks the diff against `paths_allowed`, launches read-only reviewer sessions (no edit tools, no shell) plus any specialist reviews, pushes and opens the PR
+- tests written and locked first (Opus session), implementation in Sonnet sessions
+- implementer writes `handoff.md` from the template, including its Docs section
+- **task close-out (doc sync)**, after the task's PR merges, every time:
+  1. the orchestrator writes any lessons.md entry and decision (PRD.md section 7, architecture.md) the task produced
+  2. it launches a **Scribe** session (Haiku, own window, closes when done) that applies the mechanical doc updates: `.harness/status.yaml`, the workflow.md status table, the CLAUDE.md status line, the outcome log (`log_outcome.py`) and the remaining items in the handoff's Docs section
+  3. both go on one docs branch and PR, never the task branch
+- CI runs `tests/docs_check.py` on every push: plain code, no model, so free. It fails when the docs disagree with each other or with the repo (see §11)
 - install the lock/paths `PreToolUse` hook now; it's cheap and catches problems immediately
+- you approve the contracts PR and merge PRs; nothing else needs you
 
 **Exit when:** Phase 1 is done and you have ~10–15 outcome records.
 
@@ -422,10 +438,10 @@ No orchestrator code yet. You run Claude Code by hand, following the harness rul
 - Worktrees survive reboots; `git worktree prune` runs on resume to clean up any that were deleted.
 
 ### Stage 0 (manual sessions) equivalent
-1. Let the current task reach a stopping point, or press `Esc` to interrupt Claude.
-2. Ask the session: "Stop here. Write handoff.md for this task (status: partial) and commit WIP."
-3. Close the window and turn the PC off.
-4. Next time: start a **fresh** session and point it at the task YAML + handoff. Use `claude --continue` only if the task was nearly finished.
+1. Tell the orchestrator "pause", or type in the task window: "Stop here. Write handoff.md for this task (status: partial) and commit WIP."
+2. The orchestrator pushes the branch, logs the pause (`--result rotated --rotation-reason pause`) and updates the status docs.
+3. Type `/exit` in the task window (it closes), then turn the PC off.
+4. Next time, tell the orchestrator "resume". It reopens the task window, resuming the same session if its context is small, otherwise starting a **fresh** session from the task YAML + handoff.
 
 ---
 
@@ -435,7 +451,7 @@ The plan's usage limits are an expected event, not an error. When one is hit, Lo
 
 ### Detection
 - After every headless call Loom checks the exit code + output for a usage-limit response.
-- **Don't hard-code the message format.** During Stage 0, save the real limit messages you get (5-hour and weekly) to `tests/fixtures/limit_messages/` and build the parser from those fixtures. The parser extracts:
+- **Don't hard-code the message format.** During Stage 0, save the real limit messages you get (5-hour and weekly) to `.harness/tests/fixtures/limit_messages/` (harness code, so not under the locked `tests/`) and build the parser from those fixtures. The parser extracts:
   - `limit_type`: `session_5h | weekly | unknown`
   - `reset_at`: absolute timestamp (UTC) if the message contains one
   - `model`: which model hit it (some plans limit models separately)
@@ -503,6 +519,7 @@ shorts-pipeline/
 │   └── loom/                       # orchestrator code (Stage 1+)
 ├── pipeline/ ...                   # the product (PLAN.md §9)
 └── tests/ ...
+    └── docs_check.py               # locked; CI fails when docs drift (status, criterion map, task ids)
 ```
 
 ---
