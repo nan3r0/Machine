@@ -62,7 +62,7 @@ Goal: a hand-written script JSON becomes a good 40 s MP4, inside GitHub Actions.
 - R7.2 Manual check: the owner watches the artifact and judges it a good 40 s video (clear voice, captions in sync by eye, nothing cut off).
 - R7.3 Gate 1 (ruff, mypy, pytest) runs green in CI on every push.
 - R7.4 Main stays green while tasks are unbuilt: a task's tests run only once it is listed in `.harness/status.yaml` or is the current `LOOM_TASK`.
-- R7.5 CI's `make check` also runs bandit, semgrep, gitleaks, pip-audit and actionlint, with no high-severity findings.
+- R7.5 CI's `make check` also runs the docs check, bandit, semgrep, gitleaks, pip-audit and actionlint, with no high-severity findings.
 - R7.6 Phase-end QA Lead, CSO and Auditor reviews are done, `docs/threat-model.md` exists, and the owner has approved the audit report.
 
 ### Later phases

@@ -17,11 +17,11 @@ A $0, cloud-only pipeline that scripts, voices, renders and publishes faceless s
 
 ## Status
 
-Pipeline Phase 1 (core render), Harness Stage 0. Harness set up; Phase 1 task graph approved (Kokoro-only voice). Repo: private `nan3r0/Machine`. Niche: Solved Internet & Everyday Mysteries (content rules in PLAN.md section 4). Done: p1-contracts (PR #6 merged). Next: p1-docs-check, then the five implementer tasks. Harness: automatic rotation hook live (`.claude/hooks/context_guard.py`); orchestrator state in `.harness/handoffs/orchestrator.md`. Voice: PyTorch `kokoro`, weights pinned. Everything must stay $0: free tiers only, no payment method on any account. No pipeline code yet. Done tasks: `.harness/status.yaml`. Weak points: architecture.md section 7.
+Pipeline Phase 1 (core render), Harness Stage 0. Harness set up; Phase 1 task graph approved (Kokoro-only voice). Repo: private `nan3r0/Machine`. Niche: Solved Internet & Everyday Mysteries (content rules in PLAN.md section 4). Done: p1-contracts, p1-tts-kokoro, p1-docs-check. In progress: p1-align, p1-captions-ass. Next: p1-compose, p1-qa, p1-render-cli, p1-actions-workflow. Harness: automatic rotation hook live (`.claude/hooks/context_guard.py`); orchestrator state in `.harness/handoffs/orchestrator.md`. Voice: PyTorch `kokoro`, weights pinned. Everything must stay $0: free tiers only, no payment method on any account. No pipeline code yet. Done tasks: `.harness/status.yaml`. Weak points: architecture.md section 7.
 
 ## Commands
 
-- Gate 1: CI runs `make check` (adds bandit, semgrep, gitleaks, pip-audit, actionlint). Locally: `ruff check .`, `mypy --strict pipeline/`, `pytest --cov=pipeline`. Tests marked `heavy` run in CI only; never install ffmpeg or torch locally to run them. A skipped heavy test is not a pass: hand off as `partial`, "awaiting CI", until CI is green.
+- Gate 1: CI runs `make check` (adds the docs check, bandit, semgrep, gitleaks, pip-audit, actionlint). Locally: `ruff check .`, `mypy --strict pipeline/`, `pytest --cov=pipeline`, `python tests/docs_check.py`. Tests marked `heavy` run in CI only; never install ffmpeg or torch locally to run them. A skipped heavy test is not a pass: hand off as `partial`, "awaiting CI", until CI is green.
 - Harness tests: `pytest .harness/tests`
 - Log an attempt: `python .harness/log_outcome.py <task-id> --attempt N --result <result>`
 
