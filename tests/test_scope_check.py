@@ -121,5 +121,10 @@ def test_bad_task_id_fails(repo: Path) -> None:
     assert scope_check.main(["task/../../etc", "main"]) == 1
 
 
+def test_task_prefix_in_other_case_is_not_skipped(repo: Path) -> None:
+    commit(repo, "README.md")
+    assert scope_check.main(["Task/p1-captions-ass", "main"]) == 1
+
+
 def test_non_task_branch_is_skipped(repo: Path) -> None:
     assert scope_check.main(["main", "main"]) == 0

@@ -4,48 +4,70 @@
 Tooling, contracts, fixtures and locked tests for Phase 1, so the five implementer tasks can start against fixed interfaces.
 
 ## Status
-partial (paused by the owner after the Kokoro checksum step; no contracts or tests written yet)
+done (local gates green; heavy tests and the CI workflow itself are unverified until the first CI run)
 
 ## What changed
-- `pyproject.toml`: ruff (E, F, I, B; line length 110), mypy strict with the pydantic plugin, pytest config with `testpaths = ["tests"]`, `-p pytester` and the `heavy` marker. mypy `ignore_missing_imports` overrides for every heavy import name an implementer may need (`kokoro_onnx`, `onnxruntime`, `stable_whisper`, `whisper`, `torch`, `torchaudio`) plus `soundfile`, which ships no type information.
-- `requirements.txt`: light runtime pins (pydantic 2.14.2, pyyaml 6.0.3, soundfile 0.14.0, numpy 2.4.6).
-- `requirements-dev.txt`: pytest 9.2.0, pytest-cov 7.1.0, hypothesis 6.170.14, ruff 0.17.3, mypy 2.4.1, types-PyYAML 6.0.12.20261030, bandit 1.9.4, pip-audit 2.10.1, pip-licenses 5.5.5, and semgrep 1.183.0 and mutmut 3.8.1 behind a `sys_platform != "win32"` marker, so one dev file serves both Windows and CI and Dependabot still tracks every pin.
-- `requirements-heavy.txt`: torch 2.11.0+cpu and torchaudio 2.11.0+cpu from the PyTorch CPU index, stable-ts 2.19.1, openai-whisper 20250625, kokoro-onnx 0.6.1.
-- `.gitignore`: added `.venv/`, tool caches, `.coverage`, `.hypothesis/`, `.harness/PAUSE`, `.harness/loom.lock`, `.harness/limit_state.json`.
-- Every pin was checked on PyPI and is the newest stable release published on or before 2026-11-01 (at least two weeks old).
+- `pyproject.toml`: ruff (E, F, I, B; line length 110), mypy strict with the pydantic plugin, pytest (`testpaths`, `pythonpath = ["."]`, `-p pytester`, `heavy` marker), mutmut paths. mypy `ignore_missing_imports` for every heavy import an implementer may need (`kokoro`, `misaki`, `stable_whisper`, `whisper`, `torch`, `torchaudio`) and for `soundfile`, which ships no type information.
+- `requirements.txt`, `requirements-dev.txt`, `requirements-heavy.txt`: exact pins, recorded with reasons in spec.md section 7. semgrep and mutmut carry a `sys_platform != "win32"` marker so one dev file serves Windows and CI.
+- `pipeline/constants.py`: every number from spec.md section 4, plus voice, safe-zone, file-size, caption and golden-frame values.
+- `pipeline/schema.py`: strict Pydantic models (`extra="forbid"`, no type coercion, frozen). `Script.narration_text()` and `narration_words()` are the one tokenisation voice, align, captions and QA share. `WordTiming` rejects end before start; `QAReport` requires `passed` to match `failures`; `QAFailure.check` is a fixed set of names.
+- Stubs with signatures and docstrings, bodies raising NotImplementedError: `voice/kokoro.py` (`synthesize`, `check_wav`, `VoiceError`), `voice/align.py` (`align_words`, `to_word_timings`, `AlignError`), `render/captions_ass.py` (`escape_ass_text`, `build_ass`), `render/compose.py` (`subtitles_filter_value`, `build_ffmpeg_args`, `compose`, `ComposeError`), `render/qa.py` (`VideoStats`, `duration_range_for`, `evaluate`, `measure`, `run_qa`), `render_one.py` (`render`, `main`, `DEFAULT_CACHE_DIR`). Each heavy step has a pure, locally testable part.
+- `queue/approved/sample-40s.json`: the Racetrack Playa sliding rocks, 106 words. Every number and name is from the PLOS ONE paper's abstract (doi 10.1371/journal.pone.0105948): speculation since the 1940s, more than 60 rocks moved on December 20, 2013, ice 3 to 6 mm thick, up to 224 m of travel, a team including Scripps Institution of Oceanography scientists. No individuals are named.
+- `tests/conftest.py`: task-aware selection; unknown `LOOM_TASK` is a usage error; heavy tests run only when `CI=true`.
+- Tests: `test_schema.py`, `test_conftest_selection.py` (pytester), `voice/test_kokoro.py`, `voice/test_align.py`, `render/test_captions_ass.py`, `render/test_compose.py`, `render/test_qa.py`, `test_render_one.py` (fakes for wiring, heavy golden render), `test_workflows.py` (render.yml), `test_ci_workflow.py`, `test_scope_check.py`. Helpers: `wavs.py`, `media.py`, `workflow_rules.py`.
+- `tests/scope_check.py`: the server-side twin of the lock hook. Reads the task YAML and `locks.yaml` from the base ref, diffs with `--no-renames`.
+- `.github/workflows/ci.yml`: scope check, LOOM_TASK from the branch (through `env:`, regex-validated), ffmpeg and espeak-ng, all three requirement files, gitleaks and actionlint with sha256 checks, model cache, `make check`, `out/frames/` upload. A `workflow_dispatch`-only `reports` job runs coverage, mutmut, pip-licenses and pip-audit and uploads `out/reports/`.
+- `Makefile` (`check`), `.github/dependabot.yml` (pip and actions, weekly), `.gitignore` additions, `.harness/locks.yaml` (`tests/**`, `pipeline/schema.py`, `pipeline/constants.py`, `.github/workflows/ci.yml`, `Makefile`).
+- `spec.md` sections 4 and 7: final values and pins. `workflow.md`: criterion to test map with real names, status row.
 
 ## Decisions made (and why)
-- kokoro-onnx instead of kokoro: kokoro 0.9.4 pulls transformers, spaCy and misaki (with a runtime spaCy model download) and has not been released since 2025-04. kokoro-onnx runs on onnxruntime, bundles espeak through espeakng-loader and was released 2026-08. torch is still installed for stable-ts. Weights come from the GitHub release `thewh1teagle/kokoro-onnx` tag `model-files-v1.0` (`kokoro-v1.0.onnx`, 325532387 bytes; `voices-v1.0.bin`, 28214398 bytes). The release publishes no digests, so the sha256 values were computed by streaming the files; see Evidence. Plan: put URLs, sizes and sha256 in `pipeline/constants.py` so an implementer cannot swap the model.
-- torch pinned to 2.11 rather than 2.15: torchaudio's last release line is 2.11, and the two must share a minor version. stable-ts 2.19.1 uses only `torchaudio.save` (output paths not used by `align()`) and `torchaudio.functional` filters, so 2.11 is expected to work.
-- numpy 2.4.6, not 2.5: numpy 2.5 needs Python 3.12 and the owner's machine runs 3.11. numba (via openai-whisper) caps numpy below 2.6, so this fits.
-- Ruff rule set and line length chosen so the existing `.harness/` code passes without edits (it is outside this task's scope). `.claude/` is excluded because the hook is admin-only.
-- Action pins (commit SHAs, all lightweight tags): actions/checkout v7.0.1 `3d3c42e5aac5ba805825da76410c181273ba90b1`, actions/setup-python v7.1.0 `6d4fd22b20465ccc0f7354476588e8df7c9ca0e0`, actions/upload-artifact v7.0.2 `cf430e030ddbb5b0abf93d22962f4752f3646cd9`.
-- CI binaries: gitleaks 8.30.1 (`gitleaks_8.30.1_linux_x64.tar.gz`, sha256 `551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb`), actionlint 1.7.12 (`actionlint_1.7.12_linux_amd64.tar.gz`, sha256 `8aca8db96f1b94770f1b0d72b6dddcb1ebb8123cb3712530b08cc387b349a3d8`).
-- Sample script topic: the Racetrack Playa sliding rocks of Death Valley, solved in PLOS ONE 9(8): e105948, published 2014-08-27 (doi 10.1371/journal.pone.0105948). Verified from the paper's abstract: speculation since the 1940s; more than 60 rocks moved on December 20, 2013; GPS-instrumented rocks moved up to 224 m between December 2013 and January 2014; ice 3 to 6 mm thick; winds about 4 to 5 m/s; rock speeds 2 to 5 m/min; lead author affiliation Scripps Institution of Oceanography. Plan: name only the organisation, not the authors.
+- Voice package is `kokoro` 0.9.4, as the owner asked ("stick with kokoro"). I read that as the PyTorch package rather than kokoro-onnx; my clarifying question went unanswered before resuming. kokoro leaves transformers, spaCy and the spaCy model loose, so they are pinned, and `en_core_web_sm` is installed from its release wheel so misaki never pip-installs at runtime. If the owner meant kokoro-onnx, swap the heavy pins and the mypy override names; the onnx weight URLs and sha256 are below.
+- torch and torchaudio pinned to 2.11.0 CPU builds: torchaudio has no release past 2.11 and must match torch. stable-ts 2.19.1 calls only `torchaudio.save` (not on the align path) and `torchaudio.functional` filters.
+- Heavy tests run when `CI=true`, not when a tool happens to be installed, matching the owner's "heavy tests never run locally".
+- Steps are called through module attributes in `render_one`, documented in its docstring, so its tests replace them with fakes and the wiring is fully tested without heavy packages.
+- `escape_ass_text` must write braces as `\{` and `\}` and must not leave `\N`, `\n` or `\h`; how it neutralises a backslash is left to the implementer.
+- Caption End may run up to the next word's start, so the line can stay on screen between words.
+- QA picks the format from word count (`duration_range_for`), so the schema needs no format field.
+- `VideoStats` carries the voice duration so QA can check video against voice (R5.3) and timings against the audio.
+- The golden render lives in `tests/test_render_one.py::test_acceptance`, since a heavy test owned by no task would fail CI until everything is built. Compose's heavy test also writes frames, so visual-qa has something to look at before render-cli exists.
+- Locks cover `tests/**` rather than each file, so new helpers and fixtures are locked too.
+- Ruff settings chosen so the existing `.harness/` code passes untouched (it is outside this task's scope).
+- Action pins (lightweight tags, so the tag SHA is the commit): checkout v7.0.1 `3d3c42e5aac5ba805825da76410c181273ba90b1`, setup-python v7.1.0 `6d4fd22b20465ccc0f7354476588e8df7c9ca0e0`, upload-artifact v7.0.2 `cf430e030ddbb5b0abf93d22962f4752f3646cd9`, cache v6.1.0 `55cc8345863c7cc4c66a329aec7e433d2d1c52a9`.
+- kokoro-onnx fallback weights (GitHub release `thewh1teagle/kokoro-onnx` tag `model-files-v1.0`, streamed and hashed):
+  - `kokoro-v1.0.onnx` (325532387 bytes): `7d5df8ecf7d4b1878015a32686053fd0eebe2bc377234608764cc0ef3636a6c5`
+  - `voices-v1.0.bin` (28214398 bytes): `bca610b8308e8d99f32e6fe4197e7ec01679264efed0cac9140fe9c29f1fbf7d`
 
 ## Tried and abandoned
-- `kokoro` (PyTorch package): heavier dependency chain and stale; see Decisions.
-- torch 2.15.0: no matching torchaudio release.
+- kokoro-onnx as the voice package: lighter, but the owner asked to stay with kokoro.
+- torch 2.15.0: no matching torchaudio.
+- numpy 2.5: needs Python 3.12; the owner's machine runs 3.11.
 - Ruff with `UP` rules and line length 100: flagged existing `.harness/` files this task may not edit.
+- Two QA alignment cases first broke word order as well as the fault they named, so a QA implementation could pass them for the wrong reason; rewritten to change one thing each.
 
 ## Known risks / fragile spots
-- The heavy install (torch CPU wheels with a `+cpu` local version, onnxruntime, numba) has not been tried; CI will be the first install. pip-audit may skip the `+cpu` packages.
-- torchaudio 2.11 with stable-ts 2.19.1 is reasoned from source, not run.
+- Not verified locally, for CI to confirm:
+  - All heavy tests (Kokoro, stable-ts, FFmpeg render, QA on real video, golden render). Each is skipped locally by design.
+  - The heavy install: the `+cpu` torch wheels from the extra index, kokoro 0.9.4 with transformers 5.22.1 (it imports `AlbertModel` and `AlbertConfig`), spaCy 3.8.18 with the 3.8.0 model, numba's numpy cap. Install time may be long on the first run until the pip cache warms.
+  - `make check` itself: bandit, semgrep (`p/python`, ERROR only, scans `tests/` too, which call git and ffmpeg through argument lists), gitleaks on the full history, pip-audit (may skip the `+cpu` packages), actionlint on `ci.yml`.
+  - The `reports` job (mutmut 3 config in pyproject).
+- Contracts not proven implementable by a reference implementation, mainly `to_word_timings` under the hypothesis property (pieces with arbitrary, even inverted, times must still give clamped monotonic output) and the caption property (End bounds with overlapping timings). I believe both are satisfiable; an implementer who disagrees should write `CONTRACT_CHANGE.md`.
+- `escape_ass_text` requires `\{` and `\}`. If libass on the runner renders the backslash visibly, the golden frames will show it and the contract needs a change.
+- The compose heavy test's hand-written captions use DejaVu Sans, which `ubuntu-latest` is expected to have.
+- On a push run of a stacked branch, the scope check diffs against `origin/main`, as instructed; the PR run (against `github.base_ref`) is the authoritative one.
+- An automated security review of the commits flagged two issues, both addressed in the last commit: (1) CI ran the scope checker from the branch, so a branch could edit it. It now runs the copy from the base ref; only a base without one (this PR) falls back to the branch copy. `ci.yml` and `Makefile` are now locked too. Still open: a branch can edit `ci.yml` itself and drop the step. The hook blocks that locally and the scope check flags it on later task PRs, but nothing server side stops it on a free private repo without required workflows, so the owner's PR diff review remains the backstop. (2) `Task/x` skipped the check; the prefix is now matched case-insensitively (regression test `test_task_prefix_in_other_case_is_not_skipped`). Non-task branches are still skipped on purpose: the owner's own branches edit harness and admin files.
+- Kokoro weights download from Hugging Face by repo id with no revision pin; an upstream change to `hexgrad/Kokoro-82M` would change the voice.
 
 ## Next step for whoever picks this up
-Remaining items from `00_contracts.yaml` notes, in this order:
-1. `pipeline/constants.py` (numbers from spec.md section 4, safe zone, file-size range, voice defaults, Kokoro URLs, sizes and sha256) and `pipeline/schema.py` (strict Pydantic, `extra="forbid"`, narration text and word helper).
-2. Stubs raising NotImplementedError: `voice/kokoro.py`, `voice/align.py`, `render/captions_ass.py`, `render/compose.py`, `render/qa.py`, `render_one.py` (steps called through module attributes so tests can monkeypatch them), plus empty `__init__.py` files.
-3. `queue/approved/sample-40s.json` from the verified facts above, about 105 words counted with the schema helper.
-4. `tests/conftest.py` (task-aware selection, fail loudly on unknown `LOOM_TASK`, heavy tests run only when `CI=true`), per-task tests with `test_acceptance` names matching the task YAMLs, hypothesis caption properties with `deadline=None`, golden render inside `tests/test_render_one.py`, pytester tests for the conftest, `tests/scope_check.py` plus its tests (`git diff --name-only --no-renames`, task and locks read from the base ref).
-5. Run each task's tests against the stubs with `LOOM_TASK` set to that task: non-heavy tests must fail with NotImplementedError, none may error at collection.
-6. `.harness/locks.yaml`, `Makefile`, `.github/workflows/ci.yml` (branch name through `env:`, validated by regex; scope check base `github.base_ref` or `origin/main`), `.github/dependabot.yml`, spec.md pins and kokoro-onnx note, workflow.md test map.
-7. Outside this task's `paths_allowed` (owner to do): a lessons.md entry if any mistake is found, and the CLAUDE.md Status line.
+- Push `task/p1-contracts`, open the PR and get CI green. Fix install or tool-config failures in this task's files; failures in a heavy test of an unbuilt task cannot happen, since those are skipped.
+- Gate 2 plus the security specialist review (`ci.yml` matches `.github/workflows/**`).
+- Outside this task's `paths_allowed`, for the owner: add `p1-contracts` to `.harness/status.yaml` after merge, update the CLAUDE.md Status line, and consider a lessons.md entry: "Writing to the main repo path instead of the worktree path was caught by the hook; always use the worktree root in absolute paths."
+- Then the five implementer tasks can run in file-name order.
 
 ## Evidence
-- `ruff check .`: all checks passed (with the current pyproject, on the existing repo files).
-- mypy and pytest not run yet: there is no `pipeline/` or test code.
-- Local venv: `.venv` with requirements.txt and requirements-dev.txt installed; no heavy packages.
-- Kokoro sha256, computed by streaming each file from the release URL (not saved to disk):
-  - `kokoro-v1.0.onnx`: `7d5df8ecf7d4b1878015a32686053fd0eebe2bc377234608764cc0ef3636a6c5`
-  - `voices-v1.0.bin`: `bca610b8308e8d99f32e6fe4197e7ec01679264efed0cac9140fe9c29f1fbf7d`
+- `.venv/Scripts/python.exe -m ruff check .`: All checks passed.
+- `.venv/Scripts/python.exe -m mypy --strict pipeline/`: Success, no issues found in 11 source files.
+- `.venv/Scripts/python.exe -m pytest -q --tb=short --cov=pipeline` (LOOM_TASK=p1-contracts): 79 passed, 104 skipped, 0 failed; coverage 89% of the stubs.
+- Each task's tests run against the stubs with `LOOM_TASK` set to that task: every non-heavy test fails with NotImplementedError (render.yml tests with FileNotFoundError), heavy tests skip, no collection errors. Counts: tts-kokoro 10 failed, 4 skipped; align 8 failed, 3 skipped; captions-ass 26 failed, 1 passed (`test_module_is_pure`, a guard); compose 6 failed, 1 passed (`test_no_shell_strings`, a guard), 3 skipped; qa 21 failed, 3 skipped; render-cli 11 failed, 1 skipped; actions-workflow 6 failed.
+- `.venv/Scripts/python.exe tests/scope_check.py task/p1-contracts main`: scope check passed, 35 changed files.
+- `.venv/Scripts/python.exe -m pytest -q --tb=short .harness/tests`: 51 passed.
+- Local venv has only requirements.txt and requirements-dev.txt; no heavy packages installed.

@@ -65,10 +65,11 @@ def find_task(base: str, task_id: str) -> dict[str, Any] | None:
 
 def main(argv: list[str]) -> int:
     branch, base = argv
-    if not branch.startswith("task/"):
+    # Case-insensitive, so "Task/x" cannot dodge the check; the id regex then rejects it.
+    if not branch.lower().startswith("task/"):
         print(f"scope check skipped: {branch} is not a task/<task-id> branch")
         return 0
-    task_id = branch.removeprefix("task/")
+    task_id = branch[len("task/"):]
     if not TASK_ID.match(task_id):
         print(f"scope check failed: {task_id!r} is not a valid task id")
         return 1

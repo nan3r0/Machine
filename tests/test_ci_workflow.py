@@ -35,7 +35,8 @@ def test_ci_scope_check_uses_pr_base_or_main() -> None:
     assert env["BASE_REF"] == "${{ github.base_ref }}"
     text = rules.run_text(wf)
     assert 'base="${BASE_REF:-main}"' in text
-    assert 'python tests/scope_check.py "$BRANCH" "origin/$base"' in text
+    assert 'git show "origin/$base:tests/scope_check.py"' in text
+    assert 'python "$checker" "$BRANCH" "origin/$base"' in text
 
 
 def test_ci_sets_loom_task_only_for_valid_task_branches() -> None:

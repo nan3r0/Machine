@@ -5,3 +5,5 @@ locked:
   - tests/**
   - pipeline/schema.py
   - pipeline/constants.py
+  - .github/workflows/ci.yml
+  - Makefile

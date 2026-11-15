@@ -50,28 +50,31 @@ Stage 0 runs them one at a time in file-name order (`.harness/tasks/phase1/00_*.
 
 ### Criterion to test map
 
-Test names are proposals for p1-contracts; it may rename them, and must update this table if so.
+Locked by p1-contracts. Every task's acceptance test is `test_acceptance` in its file.
 
 | PRD criterion | Test |
 |---|---|
 | R1.1, R1.2 | `tests/test_schema.py` |
-| R2.1 to R2.3 | `tests/voice/test_kokoro.py` |
-| R3.1, R3.2 | `tests/voice/test_align.py` |
-| R4.1 to R4.3 | `tests/render/test_captions_ass.py` |
-| R5.1 to R5.3 | `tests/render/test_compose.py` |
+| R2.1 to R2.3 | `tests/voice/test_kokoro.py` (`test_acceptance`, `test_second_run_uses_cache_offline`, `test_unknown_voice_fails_without_file`, `check_wav` tests) |
+| R3.1, R3.2 | `tests/voice/test_align.py` (heavy acceptance on the fixture wav, plus a hypothesis property on `to_word_timings`) |
+| R4.1 to R4.3 | `tests/render/test_captions_ass.py` (hypothesis property `test_every_word_shown_once_in_order_inside_the_audio`) |
+| R5.1 to R5.3 | `tests/render/test_compose.py::test_acceptance` (heavy; also writes `out/frames/compose-*.png`) |
 | R6.1 | `tests/render/test_qa.py` |
-| R6.2, R6.3 | `tests/test_render_one.py::test_acceptance` |
+| R6.2 | `tests/test_render_one.py::test_acceptance` (heavy golden render; writes `out/frames/golden-*.png`) |
+| R6.3 | `tests/test_render_one.py::test_qa_failure_exits_non_zero_and_names_checks` |
 | R7.1 | `tests/test_workflows.py` plus a manual run |
 | R7.2 | Manual, owner |
-| R7.3 | CI run on push |
+| R7.3 | CI run on push; structure in `tests/test_ci_workflow.py` |
 | R7.4 | `tests/test_conftest_selection.py` |
-| R7.5 | CI `make check` |
+| R7.5 | CI `make check`; scope check in `tests/test_scope_check.py` |
 | R7.6 | Handoffs of p1-qa-lead, p1-cso, p1-audit; owner approves |
+
+`tests/test_ci_workflow.py` and `tests/test_scope_check.py` belong to no task, so they always run. CI uploads `out/frames/` as the `frames` artifact for the visual-qa reviewer.
 
 ### Phase 1 status
 
 | Task | Status | Review |
 |---|---|---|
 | Harness setup (hook, config, agents, logger, status file) | done, 25 harness tests pass, hook confirmed live | none yet |
-| p1-contracts | partial, paused 2026-11-15: tooling and pins done, contracts and tests next (see handoff on `task/p1-contracts`) | |
+| p1-contracts | done locally 2026-11-16, awaiting CI and Gate 2 (security review for `ci.yml`) | |
 | p1-tts-kokoro to p1-phase-review | not started | |

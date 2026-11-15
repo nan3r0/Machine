@@ -27,12 +27,19 @@ jobs:
           cache: pip
           cache-dependency-path: requirements*.txt
 
+      # The checker runs from the base ref, so a branch cannot weaken it. Only a base that does not
+      # have it yet (the contracts PR that adds it) falls back to the branch's copy.
       - name: Scope check (task branches only)
         run: |
           base="${BASE_REF:-main}"
           git fetch --no-tags origin "$base"
           python -m pip install -q pyyaml==6.0.3
-          python tests/scope_check.py "$BRANCH" "origin/$base"
+          checker="$RUNNER_TEMP/scope_check.py"
+          if ! git show "origin/$base:tests/scope_check.py" > "$checker" 2>/dev/null; then
+            echo "base has no scope checker yet; using the branch copy"
+            cp tests/scope_check.py "$checker"
+          fi
+          python "$checker" "$BRANCH" "origin/$base"
 
       - name: Set LOOM_TASK from the branch name
         run: |
