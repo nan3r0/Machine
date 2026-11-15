@@ -93,7 +93,8 @@ def main(argv: list[str]) -> int:
         print(f"scope check failed: no task {task_id} in .harness/tasks/ on {base}")
         return 1
     locked = load_at(base, ".harness/locks.yaml").get("locked") or []
-    changed = git("diff", "--name-only", "--no-renames", f"{base}...HEAD").splitlines()
+    # -z gives raw paths; without it git quotes unusual names and the patterns would miss them.
+    changed = [p for p in git("diff", "-z", "--name-only", "--no-renames", f"{base}...HEAD").split("\0") if p]
     found = violations(task, locked, changed)
     for message in found:
         print(f"scope violation: {message}")

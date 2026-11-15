@@ -111,6 +111,14 @@ def test_branch_editing_locked_test_fails(repo: Path, capsys: pytest.CaptureFixt
     assert "tests/test_x.py: locked" in capsys.readouterr().out
 
 
+def test_unusual_admin_file_name_is_caught(repo: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    """git quotes non-ASCII names unless -z is used, which would hide the .claude/ prefix."""
+    commit(repo, "pipeline/render/captions_ass.py")
+    commit(repo, ".claude/hooks/café.py")
+    assert scope_check.main(["task/p1-captions-ass", "main"]) == 1
+    assert "Claude Code admin file" in capsys.readouterr().out
+
+
 def test_rename_out_of_locked_path_is_caught(repo: Path) -> None:
     (repo / "pipeline" / "render").mkdir(parents=True)
     git(repo, "mv", "tests/test_x.py", "pipeline/render/captions_ass.py")
