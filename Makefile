@@ -10,5 +10,5 @@ check:
 	bandit -q -r pipeline --severity-level high
 	semgrep scan --config p/python --severity ERROR --error --metrics off --quiet pipeline tests
 	gitleaks git --redact --no-banner .
-	pip-audit
+	pip-audit -r requirements.txt -r requirements-heavy.txt
 	actionlint

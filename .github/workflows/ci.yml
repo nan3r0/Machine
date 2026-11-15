@@ -27,6 +27,9 @@ jobs:
           cache: pip
           cache-dependency-path: requirements*.txt
 
+      - name: Upgrade build tooling
+        run: python -m pip install -q "setuptools>=84.1.0"
+
       # The checker script comes from the base ref, so a branch cannot weaken the script itself
       # (it can still edit this workflow; the owner's PR diff review covers that). Only the
       # contracts task, which adds the checker, may fall back to its own copy.

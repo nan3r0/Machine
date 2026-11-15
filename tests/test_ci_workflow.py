@@ -89,6 +89,19 @@ def test_makefile_check_runs_every_gate_tool() -> None:
         assert tool in makefile, tool
 
 
+def test_makefile_audits_only_project_requirements() -> None:
+    makefile = (ROOT / "Makefile").read_text(encoding="utf-8")
+    assert "pip-audit -r requirements.txt -r requirements-heavy.txt\n" in makefile
+    assert "requirements-dev" not in makefile
+
+
+def test_ci_upgrades_setuptools_before_any_install() -> None:
+    steps = rules.load("ci.yml")["jobs"]["check"]["steps"]
+    runs = [str(s.get("run", "")) for s in steps]
+    first = next(i for i, r in enumerate(runs) if "pip install" in r)
+    assert 'pip install -q "setuptools>=84.1.0"' in runs[first]
+
+
 def test_dependabot_watches_pip_and_actions() -> None:
     config = yaml.safe_load((ROOT / ".github" / "dependabot.yml").read_text(encoding="utf-8"))
     assert {u["package-ecosystem"] for u in config["updates"]} == {"pip", "github-actions"}

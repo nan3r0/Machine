@@ -102,6 +102,11 @@ done after review round 2 (`.harness/reviews/p1-contracts-round2.md`): every ite
 - Then the five implementer tasks can run in file-name order.
 
 ## Evidence
+Review round 3, 2026-11-15 (pip-audit only):
+- Makefile now runs `pip-audit -r requirements.txt -r requirements-heavy.txt`; ci.yml has an "Upgrade build tooling" step (`setuptools>=84.1.0`) before every other install; two tests added to `tests/test_ci_workflow.py`.
+- Open conflict, for the owner: `requirements-heavy.txt` pins `setuptools==81.0.0` (torch needs `<82`). The later `-r requirements-heavy.txt` install downgrades the runner's setuptools back to 81.0.0, and pip-audit now reads that pin from the file, so setuptools 81.0.0 may still be reported. Fixing it means bumping the pin, which conflicts with torch's bound, or an audit ignore for that one id. Not changed here (outside the three items).
+- `ruff check .`: All checks passed. `mypy --strict pipeline/`: no issues in 11 source files. `pytest --cov=pipeline` (LOOM_TASK=p1-contracts): 99 passed, 110 skipped, 0 failed; coverage 89%.
+
 Review round 2, 2026-11-15:
 - `.venv/Scripts/python.exe -m ruff check .`: All checks passed.
 - `.venv/Scripts/python.exe -m mypy --strict pipeline/`: Success, no issues found in 11 source files.
