@@ -20,7 +20,8 @@ def build_ass(timings: list[WordTiming], words_per_line: int = CAPTION_MAX_WORDS
     - `[Script Info]` sets `PlayResX: 1080` and `PlayResY: 1920` (WIDTH and HEIGHT).
     - `[Events]` holds exactly one `Dialogue:` line per word, in word order. Its Start is the
       word's start; its End is no earlier than the word's end and no later than the next word's
-      start (the last word ends at its own end). Times use `H:MM:SS.cc`.
+      start, or the word's own end if that is later (the last word ends at its own end). Times use
+      `H:MM:SS.cc`, rounded to the nearest centisecond.
     - Each Dialogue shows the current line of at most `words_per_line` words with the current
       word highlighted; its text contains `escape_ass_text(word)` outside override blocks.
     - Each Dialogue places its text with `\\pos(x,y)`, inside the safe zone from constants.py

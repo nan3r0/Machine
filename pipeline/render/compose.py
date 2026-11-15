@@ -3,14 +3,14 @@
 FFmpeg always gets an argument list through subprocess, never a shell string.
 """
 
-from pathlib import Path
+from pathlib import Path, PurePath
 
 
 class ComposeError(RuntimeError):
     """FFmpeg failed. The message ends with the tail of FFmpeg's stderr."""
 
 
-def subtitles_filter_value(path: Path) -> str:
+def subtitles_filter_value(path: PurePath) -> str:
     """Escape `path` for use as `subtitles=<value>` inside an FFmpeg filtergraph.
 
     Works for Windows paths (backslashes become `/`, the drive colon becomes `\\:`, so
