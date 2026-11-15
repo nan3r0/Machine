@@ -21,6 +21,8 @@ Failures repeat step 2 with the failing output in context. Escalation thresholds
 
 **Rotation (HARNESS.md section 7a).** Failed tests or review changes: keep the same session. Context above about 50% (`/context`) or `max_turns` hit: ask for a partial handoff, then start a fresh session on the same task from it, and log `--result rotated --rotation-reason context_limit` (or `max_turns`). After 3 rotations on one task, the Architect splits it.
 
+**Who runs the steps (since 2026-11-15).** An orchestrating Claude session drives Stage 0 for the owner: it launches each task as a fresh session with `LOOM_TASK` set (headless, or in a visible PowerShell window the owner can watch and type into), runs the gates and reviews, pushes branches, opens PRs and logs outcomes. The owner approves the contracts PR and merges PRs. Bookkeeping (outcome log, status lines) goes on a separate branch, never on a task branch, so CI's scope check stays clean.
+
 **Changing the harness itself.** Hooks, settings, agents, commands, skills, plugins and `.mcp.json` are blocked in every session unless you launch it with `LOOM_ADMIN=1` (retrospectives that add skills need it too) (PowerShell: `$env:LOOM_ADMIN='1'; claude`). Never set it for an implementer session.
 
 **Pausing (HARNESS.md section 10a).** Press `Esc`, then: "Stop here. Write handoff.md for this task (status: partial) and commit WIP." Next time, start a fresh session from the task YAML and handoff. Use `claude --continue` only if the task was nearly done.
@@ -71,4 +73,5 @@ Test names are proposals for p1-contracts; it may rename them, and must update t
 | Task | Status | Review |
 |---|---|---|
 | Harness setup (hook, config, agents, logger, status file) | done, 25 harness tests pass, hook confirmed live | none yet |
-| p1-contracts to p1-phase-review | graph approved by owner 2026-11-15, not started | |
+| p1-contracts | partial, paused 2026-11-15: tooling and pins done, contracts and tests next (see handoff on `task/p1-contracts`) | |
+| p1-tts-kokoro to p1-phase-review | not started | |
