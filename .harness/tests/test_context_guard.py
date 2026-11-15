@@ -37,6 +37,7 @@ def project(tmp_path, monkeypatch):
     monkeypatch.setenv("CLAUDE_PROJECT_DIR", str(tmp_path))
     monkeypatch.delenv("LOOM_TASK", raising=False)
     monkeypatch.delenv("LOOM_WINDOW_PID", raising=False)
+    monkeypatch.delenv("LOOM_ROLE", raising=False)
     return tmp_path
 
 
@@ -76,11 +77,6 @@ def test_below_threshold_passes(guard, project, launches, monkeypatch):
     assert launches == []
 
 
-def test_stop_hook_active_never_blocks(guard, project, launches):
-    assert run(guard, write_transcript(project, 900), active=True) == 0
-    assert not (project / ".harness" / "rotate").exists()
-
-
 def test_first_crossing_blocks_with_message(guard, project, launches, capsys, monkeypatch):
     monkeypatch.setenv("LOOM_TASK", "t1")
     assert run(guard, write_transcript(project, 600)) == 2
@@ -111,7 +107,7 @@ def test_fresh_handoff_launches_task_once(guard, project, launches, monkeypatch)
     handoff = project / ".harness" / "handoffs" / "t1.md"
     handoff.write_text("new", encoding="utf-8")
     os.utime(handoff, (later, later))
-    assert run(guard, transcript) == 0
+    assert run(guard, transcript, active=True) == 0
     assert launches == [
         {
             "task": "t1",
@@ -121,11 +117,12 @@ def test_fresh_handoff_launches_task_once(guard, project, launches, monkeypatch)
             "close_pid": "4242",
         }
     ]
-    assert run(guard, transcript) == 0
+    assert run(guard, transcript, active=True) == 0
     assert len(launches) == 1
 
 
-def test_orchestrator_uses_lower_threshold_and_own_handoff(guard, project, launches):
+def test_orchestrator_uses_lower_threshold_and_own_handoff(guard, project, launches, monkeypatch):
+    monkeypatch.setenv("LOOM_ROLE", "orchestrator")
     transcript = write_transcript(project, 500)
     assert run(guard, transcript) == 2
     marker = project / ".harness" / "rotate" / "s1.started"
@@ -133,7 +130,7 @@ def test_orchestrator_uses_lower_threshold_and_own_handoff(guard, project, launc
     handoff = project / ".harness" / "handoffs" / "orchestrator.md"
     handoff.write_text("new", encoding="utf-8")
     os.utime(handoff, (later, later))
-    assert run(guard, transcript) == 0
+    assert run(guard, transcript, active=True) == 0
     assert launches[0]["task"] == "orchestrator"
     assert launches[0]["message"] == "continue as orchestrator"
     assert launches[0]["close_pid"] is None
@@ -148,7 +145,7 @@ def test_task_session_at_50_percent_passes(guard, project, launches, monkeypatch
 def test_malformed_transcript_exits_zero(guard, project, launches, content):
     transcript = project / "bad.jsonl"
     transcript.write_text(content, encoding="utf-8")
-    assert run(guard, transcript) == 0
+    assert run(guard, transcript, active=True) == 0
     assert launches == []
 
 
@@ -162,6 +159,7 @@ def test_launch_failure_does_not_block(guard, project, monkeypatch, capsys):
         raise OSError("no powershell")
 
     monkeypatch.setattr(guard, "launch_window", boom)
+    monkeypatch.setenv("LOOM_ROLE", "orchestrator")
     transcript = write_transcript(project, 700)
     run(guard, transcript)
     marker = project / ".harness" / "rotate" / "s1.started"
@@ -169,7 +167,7 @@ def test_launch_failure_does_not_block(guard, project, monkeypatch, capsys):
     handoff = project / ".harness" / "handoffs" / "orchestrator.md"
     handoff.write_text("new", encoding="utf-8")
     os.utime(handoff, (later, later))
-    assert run(guard, transcript) == 0
+    assert run(guard, transcript, active=True) == 0
     assert "no powershell" in capsys.readouterr().err
 
 
@@ -183,5 +181,48 @@ def test_acceptance(guard, project, launches, monkeypatch):
     handoff = project / ".harness" / "handoffs" / "t1.md"
     handoff.write_text("done", encoding="utf-8")
     os.utime(handoff, (later, later))
-    assert run(guard, transcript) == 0
+    assert run(guard, transcript, active=True) == 0
     assert [call["task"] for call in launches] == ["t1"]
+
+
+def test_unmarked_session_is_never_guarded(guard, project, launches):
+    assert run(guard, write_transcript(project, 900)) == 0
+    assert not (project / ".harness" / "rotate").exists()
+
+
+def test_stop_hook_active_does_not_block_again(guard, project, launches, monkeypatch):
+    monkeypatch.setenv("LOOM_TASK", "t1")
+    assert run(guard, write_transcript(project, 900), active=True) == 0
+    assert not (project / ".harness" / "rotate").exists()
+
+
+def test_missing_model_falls_back_to_config(guard, project, launches, monkeypatch):
+    (project / ".harness" / "config.yaml").write_text(
+        CONFIG + "roles:\n  implementer: claude-sonnet-5-5\n  orchestrator: claude-sonnet-5-5\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setenv("LOOM_TASK", "t1")
+    transcript = write_transcript(project, 700, model="<synthetic>")
+    assert run(guard, transcript) == 2
+    marker = project / ".harness" / "rotate" / "s1.started"
+    handoff = project / ".harness" / "handoffs" / "t1.md"
+    handoff.write_text("new", encoding="utf-8")
+    os.utime(handoff, (marker.stat().st_mtime + 5,) * 2)
+    assert run(guard, transcript, active=True) == 0
+    assert launches[0]["model"] == "claude-sonnet-5-5"
+
+
+def test_bad_config_exits_zero(guard, project, launches, monkeypatch, capsys):
+    (project / ".harness" / "config.yaml").write_text("rotation:\n", encoding="utf-8")
+    monkeypatch.setenv("LOOM_TASK", "t1")
+    assert run(guard, write_transcript(project, 900)) == 0
+    assert "context_guard: skipped" in capsys.readouterr().err
+
+
+def test_sidechain_usage_is_ignored(guard, project, launches, monkeypatch):
+    monkeypatch.setenv("LOOM_TASK", "t1")
+    transcript = write_transcript(project, 100)
+    side = {"isSidechain": True, "message": {"model": "m", "usage": {"input_tokens": 900}}}
+    with transcript.open("a", encoding="utf-8") as handle:
+        handle.write("\n" + json.dumps(side))
+    assert run(guard, transcript) == 0

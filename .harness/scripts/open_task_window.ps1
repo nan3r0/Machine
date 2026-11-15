@@ -10,7 +10,7 @@ $isOrchestrator = $Task -eq 'orchestrator'
 $Host.UI.RawUI.WindowTitle = if ($isOrchestrator) { 'Loom orchestrator' } else { "Loom task: $Task" }
 # A clean environment: the task session must not inherit the orchestrator's identity.
 Get-ChildItem env: | Where-Object { $_.Name -like 'CLAUDE*' -or $_.Name -like 'LOOM_*' } | ForEach-Object { Remove-Item "env:$($_.Name)" }
-if (-not $isOrchestrator) { $env:LOOM_TASK = $Task }
+if ($isOrchestrator) { $env:LOOM_ROLE = 'orchestrator' } else { $env:LOOM_TASK = $Task }
 # Lets the context guard hook name this window when it rotates the session.
 $env:LOOM_WINDOW_PID = $PID
 Set-Location $WorkDir
@@ -19,15 +19,21 @@ $resume = @()
 if ($SessionId) { $resume = @('--resume', $SessionId) }
 
 if ($ClosePid) {
-  # Once claude.cmd has started (this window has a child process), close the old window.
+  # Once claude.cmd has started (cmd.exe or node.exe under this window; the job's own powershell.exe
+  # and conhost.exe do not count), close the old window and everything under it. If claude never
+  # starts, the old window is left alone.
   Start-Job -ScriptBlock {
     param($pidToClose, $me)
     $deadline = (Get-Date).AddSeconds(60)
-    while ((Get-Date) -lt $deadline) {
-      if (Get-CimInstance Win32_Process -Filter "ParentProcessId=$me") { break }
-      Start-Sleep -Milliseconds 500
+    $started = $false
+    while ((Get-Date) -lt $deadline -and -not $started) {
+      $started = [bool](Get-CimInstance Win32_Process -Filter "ParentProcessId=$me" | Where-Object { $_.Name -in 'cmd.exe', 'node.exe' })
+      if (-not $started) { Start-Sleep -Milliseconds 500 }
     }
-    Stop-Process -Id $pidToClose -Force -ErrorAction SilentlyContinue
+    $old = Get-Process -Id $pidToClose -ErrorAction SilentlyContinue
+    if ($started -and $old -and $old.ProcessName -eq 'powershell') {
+      taskkill.exe /PID $pidToClose /T /F | Out-Null
+    }
   } -ArgumentList $ClosePid, $PID | Out-Null
 }
 
