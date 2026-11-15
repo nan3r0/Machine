@@ -51,9 +51,11 @@ def project(tmp_path: Path) -> Path:
 
 def run_hook(root: Path, file_path: str, task: str | None = None,
              tool: str = "Write", key: str = "file_path",
-             pythonpath: Path | None = None) -> subprocess.CompletedProcess[str]:
-    env = {k: v for k, v in os.environ.items() if k != "LOOM_TASK"}
+             pythonpath: Path | None = None, admin: bool = False) -> subprocess.CompletedProcess[str]:
+    env = {k: v for k, v in os.environ.items() if k not in ("LOOM_TASK", "LOOM_ADMIN")}
     env["CLAUDE_PROJECT_DIR"] = str(root)
+    if admin:
+        env["LOOM_ADMIN"] = "1"
     if pythonpath:
         env["PYTHONPATH"] = str(pythonpath)
     if task:
@@ -159,6 +161,52 @@ def test_broken_task_yaml_fails_closed(project: Path) -> None:
     yaml_path = project / ".harness" / "tasks" / "phase1" / "captions.yaml"
     yaml_path.write_text("id: [unclosed\n", encoding="utf-8")
     assert run_hook(project, "pipeline/render/captions_ass.py", "p1-captions").returncode == 2
+
+
+ADMIN_FILES = (".claude/hooks/enforce_locks.py", ".claude/settings.json",
+               ".claude/settings.local.json", ".claude/agents/implementer.md")
+
+
+def test_admin_files_blocked_without_task(project: Path) -> None:
+    for path in ADMIN_FILES:
+        result = run_hook(project, path)
+        assert result.returncode == 2, path
+        assert "LOOM_ADMIN" in result.stderr
+
+
+def test_admin_files_blocked_even_for_contract_owner_task(project: Path) -> None:
+    contracts = project / ".harness" / "tasks" / "phase1" / "contracts.yaml"
+    contracts.write_text(CONTRACTS_YAML + "  - '**'\n", encoding="utf-8")  # paths_allowed is the last key
+    for path in ADMIN_FILES:
+        result = run_hook(project, path, "p1-contracts")
+        assert result.returncode == 2, path
+        assert "LOOM_ADMIN" in result.stderr
+
+
+def test_admin_env_allows_admin_files_without_task(project: Path) -> None:
+    for path in ADMIN_FILES:
+        assert run_hook(project, path, admin=True).returncode == 0, path
+
+
+@pytest.mark.parametrize("path", [
+    "TESTS~1/x.py",            # 8.3 short name for tests/
+    "tests./x.py",             # Windows strips the trailing dot
+    "tests /x.py",             # and the trailing space
+    "pipeline/schema.py:alt",  # alternate data stream
+])
+def test_windows_path_tricks_are_blocked(project: Path, path: str) -> None:
+    result = run_hook(project, path)
+    assert result.returncode == 2
+    assert "path" in result.stderr
+
+
+def test_symlink_into_locked_dir_is_blocked(project: Path) -> None:
+    (project / "tests").mkdir()
+    try:
+        os.symlink(project / "tests", project / "alias", target_is_directory=True)
+    except OSError:
+        pytest.skip("symlinks need extra privileges on this machine")
+    assert run_hook(project, "alias/x.py").returncode == 2
 
 
 def test_missing_pyyaml_fails_closed(project: Path, tmp_path_factory: pytest.TempPathFactory) -> None:

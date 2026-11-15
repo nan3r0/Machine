@@ -3,9 +3,13 @@
 The current task comes from the LOOM_TASK environment variable, set when the
 session is launched, so the agent cannot change it from inside the session.
 
-- No LOOM_TASK (planning sessions): only .harness/locks.yaml is enforced.
+- Admin files (hooks, settings, agent definitions) are always blocked unless the
+  session was launched with LOOM_ADMIN=1 by the owner.
+- No LOOM_TASK (planning sessions): .harness/locks.yaml is enforced.
 - LOOM_TASK set: the edit must match the task's paths_allowed. Locked paths and
   harness files stay blocked unless the task's role owns the contracts.
+- Windows path forms that can alias another path (8.3 names, trailing dots or
+  spaces, alternate data streams) are blocked; symlinks and junctions are resolved.
 - Anything unexpected (unknown task, unreadable YAML, crash) blocks the edit.
   Exit code 2 blocks and sends stderr back to the agent; exit code 1 would not.
 """
@@ -19,14 +23,16 @@ from typing import NoReturn
 
 EDIT_TOOLS = {"Edit", "Write", "MultiEdit", "NotebookEdit"}
 CONTRACT_OWNER_ROLES = {"architect", "test_author"}
+ADMIN_PATHS = [
+    ".claude/hooks/**",
+    ".claude/settings*.json",
+    ".claude/agents/**",
+]
 HARNESS_PATHS = [
     ".harness/locks.yaml",
     ".harness/config.yaml",
     ".harness/status.yaml",
     ".harness/tasks/**",
-    ".claude/settings.json",
-    ".claude/settings.local.json",
-    ".claude/hooks/**",
 ]
 
 
@@ -35,13 +41,25 @@ def block(message: str) -> NoReturn:
     sys.exit(2)
 
 
+def is_aliasing_form(raw: str) -> bool:
+    """True for Windows path forms that can point at a different, protected path."""
+    _, rest = os.path.splitdrive(raw)
+    if ":" in rest:
+        return True
+    parts = rest.replace("\\", "/").split("/")
+    return any("~" in p or (p not in (".", "..") and p.endswith((".", " "))) for p in parts)
+
+
 def relative_path(root: Path, raw: str) -> str | None:
-    """Project-relative, lowercase posix path, or None if outside the project."""
+    """Resolved, project-relative, lowercase posix path, or None if outside the project."""
+    if is_aliasing_form(raw):
+        block(f"path form not allowed ({raw}): 8.3 names, trailing dots or spaces and ':' streams "
+              "can alias protected files. Use the plain full path.")
     path = Path(raw)
     if not path.is_absolute():
         path = root / path
-    full = os.path.normcase(os.path.normpath(path))
-    base = os.path.normcase(os.path.normpath(root))
+    full = os.path.normcase(os.path.realpath(path))
+    base = os.path.normcase(os.path.realpath(root))
     if full != base and not full.startswith(base + os.sep):
         return None
     return Path(os.path.relpath(full, base)).as_posix().lower()
@@ -66,7 +84,11 @@ def find_task(root: Path, task_id: str) -> dict:
     block(f"LOOM_TASK={task_id} matches no task in .harness/tasks/. Fix the launch, not the hook.")
 
 
-def check(root: Path, rel: str | None, task_id: str) -> None:
+def check(root: Path, rel: str | None, task_id: str, admin: bool) -> None:
+    if rel is not None and not admin and matches(rel, ADMIN_PATHS):
+        block(f"{rel} is a harness admin file. Only the owner edits it, in a session launched "
+              "with LOOM_ADMIN=1.")
+
     lock_file = root / ".harness" / "locks.yaml"
     locked = (load_yaml(lock_file).get("locked") or []) if lock_file.exists() else []
     locked_msg = (f"{rel} is locked in .harness/locks.yaml. Do not edit contracts or tests. "
@@ -101,7 +123,9 @@ def main() -> None:
     if not raw:
         return
     root = Path(os.environ.get("CLAUDE_PROJECT_DIR") or payload.get("cwd") or ".")
-    check(root, relative_path(root, raw), os.environ.get("LOOM_TASK", "").strip())
+    task_id = os.environ.get("LOOM_TASK", "").strip()
+    admin = os.environ.get("LOOM_ADMIN") == "1"
+    check(root, relative_path(root, raw), task_id, admin)
 
 
 if __name__ == "__main__":

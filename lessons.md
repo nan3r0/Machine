@@ -40,3 +40,11 @@ How it was caught: a new test for `.harness/status.yaml` passed before the hook 
 Fix: a `with_extra_allowed` helper inserts the pattern inside `paths_allowed`, with its own test that the result is valid YAML.
 Rule going forward: for fail-closed code, see each "blocked" test fail before the change it covers, and check its fixtures are valid separately.
 Test added: `.harness/tests/test_enforce_locks.py::test_extra_allowed_yaml_is_valid`
+
+### 2026-11-15: Lock hook could be bypassed by path aliases and by sessions without a task
+What happened: an automated security review found that Windows path aliases (`TESTS~1`, `tests.`, `x.py:stream`, junctions) slipped past the lock patterns, and that any session started without `LOOM_TASK` could edit the hook and settings that enforce the rules.
+Why it happened (root cause, not symptom): the hook compared the literal path string instead of the file it resolves to, and treated "no task" as trusted.
+How it was caught: background security review of the pushed commit.
+Fix: aliasing path forms are blocked, symlinks and junctions are resolved, and hooks, settings and agents need `LOOM_ADMIN=1` at launch. p1-contracts adds a CI scope check, since the hook can never see Bash writes.
+Rule going forward: match protected paths on the resolved file, never the raw string. Enforcement files are protected by default, not only inside tasks. Every local guard gets a server-side check.
+Test added: `test_admin_files_blocked_without_task`, `test_admin_files_blocked_even_for_contract_owner_task`, `test_windows_path_tricks_are_blocked`, `test_symlink_into_locked_dir_is_blocked` in `.harness/tests/test_enforce_locks.py`

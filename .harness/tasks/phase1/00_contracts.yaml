@@ -39,6 +39,12 @@ notes: |
     `permissions: contents: read`, never pull_request_target, third-party actions pinned to a commit SHA.
     Plus a workflow_dispatch job that runs mutmut and pip-licenses and uploads the reports for the
     phase-end QA Lead and Auditor.
+  - Scope check in ci.yml (the server-side control the local hook cannot give, since Bash can write
+    files): on a task/<task-id> branch, fail if `git diff --name-only origin/main...HEAD` contains any
+    file outside that task's paths_allowed (plus its handoff, CONTRACT_CHANGE.md and ENV_ISSUE.md), any
+    path in locks.yaml (unless the task role is test_author or architect), or anything under
+    .claude/hooks, .claude/settings*.json or .claude/agents. A small locked script under tests/ does
+    the matching so CI and the hook agree on the rules.
   - .github/dependabot.yml for pip and github-actions.
   - hypothesis property tests for caption timing (every word shown once, in order, inside the audio).
   - Golden-render test (heavy): render the sample, check duration, resolution, caption timing and safe
