@@ -128,3 +128,35 @@ How it was caught: the second CI run on the contracts PR.
 Fix: the test is skipped off Windows.
 Rule going forward: a test that depends on one operating system's behaviour carries a `skipif` for the others, and every test file is assumed to run on Linux in CI.
 Test added: the test itself, now marked Windows-only.
+
+### 2026-11-15: The rotation hook spec told the hook to give up on the one stop that mattered
+What happened: the Architect's task YAML for h-rotation-hook said to exit early whenever `stop_hook_active` is true. Claude Code sets that flag on every stop that follows a hook block, which is exactly the stop where the replacement window should launch, so rotation could never fire. The implementer followed the spec, and its tests sent `stop_hook_active=false` on that stop, so they passed.
+Why it happened (root cause, not symptom): the spec was written from an assumption about the hook protocol, and the tests mirrored the spec instead of the real event sequence.
+How it was caught: Gate 2 review.
+Fix: the launch path runs before the `stop_hook_active` check; tests now send `true` on the stop after a block.
+Rule going forward: specs and tests for hooks follow the documented event sequence of the tool, including flags set by earlier blocks, not the author's mental model.
+Test added: `test_fresh_handoff_launches_task_once` and `test_acceptance` in `.harness/tests/test_context_guard.py`, now sending `stop_hook_active=true`.
+
+### 2026-11-15: An automatically run hook script was placed in an unprotected folder
+What happened: `context_guard.py` was registered as a Stop hook from `.harness/scripts/`, which any session can edit, so a session could change code that then runs in every later session, admin ones included.
+Why it happened (root cause, not symptom): the script was judged "not a security control" by what it does, not by when it runs; anything a hook runs automatically is privileged.
+How it was caught: background security review of the registration commit.
+Fix: the script moves to `.claude/hooks/`, which is owner-only.
+Rule going forward: every file a hook or setting executes lives under `.claude/hooks/` (owner-only), whatever its purpose.
+Test added: none; the lock hook already protects `.claude/hooks/`.
+
+### 2026-11-15: pip-audit failed three times on environment details
+What happened: CI's pip-audit first audited the whole runner (flagging CI tools' own dependencies), then could not resolve the `+cpu` torch builds from PyPI, and setuptools could not be upgraded past torch's cap. Each needed a separate fix round.
+Why it happened (root cause, not symptom): the audit command was never run once on a Linux runner before being locked into CI, so each problem surfaced one CI run at a time.
+How it was caught: three consecutive CI runs on PR #6.
+Fix: audit only project requirement files, with `+cpu` stripped from a temporary copy; two setuptools advisories ignored until torch lifts its cap (documented in the Makefile).
+Rule going forward: before locking a CI tool step, run it once on the target OS (a throwaway workflow run) and fix everything it reports in one round.
+Test added: `tests/test_ci_workflow.py` checks the audit command.
+
+### 2026-11-15: Orchestrator watchers missed or broke on small details
+What happened: one review launched before its prompt file existed (the command that wrote it was rejected), one CI watcher ran a script missing from the task branch (exit 127), and one task watcher never fired although the task was done.
+Why it happened (root cause, not symptom): watcher and launch commands were chained or path-dependent, so one failed step silently changed what ran next.
+How it was caught: the orchestrator checking a task that had gone quiet, after the owner asked.
+Fix: steps run separately; scripts are run from main's copy.
+Rule going forward: launch commands never depend on a file written in the same chained command, and the orchestrator checks git state directly whenever a watcher has been silent longer than the task should take.
+Test added: none, process rule.

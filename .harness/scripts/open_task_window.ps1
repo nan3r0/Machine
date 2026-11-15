@@ -3,7 +3,7 @@
 #   cmd /c start "Loom task: <id>" powershell.exe -ExecutionPolicy Bypass -File .harness\scripts\open_task_window.ps1 `
 #     -Task <id> -Model claude-sonnet-5-5 -WorkDir <worktree> -Message "<brief>" [-SessionId <id to resume>]
 # -Task orchestrator opens the orchestrator (no LOOM_TASK). -ClosePid <pid> stops that old window's
-# PowerShell once the new claude process has started (used by .harness/scripts/context_guard.py).
+# PowerShell once the new claude process has started (used by .claude/hooks/context_guard.py).
 param([string]$Task, [string]$SessionId, [string]$Model, [string]$WorkDir, [string]$Message, [int]$ClosePid)
 
 $isOrchestrator = $Task -eq 'orchestrator'
