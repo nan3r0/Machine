@@ -2,7 +2,7 @@
 # torch and torchaudio must share a minor version. CI installs these two lines first, from the
 # PyTorch CPU index only and with --no-deps; the rest then comes from PyPI only, with torch already
 # satisfied. No extra index here, so no package name can be resolved from both indexes.
-torch==2.11.0+cpu
+torch==2.15.0
 torchaudio==2.11.0+cpu
 # torch 2.11.0+cpu's own dependencies (Requires-Dist of the CPU wheel; torchaudio declares none)
 # and theirs, pinned so the --no-deps torch step stays reproducible.
