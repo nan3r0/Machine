@@ -1,0 +1,8 @@
+# Heavy runtime dependencies: installed only in CI and the render workflow, never locally.
+# torch and torchaudio come from the CPU-only index and must share a minor version.
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch==2.11.0+cpu
+torchaudio==2.11.0+cpu
+stable-ts==2.19.1
+openai-whisper==20250625
+kokoro-onnx==0.6.1
