@@ -17,7 +17,7 @@ A $0, cloud-only pipeline that scripts, voices, renders and publishes faceless s
 
 ## Status
 
-Pipeline Phase 1 (core render), Harness Stage 0. Harness set up; Phase 1 task graph approved (Kokoro-only voice). Repo: private `nan3r0/Machine`. Niche: Solved Internet & Everyday Mysteries (content rules in PLAN.md section 4). In progress: p1-contracts (tooling and pins merged to main; remaining steps in `.harness/handoffs/p1-contracts.md`). Everything must stay $0: free tiers only, no payment method on any account. No pipeline code yet. Done tasks: `.harness/status.yaml`. Weak points: architecture.md section 7.
+Pipeline Phase 1 (core render), Harness Stage 0. Harness set up; Phase 1 task graph approved (Kokoro-only voice). Repo: private `nan3r0/Machine`. Niche: Solved Internet & Everyday Mysteries (content rules in PLAN.md section 4). In progress: p1-contracts, in review (draft PR #6; fix round 1 running). Voice: PyTorch `kokoro`, weights pinned. Everything must stay $0: free tiers only, no payment method on any account. No pipeline code yet. Done tasks: `.harness/status.yaml`. Weak points: architecture.md section 7.
 
 ## Commands
 

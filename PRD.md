@@ -91,6 +91,8 @@ Confirmed by the owner:
 - 2026-11-15: Phase 1 runs at Harness Stage 0: manual sessions, one fresh session per task.
 - 2026-11-15: Phase 1 task graph approved.
 - 2026-11-15: Kokoro is the only voice. edge-tts is dropped (overrides PLAN.md sections 3 and 7).
+- 2026-11-15: Voice package is the PyTorch `kokoro` package with misaki pronunciation, not `kokoro-onnx`. Owner's bar: no loss in voice or timing quality, it must sound human and the captions must sit on the speech with no lag. `kokoro-onnx` is only reconsidered if a side-by-side listen proves it equal. Weights are pinned to a Hugging Face revision and sha256 hashes.
+- 2026-11-15: The owner is hands-off for Stage 0. An orchestrating Claude session launches each task session (in a visible window the owner can watch and type into), runs the gates and reviews, pushes, opens PRs and logs outcomes. The owner approves the contracts PR and merges PRs.
 - 2026-11-15: QA's 150 ms speech-rate rule is replaced by alignment sanity checks (R3.2).
 - 2026-11-15: Heavy tests run in CI only, never locally.
 - 2026-11-15: Main stays green with a locked, task-aware `tests/conftest.py` driven by `.harness/status.yaml`.
