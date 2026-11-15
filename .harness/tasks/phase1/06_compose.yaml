@@ -1,0 +1,23 @@
+id: p1-compose
+title: FFmpeg render of background, voice and captions to final.mp4
+depends_on: [p1-contracts]
+role: implementer
+notes: |
+  Builds the FFmpeg argument list (a list passed to subprocess, never a shell string) and runs it.
+  1080x1920, 30 fps, libx264, AAC, loudness normalised to -14 LUFS.
+  Phase 1 background is a solid colour from pipeline/constants.py. Visual templates arrive in Phase 3.
+  The subtitles filter path must be escaped correctly on both Windows and Linux.
+  Runs FFmpeg with -hide_banner -loglevel error and writes its full log to out/logs/compose.log
+  (HARNESS.md section 7b). Raises with the stderr tail on failure.
+  Unit tests check the argument list; the integration test is heavy (needs ffmpeg).
+paths_allowed:
+  - pipeline/render/compose.py
+tests:
+  - tests/render/test_compose.py
+acceptance: tests/render/test_compose.py::test_acceptance
+context_files:
+  - PLAN.md#3
+  - PLAN.md#7
+  - pipeline/constants.py
+  - pipeline/schema.py
+max_turns: 40

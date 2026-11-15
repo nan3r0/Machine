@@ -1,0 +1,21 @@
+id: p1-cso
+title: Phase-end STRIDE threat model of the pipeline as built
+depends_on: [p1-actions-workflow]
+role: cso
+notes: |
+  HARNESS.md section 6b. Creates docs/threat-model.md (first version). Phase 1 has no secrets or
+  publishing yet, so focus on what Phase 1 adds (script JSON into FFmpeg, workflows, dependencies) and
+  seed the later-phase threats from HARNESS.md so Phases 2 to 4 inherit them. Gaps become proposed tasks
+  in the handoff. The owner signs off the model before the first public publish (Phase 4).
+paths_allowed:
+  - docs/threat-model.md
+tests: []
+acceptance: null
+context_files:
+  - PLAN.md#2
+  - PLAN.md#3
+  - PLAN.md#10
+  - HARNESS.md#6b
+  - architecture.md
+  - .github/workflows/
+max_turns: 30

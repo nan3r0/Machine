@@ -1,0 +1,19 @@
+id: p1-align
+title: stable-ts forced alignment of the known script text to voice.wav
+depends_on: [p1-contracts]
+role: implementer
+notes: |
+  Fills in the stubbed align function with stable-ts align() on CPU. Words come from the script text; only the
+  timings come from the audio. Returns one WordTiming per script word, in order, with monotonic times
+  inside the audio duration. Punctuation and unicode in the text must survive unchanged.
+  Uses the committed fixture wav; marked heavy (needs torch).
+paths_allowed:
+  - pipeline/voice/align.py
+tests:
+  - tests/voice/test_align.py
+acceptance: tests/voice/test_align.py::test_acceptance
+context_files:
+  - PLAN.md#3
+  - PLAN.md#7
+  - pipeline/schema.py
+max_turns: 40

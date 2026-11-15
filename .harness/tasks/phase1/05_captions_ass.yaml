@@ -1,0 +1,21 @@
+id: p1-captions-ass
+title: Build word-by-word .ass caption generator
+depends_on: [p1-contracts]
+role: implementer
+notes: |
+  Pure function: list[WordTiming] plus style settings -> .ass file text for 1080x1920.
+  Word pop or highlight, a few words per line, positioned inside the safe zone from pipeline/constants.py
+  (clear of platform UI at top, bottom and right). Escapes ASS control characters ({, }, \) in words.
+  The font is one open-licence font committed under assets/fonts/ with its licence noted in assets/LICENSES.md.
+paths_allowed:
+  - pipeline/render/captions_ass.py
+  - assets/fonts/**
+  - assets/LICENSES.md
+tests:
+  - tests/render/test_captions_ass.py
+acceptance: tests/render/test_captions_ass.py::test_acceptance
+context_files:
+  - PLAN.md#7
+  - pipeline/schema.py
+  - pipeline/constants.py
+max_turns: 40

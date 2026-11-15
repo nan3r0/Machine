@@ -1,0 +1,24 @@
+id: p1-actions-workflow
+title: GitHub Actions workflow that renders the sample script and uploads final.mp4
+depends_on: [p1-render-cli]
+role: implementer
+notes: |
+  .github/workflows/render.yml, triggered by workflow_dispatch with a script path input
+  (default queue/approved/sample-40s.json). ubuntu-latest, installs ffmpeg, caches pip and the
+  stable-ts and Kokoro model weights, runs pipeline.render_one, uploads out_dir as an artifact
+  with short retention, plus the golden-render frames (out/frames/) for visual QA. Third-party actions
+  pinned to a full commit SHA, `permissions: contents: read`, never pull_request_target. Must pass
+  actionlint. No secrets needed in Phase 1. Triggers the security specialist review.
+  Acceptance has two parts: the locked structure test below, and a MANUAL check by the owner that a
+  run on GitHub produces a good 40 s video artifact (PLAN.md section 11, Phase 1 done-when).
+paths_allowed:
+  - .github/workflows/render.yml
+tests:
+  - tests/test_workflows.py
+acceptance: tests/test_workflows.py::test_acceptance
+manual_acceptance: Owner runs the workflow on GitHub and approves the downloaded final.mp4.
+context_files:
+  - PLAN.md#3
+  - PLAN.md#11
+  - .harness/handoffs/p1-render-cli.md
+max_turns: 30

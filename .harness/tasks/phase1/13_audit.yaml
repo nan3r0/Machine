@@ -1,0 +1,20 @@
+id: p1-audit
+title: Phase-end compliance audit (licences, permissions, policy)
+depends_on: [p1-actions-workflow]
+role: auditor
+notes: |
+  HARNESS.md section 6b. The owner first runs the CI workflow_dispatch job that produces pip-licenses and
+  pip-audit output and downloads it to out/reports/. Read-only: the report goes in the handoff and the
+  owner approves it. Platform-policy items that need publishing code are marked "not yet applicable".
+paths_allowed: []
+tests: []
+acceptance: null
+context_files:
+  - PLAN.md#4
+  - PLAN.md#6
+  - PLAN.md#10
+  - HARNESS.md#6b
+  - assets/LICENSES.md
+  - .github/workflows/
+  - out/reports/
+max_turns: 25

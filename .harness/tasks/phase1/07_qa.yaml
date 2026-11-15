@@ -1,0 +1,24 @@
+id: p1-qa
+title: Automated QA gate for a rendered video
+depends_on: [p1-contracts]
+role: implementer
+notes: |
+  Returns a QAReport (pass/fail plus every failed check with a reason), never raises on a bad video.
+  Checks, thresholds from pipeline/constants.py (spec.md section 4):
+  - duration inside the target range for the script's format
+  - no silence longer than 1.5 s (ffmpeg silencedetect)
+  - alignment sanity: every script word has a timing, timings monotonic and inside the audio
+  - resolution, fps and file size inside range
+  Owner decision 2026-11-15: the "150 ms vs expected speech rate" rule in PLAN.md is replaced by the
+  alignment sanity check above.
+paths_allowed:
+  - pipeline/render/qa.py
+tests:
+  - tests/render/test_qa.py
+acceptance: tests/render/test_qa.py::test_acceptance
+context_files:
+  - PLAN.md#4
+  - PLAN.md#7
+  - pipeline/schema.py
+  - pipeline/constants.py
+max_turns: 35
