@@ -1,0 +1,23 @@
+id: p1-render-cli
+title: Entry point that renders one script JSON to final.mp4
+depends_on: [p1-tts-kokoro, p1-align, p1-captions-ass, p1-compose, p1-qa]
+role: implementer
+notes: |
+  python -m pipeline.render_one <script.json> <out_dir>
+  Validates the script, then voice -> align -> captions -> compose -> qa. Writes final.mp4,
+  captions.ass, voice.wav and qa.json to out_dir. Exit code 0 only if QA passes; otherwise non-zero
+  with the failed checks printed. Wiring only, no new logic that belongs in a module.
+paths_allowed:
+  - pipeline/render_one.py
+tests:
+  - tests/test_render_one.py
+acceptance: tests/test_render_one.py::test_acceptance
+context_files:
+  - PLAN.md#7
+  - pipeline/schema.py
+  - .harness/handoffs/p1-tts-kokoro.md
+  - .harness/handoffs/p1-align.md
+  - .harness/handoffs/p1-captions-ass.md
+  - .harness/handoffs/p1-compose.md
+  - .harness/handoffs/p1-qa.md
+max_turns: 30

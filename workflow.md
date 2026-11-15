@@ -1,0 +1,72 @@
+# Build Workflow
+
+The process (roles, lifecycle, gates, escalation, handoffs, learning loop) is defined in HARNESS.md. This file is the Stage 0 how-to and the Phase 1 build record.
+
+## Steps (Stage 0, one task)
+
+1. Pick the next task in `.harness/tasks/phase1/` whose `depends_on` are all done.
+2. Start a fresh session with the task id set, from the project root:
+   - PowerShell: `$env:LOOM_TASK='p1-align'; claude --model sonnet`
+   - Git Bash: `LOOM_TASK=p1-align claude --model sonnet`
+   - Use `--model opus` for `test_author`, `architect` and `reviewer` tasks.
+3. Tell the session: "Do task p1-align. Follow CLAUDE.md." It reads the task YAML and its `context_files`.
+4. Gate 1: `ruff check .`, `mypy --strict pipeline/`, `pytest --cov=pipeline`, and check that changed files stay inside `paths_allowed` (the hook does not see Bash writes). Heavy tests skip locally, so for kokoro, align, compose, qa and render-cli, Gate 1 is a green CI run on the `task/<task-id>` branch. The session hands off as `partial` ("awaiting CI"); you push the branch, and if CI fails you paste the failure into the same session (a resume, not a new attempt) until it is green.
+5. The implementer writes `.harness/handoffs/<task-id>.md` from the HARNESS.md section 7 template.
+6. Gate 2: save the diff where the reviewer can read it (`git diff main... > .harness/reviews/<task-id>.diff`), then start a fresh read-only Opus session with no task set: `claude --model opus --disallowedTools "Edit,Write,MultiEdit,NotebookEdit,Bash"` and ask it to review the task as the `reviewer` agent (`.claude/agents/reviewer.md`). Blocking issues go back to step 2, at most 2 rounds, then Opus fixes (HARNESS.md section 6). If the task's changed files match `specialist_reviews` in `.harness/config.yaml`, run that specialist too, the same way (`security-reviewer` or `visual-qa` agent). In Phase 1 that means security for p1-contracts (`ci.yml`), p1-compose and p1-actions-workflow, and visual-qa for p1-captions-ass, p1-compose and p1-qa. Visual-qa reads the golden-render frames from the CI artifact, downloaded to `out/frames/`.
+7. Gate 3: add the task id to `done` in `.harness/status.yaml`, merge to main, and check that CI is green on main.
+8. Log the attempt: `python .harness/log_outcome.py <task-id> --attempt N --result <result> [--failing ...]`.
+9. If a mistake was found, add a `lessons.md` entry and a regression test.
+
+Failures repeat step 2 with the failing output in context. Escalation thresholds are in `.harness/config.yaml`.
+
+**Rotation (HARNESS.md section 7a).** Failed tests or review changes: keep the same session. Context above about 50% (`/context`) or `max_turns` hit: ask for a partial handoff, then start a fresh session on the same task from it, and log `--result rotated --rotation-reason context_limit` (or `max_turns`). After 3 rotations on one task, the Architect splits it.
+
+**Pausing (HARNESS.md section 10a).** Press `Esc`, then: "Stop here. Write handoff.md for this task (status: partial) and commit WIP." Next time, start a fresh session from the task YAML and handoff. Use `claude --continue` only if the task was nearly done.
+
+**Usage limits (HARNESS.md section 10b).** Not a failure: log `--result usage_limit`, no attempt counted. Save each real limit message (5-hour and weekly) verbatim to `.harness/tests/fixtures/limit_messages/<type>-<date>.txt`; Stage 1's parser is built from them. After the reset, resume the same session if its context is under about 50%, otherwise rotate.
+
+**ENV_ISSUE.md.** If a session writes it, fix the environment yourself or log `--category env_or_dependency`; don't let the agent loop on installs.
+
+## Rules
+
+- Every task passes all three gates before the next task that depends on it starts.
+- A fresh session starts cold. Its context is the task YAML, its `context_files`, CLAUDE.md and lessons.md. Nothing else carries over except handoffs.
+- A locked test that seems wrong becomes a `CONTRACT_CHANGE.md` for the Architect, never an edit.
+- Stop and ask the owner for: new dependencies, contract changes, any open question in PRD.md section 8, commits and pushes.
+- Small requests after a phase still go through the gates. Skipped reviews are where repeat mistakes come from.
+
+## Phase 1 module order
+
+```
+p1-contracts -> p1-tts-kokoro, p1-align, p1-captions-ass, p1-compose, p1-qa
+all five -> p1-render-cli -> p1-actions-workflow -> p1-qa-lead, p1-cso, p1-audit -> p1-phase-review
+```
+
+Stage 0 runs them one at a time in file-name order (`.harness/tasks/phase1/00_*.yaml` to `14_*.yaml`; gaps in the numbers are tasks dropped with edge-tts). Before p1-qa-lead and p1-audit, run the CI report job and download its reports to `out/reports/`.
+
+### Criterion to test map
+
+Test names are proposals for p1-contracts; it may rename them, and must update this table if so.
+
+| PRD criterion | Test |
+|---|---|
+| R1.1, R1.2 | `tests/test_schema.py` |
+| R2.1 to R2.3 | `tests/voice/test_kokoro.py` |
+| R3.1, R3.2 | `tests/voice/test_align.py` |
+| R4.1 to R4.3 | `tests/render/test_captions_ass.py` |
+| R5.1 to R5.3 | `tests/render/test_compose.py` |
+| R6.1 | `tests/render/test_qa.py` |
+| R6.2, R6.3 | `tests/test_render_one.py::test_acceptance` |
+| R7.1 | `tests/test_workflows.py` plus a manual run |
+| R7.2 | Manual, owner |
+| R7.3 | CI run on push |
+| R7.4 | `tests/test_conftest_selection.py` |
+| R7.5 | CI `make check` |
+| R7.6 | Handoffs of p1-qa-lead, p1-cso, p1-audit; owner approves |
+
+### Phase 1 status
+
+| Task | Status | Review |
+|---|---|---|
+| Harness setup (hook, config, agents, logger, status file) | done, 25 harness tests pass, hook confirmed live | none yet |
+| p1-contracts to p1-phase-review | graph approved by owner 2026-11-15, not started | |

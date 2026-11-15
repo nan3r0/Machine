@@ -1,0 +1,17 @@
+id: p1-qa-lead
+title: Phase-end test quality review (mutation testing and coverage gaps)
+depends_on: [p1-actions-workflow]
+role: qa_lead
+notes: |
+  HARNESS.md section 6b. The owner first runs the CI workflow_dispatch job that produces the mutmut and
+  coverage reports and downloads them to out/reports/. Read-only: proposed tests go in the handoff and
+  become a new locked-test task for the Test Author if the owner agrees.
+paths_allowed: []
+tests: []
+acceptance: null
+context_files:
+  - HARNESS.md#6b
+  - .harness/tasks/phase1/
+  - tests/
+  - out/reports/
+max_turns: 25

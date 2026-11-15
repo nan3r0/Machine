@@ -1,0 +1,123 @@
+# Shorts Pipeline: Product Requirements
+
+Checkable requirements, decisions and open questions for the pipeline described in `PLAN.md`. PLAN.md holds the full design; this file does not repeat it.
+
+## 1. Summary
+
+A $0, cloud-only pipeline that scripts, voices, renders and publishes faceless short-form videos to YouTube Shorts, Instagram Reels and TikTok, for one owner running a faceless channel. It runs on GitHub Actions with free APIs and open-source CPU tools. The owner's only regular job is reviewing and merging a weekly pull request of scripts (about 15 minutes). See PLAN.md sections 1 and 2.
+
+## 2. Goals and non-goals
+
+Goals:
+- Publish daily with the owner's PC off, at $0 running cost.
+- Every published fact traceable to a source and approved by the owner (PLAN.md section 5).
+- Videos varied enough to avoid YouTube's inauthentic-content enforcement (PLAN.md section 6).
+
+Non-goals:
+- No local compute (GPU, Raspberry Pi, Task Scheduler).
+- No dashboard or web UI. Approval is a GitHub PR.
+- No fully automatic TikTok posting. One tap per video is accepted.
+- No paid APIs or paid tiers.
+
+## 3. Phasing
+
+Phases and their done-when lines are in PLAN.md section 11. Current phase: **Phase 1, core render**. Phase 0 (admin: Google Cloud project, YouTube audit, Meta and TikTok apps, Cloudflare) runs in parallel and is done by the owner.
+
+## 4. Functional requirements and acceptance criteria
+
+### Phase 1: core render
+
+Goal: a hand-written script JSON becomes a good 40 s MP4, inside GitHub Actions.
+
+**R1. Script schema.** A script JSON in the PLAN.md section 7 shape is validated before any work.
+- R1.1 `queue/approved/sample-40s.json` validates.
+- R1.2 A script with a missing or wrong-typed field is rejected with an error naming the field.
+
+**R2. Voice.** Kokoro turns narration text into a mono wav.
+- R2.1 The wav is non-empty and its duration fits the word count at roughly 160 wpm.
+- R2.2 Model weights load from a cache directory given by the caller.
+- R2.3 If Kokoro fails, the run fails with an error. It never continues with a silent or empty file.
+
+**R3. Alignment.** Word timings come from forced alignment of the known script text.
+- R3.1 Exactly one timing per script word, same words, same order, punctuation and unicode intact.
+- R3.2 Timings are monotonic and lie inside the audio duration. This replaces PLAN.md's "no word timing off by more than 150 ms vs expected speech rate" check.
+
+**R4. Captions.** A word-by-word `.ass` file for 1080x1920.
+- R4.1 Every script word appears in the file, in order, with its aligned timing.
+- R4.2 All caption positions lie inside the safe zone set in `pipeline/constants.py`.
+- R4.3 ASS control characters in words (`{`, `}`, `\`) are escaped, so they show as text.
+
+**R5. Render.** FFmpeg produces `final.mp4`.
+- R5.1 1080x1920, 30 fps, H.264 video, AAC audio.
+- R5.2 Integrated loudness is -14 LUFS, within 1 LU.
+- R5.3 Video duration equals voice duration within 0.2 s.
+
+**R6. QA gate.** A QA report is produced for every render.
+- R6.1 Fails a video with a silence longer than 1.5 s, a duration outside the format's range, or a missing word timing, and names each failed check.
+- R6.2 Passes the rendered sample.
+- R6.3 The render command exits non-zero when QA fails.
+
+**R7. Runs in the cloud.**
+- R7.1 A manual `workflow_dispatch` run on GitHub renders the sample and uploads `final.mp4` as an artifact.
+- R7.2 Manual check: the owner watches the artifact and judges it a good 40 s video (clear voice, captions in sync by eye, nothing cut off).
+- R7.3 Gate 1 (ruff, mypy, pytest) runs green in CI on every push.
+- R7.4 Main stays green while tasks are unbuilt: a task's tests run only once it is listed in `.harness/status.yaml` or is the current `LOOM_TASK`.
+- R7.5 CI's `make check` also runs bandit, semgrep, gitleaks, pip-audit and actionlint, with no high-severity findings.
+- R7.6 Phase-end QA Lead, CSO and Auditor reviews are done, `docs/threat-model.md` exists, and the owner has approved the audit report.
+
+### Later phases
+
+Requirements are written when each phase starts, from PLAN.md sections 5, 7 and 11.
+
+## 5. Non-functional requirements
+
+- Cost: $0. Free tiers only; a run fits comfortably in GitHub Actions free minutes (PLAN.md section 3).
+- Run time: one video renders in under 15 minutes on `ubuntu-latest`, including dependency install from cache.
+- Security: secrets live only in GitHub Actions secrets and never appear in logs, code or commits.
+- Licensing: fonts, music and SFX are open-licence, each logged in `assets/LICENSES.md`.
+
+## 6. Risks and flags
+
+The main list is PLAN.md section 10. Added during kickoff:
+- Kokoro is the only voice, so a Kokoro break stops the pipeline until fixed. Accepted for a CPU model with pinned weights.
+- stable-ts and Kokoro pull in torch. Install size and time on Actions need caching or the 15-minute target fails.
+- Heavy tests (ffmpeg, torch, Kokoro) run only in CI, so tasks that need them can't pass Gate 1 without a GitHub repo, and each fix round waits on a CI run.
+
+## 7. Decisions
+
+Confirmed by the owner:
+- 2026-11-15: PLAN.md is the product and HARNESS.md is the build process. Both are the source of truth.
+- 2026-11-15: Model routing per HARNESS.md section 3 (Opus plans, writes tests and reviews; Sonnet implements; Haiku formats).
+- 2026-11-15: Phase 1 runs at Harness Stage 0: manual sessions, one fresh session per task.
+- 2026-11-15: Phase 1 task graph approved.
+- 2026-11-15: Kokoro is the only voice. edge-tts is dropped (overrides PLAN.md sections 3 and 7).
+- 2026-11-15: QA's 150 ms speech-rate rule is replaced by alignment sanity checks (R3.2).
+- 2026-11-15: Heavy tests run in CI only, never locally.
+- 2026-11-15: Main stays green with a locked, task-aware `tests/conftest.py` driven by `.harness/status.yaml`.
+- 2026-11-15: The deviations from HARNESS.md listed under "Assumed by Claude" below are accepted.
+- 2026-11-15: PLAN.md updated for Kokoro-only voice, the alignment QA rule and the Phase 1 contract files.
+- 2026-11-15: The "Office / dashboard" in HARNESS.md sections 6b and 10b is the owner's general-purpose tool, not part of this project. Nothing is built for it here.
+- 2026-11-15: Code lives in the private GitHub repo `nan3r0/Machine`, default branch `main`.
+
+Assumed by Claude (owner can overrule):
+- 2026-11-15: The hook learns the current task from the `LOOM_TASK` environment variable set at launch, not from a file the agent could edit.
+- 2026-11-15: Phase 1 background is a solid colour. Visual templates wait for Phase 3.
+- 2026-11-15: Contracts are two locked files, `pipeline/schema.py` and `pipeline/constants.py`, plus signature stubs that p1-contracts writes in each module. No Protocols, since each step has one implementation. `pipeline/render_one.py` is added as the entry point.
+- 2026-11-15: HARNESS.md section 6b calls every specialist read-only, but the CSO must update `docs/threat-model.md`. The CSO agent gets Edit and Write, limited to that one file through its task's `paths_allowed`.
+- 2026-11-15: The QA Lead stays read-only. It proposes missing tests in its handoff, and the Test Author writes them as a new locked-test task, instead of the QA Lead writing tests itself as section 6b suggests.
+- 2026-11-15: semgrep, gitleaks, actionlint and mutmut run in CI only (no `make` or native Windows support locally), so Gate 1 is "free" but not "instant" for those tools.
+- 2026-11-15: The weekly scheduled audit workflow (section 6b) is not built in Phase 1. The phase-end Auditor covers Phase 1. The weekly workflow is planned for Phase 4, before go-live.
+- 2026-11-15: Usage-limit message fixtures (HARNESS.md section 10b) go in `.harness/tests/fixtures/limit_messages/`, not `tests/fixtures/`, because the parser is harness code and `tests/**` is locked.
+- 2026-11-15: The contracts task also owns tooling (`pyproject.toml`, requirements, CI), so no implementer can change pins or gates.
+- 2026-11-15: Tests needing ffmpeg or torch carry a `heavy` marker, skip locally when the tool is missing, and always run in CI.
+- 2026-11-15: Code targets Python 3.11+ (owner's machine has 3.11); CI runs 3.12.
+
+## 8. Open questions
+
+- **[Decision needed]** Niche for the sample script and Phase 2 sources (PLAN.md section 4 recommends tech, business or science explainers). Owner, before p1-contracts writes the sample.
+- **[Decision needed]** Phase 2: Workflow A writes `used_facts.json` on a PR branch while Workflow B writes it on main, so a week-old PR will conflict. Derive used facts from queue files instead? Also: drop `queue/pending/` and `on_merge_approve.yml`, since merge already is approval?
+- **[Decision needed]** Phase 2: Gemini free-tier request limits were cut in late 2025. Check current limits; batch the meaning check into one call per script.
+- **[Decision needed]** Phase 4: Instagram Reels publishing pulls from a public `video_url`. An Actions artifact is not public, so a host or Meta's resumable upload is needed. Long-lived Instagram tokens also expire after about 60 days and need a scheduled refresh.
+- **[Decision needed]** Phase 0: confirm a TikTok app can use the inbox upload scope without audit, before any TikTok code is planned.
+- **[Decision needed]** Phase 5: swipe-away rate is probably not available in the YouTube Analytics API, and data lags 2 to 3 days, so a day-1 pull returns little. Verify before planning Workflow C.
+- Unverified: the YouTube quota cost per upload (PLAN.md says about 1,600 units). Check during Phase 4.

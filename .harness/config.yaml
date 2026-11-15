@@ -1,0 +1,36 @@
+# Role to model routing (HARNESS.md section 3). Retrospectives may propose changes here;
+# every change is logged and measured. Fable is deliberately absent: manual break-glass only.
+roles:
+  architect: claude-opus-5-5
+  test_author: claude-opus-5-5
+  implementer: claude-sonnet-5-5
+  escalation: claude-opus-5-5
+  reviewer: claude-opus-5-5
+  scribe: claude-haiku-5-5
+  retrospective: claude-opus-5-5
+  security_reviewer: claude-opus-5-5   # HARNESS.md section 6b, all read-only
+  qa_lead: claude-opus-5-5
+  cso: claude-opus-5-5
+  auditor: claude-opus-5-5
+  visual_qa: claude-opus-5-5
+
+# A task whose changed files match these globs gets that specialist review in addition to Gate 2.
+specialist_reviews:
+  security: ["pipeline/publish/**", "pipeline/ingest/**", "**/auth*", ".github/workflows/**",
+             "pipeline/render/compose.py"]
+  visual_qa: ["pipeline/render/**", "pipeline/visuals/**", "assets/**"]
+
+limits:
+  max_parallel_implementers: 2      # HARNESS.md principle 6
+  default_max_turns: 40
+  review_rounds_before_escalation: 2
+
+rotation:                            # HARNESS.md section 7a
+  rotate_context_pct: 60             # Stage 0 manual sessions rotate at about 50%
+  rotations_before_split: 3          # then the Architect splits the task (section 6)
+
+escalation:                          # HARNESS.md section 6
+  same_failures_attempts: 3
+  total_attempts: 5
+  lock_violations: 2
+  opus_attempts_before_blocked: 2

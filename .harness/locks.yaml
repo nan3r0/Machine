@@ -1,0 +1,3 @@
+# Paths implementers may never edit (glob patterns, project-relative).
+# Filled in by the contracts task (p1-contracts) and approved by merge.
+locked: []

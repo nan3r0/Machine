@@ -1,0 +1,20 @@
+id: p1-tts-kokoro
+title: Kokoro CPU voice that writes voice.wav from narration text
+depends_on: [p1-contracts]
+role: implementer
+notes: |
+  Kokoro is the only voice (owner decision 2026-11-15). Voice name and speed come from arguments.
+  Model weights download once to a cache directory passed in by the caller, so the Actions workflow
+  can cache them between runs. Output is mono wav at the sample rate in pipeline/constants.py.
+  Raises a clear error on any failure and never writes an empty or silent file. No retry: a local model
+  fails the same way twice. Tests are heavy (run in CI only).
+paths_allowed:
+  - pipeline/voice/kokoro.py
+tests:
+  - tests/voice/test_kokoro.py
+acceptance: tests/voice/test_kokoro.py::test_acceptance
+context_files:
+  - PLAN.md#3
+  - PLAN.md#6
+  - pipeline/constants.py
+max_turns: 40

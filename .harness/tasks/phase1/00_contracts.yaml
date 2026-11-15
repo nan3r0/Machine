@@ -1,0 +1,89 @@
+id: p1-contracts
+title: Tooling, contracts, fixtures and locked tests for Phase 1
+depends_on: []
+role: test_author
+notes: |
+  Launch with LOOM_TASK=p1-contracts. Output is one PR the owner reviews and merges (HARNESS.md section 5).
+  - pyproject.toml: ruff, mypy --strict on pipeline/, pytest config with a "heavy" marker for tests that
+    need ffmpeg, torch or Kokoro. Heavy tests skip when the tool is missing and always run in CI.
+    Heavy tests are never run locally (owner decision 2026-11-15).
+  - Pins from spec.md section 7, exact versions (verify current releases), split so the local install
+    stays light: requirements.txt (light runtime), requirements-dev.txt (tools), requirements-heavy.txt
+    (torch, kokoro, stable-ts; installed only in CI and the render workflow).
+  - Without heavy packages installed, local `ruff check .`, `mypy --strict pipeline/` and `pytest` must
+    all exit 0. So: heavy libraries are imported inside functions, never at module top, and mypy gets
+    ignore_missing_imports overrides for exactly those packages.
+  - pipeline/schema.py: Pydantic Script, Scene, Visual, WordTiming, QAReport (PLAN.md section 7 JSON shape).
+  - pipeline/constants.py: render and QA numbers from spec.md section 4.
+  - Stub every implementer module (pipeline/voice/kokoro.py, pipeline/voice/align.py,
+    pipeline/render/captions_ass.py, pipeline/render/compose.py, pipeline/render/qa.py,
+    pipeline/render_one.py) with the public signatures and docstrings the tests call, bodies raising
+    NotImplementedError. No Protocols: each has one implementation.
+  - Empty pipeline/*/__init__.py files.
+  - queue/approved/sample-40s.json: one hand-written ~40 s script (about 105 words) in the owner's niche.
+  - tests/fixtures/: a short committed wav plus its exact text, for align and QA tests.
+  - Unit tests per task, one test_acceptance per task. Then add every test path, schema.py,
+    constants.py and tests/conftest.py to locks.yaml.
+  - tests/conftest.py (task-aware, owner decision 2026-11-15): map each test file to its task through
+    the tests lists in .harness/tasks/**. Skip a task's tests unless its id is in .harness/status.yaml
+    "done" or equals LOOM_TASK. Tests not owned by any task always run. The skip reason names the task.
+    CI sets LOOM_TASK from the branch name (task/<task-id>), taken from
+    `github.head_ref || github.ref_name` (on pull_request, ref_name is "<n>/merge"), so a task's PR
+    runs its own tests. If LOOM_TASK is set but matches no task, the conftest fails the run loudly
+    instead of skipping, the same fail-closed rule as the hook.
+  - .gitignore covers out/, .harness/PAUSE, .harness/loom.lock, .harness/limit_state.json and .harness/reviews/.
+  - Makefile with a `check` target (HARNESS.md section 6b): ruff, mypy --strict, pytest --cov, bandit,
+    semgrep, gitleaks, pip-audit, actionlint. Any high-severity finding fails. CI runs `make check`;
+    locally only ruff, mypy and pytest are expected to run (Windows, no make).
+  - .github/workflows/ci.yml: `make check` with heavy tests and ffmpeg on every push and PR.
+    `permissions: contents: read`, never pull_request_target, third-party actions pinned to a commit SHA.
+    Plus a workflow_dispatch job that runs mutmut and pip-licenses and uploads the reports for the
+    phase-end QA Lead and Auditor.
+  - .github/dependabot.yml for pip and github-actions.
+  - hypothesis property tests for caption timing (every word shown once, in order, inside the audio).
+  - Golden-render test (heavy): render the sample, check duration, resolution, caption timing and safe
+    zones, and extract PNG frames at fixed timestamps to out/frames/ for the visual-qa reviewer.
+  - Record pins, the kokoro package choice, safe-zone and file-size values in spec.md, and any test
+    renames in workflow.md's criterion to test map.
+paths_allowed:
+  - spec.md
+  - workflow.md
+  - pyproject.toml
+  - requirements.txt
+  - requirements-dev.txt
+  - requirements-heavy.txt
+  - .gitignore
+  - pipeline/__init__.py
+  - pipeline/*/__init__.py
+  - pipeline/schema.py
+  - pipeline/constants.py
+  - pipeline/voice/kokoro.py
+  - pipeline/voice/align.py
+  - pipeline/render/captions_ass.py
+  - pipeline/render/compose.py
+  - pipeline/render/qa.py
+  - pipeline/render_one.py
+  - queue/approved/sample-40s.json
+  - tests/**
+  - .github/workflows/ci.yml
+  - .github/dependabot.yml
+  - Makefile
+  - .harness/locks.yaml
+tests:
+  - tests/test_schema.py
+  - tests/test_conftest_selection.py
+acceptance: tests/test_schema.py::test_acceptance
+context_files:
+  - PLAN.md#3
+  - PLAN.md#4
+  - PLAN.md#7
+  - PLAN.md#11
+  - HARNESS.md#5
+  - HARNESS.md#6b
+  - HARNESS.md#8
+  - PRD.md#4
+  - spec.md
+  - architecture.md
+  - .harness/tasks/phase1/
+  - .harness/status.yaml
+max_turns: 80

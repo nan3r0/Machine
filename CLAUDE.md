@@ -1,0 +1,76 @@
+# Shorts Pipeline
+
+A $0, cloud-only pipeline that scripts, voices, renders and publishes faceless short videos, built by Claude Code agents under the Loom harness. Everything runs on GitHub Actions and free tiers; nothing depends on a local PC.
+
+## Where things are
+
+| File | What it holds |
+|---|---|
+| `PLAN.md` | The product design. Source of truth for what the pipeline does |
+| `HARNESS.md` | How it is built: roles, gates, escalation, handoffs. Detail for every rule below |
+| `PRD.md` | Checkable acceptance criteria per phase, decisions, open questions |
+| `spec.md` | Stack, data model, numbers, security, gates, approved dependencies |
+| `architecture.md` | Layers, flows, decisions, testing map, known weak points |
+| `workflow.md` | Stage 0 how-to, module order, criterion to test map, status |
+| `lessons.md` | Mistakes and the rule each produced. Read before changing code |
+| `.harness/tasks/` | Task YAMLs. Your task is the one named in `LOOM_TASK` |
+
+## Status
+
+Pipeline Phase 1 (core render), Harness Stage 0. Harness set up; Phase 1 task graph approved (Kokoro-only voice). Repo: private `nan3r0/Machine`. Next: p1-contracts (needs the niche for the sample script). No pipeline code yet. Done tasks: `.harness/status.yaml`. Weak points: architecture.md section 7.
+
+## Commands
+
+- Gate 1: CI runs `make check` (adds bandit, semgrep, gitleaks, pip-audit, actionlint). Locally: `ruff check .`, `mypy --strict pipeline/`, `pytest --cov=pipeline`. Tests marked `heavy` run in CI only; never install ffmpeg or torch locally to run them. A skipped heavy test is not a pass: hand off as `partial`, "awaiting CI", until CI is green.
+- Harness tests: `pytest .harness/tests`
+- Log an attempt: `python .harness/log_outcome.py <task-id> --attempt N --result <result>`
+
+## Rules every session follows
+
+**One task, one fresh session.**
+- Work on exactly the task in `LOOM_TASK`. Read its YAML, its `context_files`, this file and lessons.md first.
+- Nothing carries over from earlier sessions except the repo and `.harness/handoffs/`.
+
+**Locked files are off-limits.**
+- Paths in `.harness/locks.yaml` (contracts and tests) are never edited by implementers. The PreToolUse hook blocks it.
+- If a locked test looks wrong, write `CONTRACT_CHANGE.md` (which test, why it contradicts PLAN.md, what it should say) and stop.
+- Never write files through Bash to get around the hook. Gate 1 diffs the change, so it gets caught anyway.
+
+**Stay inside `paths_allowed`.**
+- Edit only files that match your task's `paths_allowed`, plus your own `.harness/handoffs/<task-id>.md`, `CONTRACT_CHANGE.md` and `ENV_ISSUE.md`.
+- Need a file outside it? Say so in the handoff and stop. Don't widen the scope yourself.
+
+**Write the handoff before finishing.** `.harness/handoffs/<task-id>.md`, from HARNESS.md section 7: Goal, Status, What changed (and why), Decisions made, Tried and abandoned (required, "none" if none), Known risks, Next step, Evidence (test counts, commands run). A task without a complete handoff is not done.
+
+**Rotate before the context fills** (HARNESS.md section 7a). Check `/context`; above about 50% on an unfinished task, write a partial handoff and stop, so a fresh session continues from it. To pause, write the handoff with status `partial` and commit WIP. Rotations and usage limits are not failed attempts.
+
+**Keep tool output small** (HARNESS.md section 7b):
+- `pytest -q --tb=short`, single files or test IDs while iterating, full suite only before finishing.
+- FFmpeg and subprocess: `-hide_banner -loglevel error`; long logs go to `out/logs/<step>.log`, then grep them.
+- Search first (`grep -n`), then read only the line ranges you need. Use a subagent for wide searches.
+- Never print JSON queues, `.ass` files, transcripts, media or install logs (`pip -q`). `git diff --stat` before full diffs.
+- An install or environment problem not fixed in 2 tries: write `ENV_ISSUE.md` and stop.
+
+**Pass the gates in order** (HARNESS.md section 6a): Gate 1 automated checks, then Gate 2 Opus review, then Gate 3 merge plus full suite.
+
+**Gate 2 review checklist** (reviewer is read-only and returns JSON):
+1. Contract: does what the task and PLAN.md say, not just what the tests check
+2. Test integrity: no special-casing of test inputs
+3. Edge cases: empty or long input, unicode in captions, odd audio lengths, API errors, timeouts
+4. Failure handling: errors caught, logged, surfaced; nothing silently swallowed
+5. Security: no secrets in code or logs, no shell injection in FFmpeg or subprocess, pinned dependencies
+6. Fit: existing interfaces, no duplicate helpers, nothing outside `paths_allowed`
+7. Maintainability: clear names, no dead code, docstrings on public interfaces
+
+Every blocking finding from any reviewer needs file:line, severity, a concrete failure scenario and a fix hint; otherwise it is a note. Specialist reviews (security, visual QA, phase-end QA Lead, CSO, Auditor) follow HARNESS.md section 6b and the triggers in `.harness/config.yaml`.
+
+## Project rules
+
+- Tests before code. Every fixed bug gets a regression test that fails without the fix.
+- No new dependency outside spec.md section 7 without owner approval.
+- Numbers (resolution, loudness, durations, thresholds) live only in `pipeline/constants.py`.
+- Subprocess calls take argument lists, never `shell=True`.
+- No secrets and no personal details in code, config, logs or commits.
+- Work on a branch. Commit or push only when the owner asks.
+- If PLAN.md or HARNESS.md looks wrong, tell the owner before working around it.
+- End of session: update Status here if the project changed shape; add a lessons.md entry for any mistake found.
