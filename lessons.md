@@ -48,3 +48,43 @@ How it was caught: background security review of the pushed commit.
 Fix: aliasing path forms are blocked, symlinks and junctions are resolved, and hooks, settings and agents need `LOOM_ADMIN=1` at launch. p1-contracts adds a CI scope check, since the hook can never see Bash writes.
 Rule going forward: match protected paths on the resolved file, never the raw string. Enforcement files are protected by default, not only inside tasks. Every local guard gets a server-side check.
 Test added: `test_admin_files_blocked_without_task`, `test_admin_files_blocked_even_for_contract_owner_task`, `test_windows_path_tricks_are_blocked`, `test_symlink_into_locked_dir_is_blocked` in `.harness/tests/test_enforce_locks.py`
+
+### 2026-11-15: PR merged before its last commits were pushed
+What happened: the orchestrating session kept pushing hook fixes and the niche to PR #1's branch after asking the owner to review it. The owner merged the earlier state, so four commits were missing from main and needed a follow-up PR (#2).
+Why it happened (root cause, not symptom): a PR was treated as still open to new work after it had been handed to the owner for review.
+How it was caught: comparing main with the branch after the owner said it was merged.
+Fix: follow-up PR #2.
+Rule going forward: once a PR is handed to the owner, never push to its branch. New work goes on a new branch and PR, or the owner is told "don't merge yet" before any push.
+Test added: none, process rule.
+
+### 2026-11-15: An owner message in a task window was read as a decision it was not
+What happened: the owner typed "stick with kokoro for now" in the contracts window. The session read it as "use the PyTorch `kokoro` package", replaced its own `kokoro-onnx` choice, and dropped the pinned weight hashes, which two reviews then flagged.
+Why it happened (root cause, not symptom): a short, ambiguous message changed a recorded decision without the orchestrating session or the owner confirming what it meant.
+How it was caught: the orchestrating session compared the new handoff with the previous one.
+Fix: the owner chose explicitly (PyTorch `kokoro`, no quality loss allowed) and the weights get pinned by revision and sha256.
+Rule going forward: a task session that reads an owner message as changing a recorded decision states the change in its handoff under Decisions, and the orchestrating session confirms it with the owner before review.
+Test added: none, process rule.
+
+### 2026-11-15: Killing a task session left its window broken
+What happened: stopping the `claude` process in a task window opened with PowerShell `-NoExit` left the terminal in mouse-tracking mode, printing escape codes at the prompt.
+Why it happened (root cause, not symptom): the process was killed instead of exiting, so it never restored the terminal, and `-NoExit` kept the broken window open.
+How it was caught: the owner asked what the junk was.
+Fix: task windows are launched without `-NoExit`, so they close when Claude exits.
+Rule going forward: end a task session with `/exit` or by closing its whole window, never by killing only the `claude` process.
+Test added: none, launcher change.
+
+### 2026-11-15: CI ran git network commands without credentials
+What happened: the first CI run on the contracts PR failed in the scope check: `git fetch` could not authenticate because checkout uses `persist-credentials: false`.
+Why it happened (root cause, not symptom): the step fetched a ref the checkout had already fetched (`fetch-depth: 0`), and network git commands were never tried on the private repo before pushing.
+How it was caught: the first CI run.
+Fix: the redundant fetch is removed (contracts review round 1).
+Rule going forward: with `persist-credentials: false`, CI steps make no git network calls; fetch everything needed in the checkout step.
+Test added: covered by the CI run on every push.
+
+### 2026-11-15: Platform facts in the plan were out of date
+What happened: research found five plan assumptions wrong, including the YouTube audit (no longer needed), upload quota cost, Gemini free limits, Instagram's upload method and a missing analytics metric.
+Why it happened (root cause, not symptom): the plan was written from memory of how the platforms used to work, not checked against current official docs.
+How it was caught: a research pass the owner asked for while the contracts task ran.
+Fix: PLAN.md and PRD.md updated with sources (PR #5).
+Rule going forward: before the Architect plans a phase that touches an external API, check that API's current official docs and record the source and date in PRD.md section 7.
+Test added: none, process rule.
