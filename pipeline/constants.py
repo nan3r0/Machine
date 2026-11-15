@@ -32,7 +32,7 @@ VOICE_SPEED = 1.0
 VOICE_MIN_PEAK = 0.01
 
 # Alignment (stable-ts). openai-whisper verifies the checksum of its own model downloads.
-ALIGN_MODEL_NAME = "base.en"
+ALIGN_MODEL_NAME = "small.en"
 
 # Speech rate (PLAN.md section 4)
 SPEECH_WPM = 160
