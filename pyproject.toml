@@ -20,10 +20,10 @@ plugins = ["pydantic.mypy"]
 # so local mypy runs must not fail on their missing imports.
 [[tool.mypy.overrides]]
 module = [
-    "kokoro_onnx",
-    "kokoro_onnx.*",
-    "onnxruntime",
-    "onnxruntime.*",
+    "kokoro",
+    "kokoro.*",
+    "misaki",
+    "misaki.*",
     "stable_whisper",
     "stable_whisper.*",
     "whisper",

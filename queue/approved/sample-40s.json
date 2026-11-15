@@ -1,0 +1,39 @@
+{
+  "schema_version": 1,
+  "id": "sample-40s-sliding-rocks",
+  "topic": "How the sliding rocks of Racetrack Playa move",
+  "template": "steps",
+  "hook": "Rocks in Death Valley leave trails across a dry lakebed, and since the 1940s nobody had seen one move.",
+  "scenes": [
+    {
+      "narration": "A team including scientists from the Scripps Institution of Oceanography fitted rocks with GPS and set up time-lapse cameras.",
+      "on_screen_text": "GPS rocks + time-lapse cameras",
+      "visual": {"type": "steps", "data": {"step": 1, "label": "Instrument the rocks"}},
+      "source_fact_ids": [1, 2]
+    },
+    {
+      "narration": "On December 20, 2013, they caught more than 60 rocks moving at once.",
+      "on_screen_text": "December 20, 2013: 60+ rocks move",
+      "visual": {"type": "steps", "data": {"step": 2, "label": "Catch them moving"}},
+      "source_fact_ids": [3]
+    },
+    {
+      "narration": "Rain had frozen into ice just 3 to 6 millimetres thick. As the morning sun broke it up, light winds pushed the ice panels, and the panels pushed the rocks.",
+      "on_screen_text": "Thin ice + light wind",
+      "visual": {"type": "steps", "data": {"step": 3, "label": "Ice panels push the rocks"}},
+      "source_fact_ids": [4, 5]
+    },
+    {
+      "narration": "One tagged rock travelled 224 metres in a single winter.",
+      "on_screen_text": "Up to 224 m",
+      "visual": {"type": "steps", "data": {"step": 4, "label": "224 metres"}},
+      "source_fact_ids": [6]
+    }
+  ],
+  "loop_line": "So next time you see those trails, picture a sheet of ice doing the pushing.",
+  "title": "Death Valley's moving rocks: solved",
+  "description": "Source: Sliding Rocks on Racetrack Playa, Death Valley National Park: First Observation of Rocks in Motion. PLOS ONE (2014) 9(8): e105948. https://doi.org/10.1371/journal.pone.0105948",
+  "tags": ["death valley", "sliding rocks", "racetrack playa", "solved mysteries", "science"],
+  "platforms": ["youtube", "instagram", "tiktok"],
+  "publish_after": "2026-11-20"
+}
