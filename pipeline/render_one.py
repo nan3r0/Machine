@@ -16,9 +16,14 @@ from pathlib import Path
 from pipeline.constants import FONTS_DIR
 from pipeline.render import captions_ass, compose, qa
 from pipeline.schema import QAReport, Script
+from pipeline.script import validate
 from pipeline.voice import align, kokoro
 
 DEFAULT_CACHE_DIR = Path(".cache/models")
+
+
+class ScriptRejected(Exception):
+    """The script parses but may not be voiced or published; carries one message per problem."""
 
 
 def render(script_path: Path, out_dir: Path, cache_dir: Path) -> QAReport:
@@ -30,6 +35,9 @@ def render(script_path: Path, out_dir: Path, cache_dir: Path) -> QAReport:
     errors (VoiceError, AlignError, ComposeError) propagate.
     """
     script = Script.model_validate_json(script_path.read_text(encoding="utf-8"))
+    found = validate.problems(script)
+    if found:
+        raise ScriptRejected(found)
     out_dir.mkdir(parents=True, exist_ok=True)
     voice_path = out_dir / "voice.wav"
     captions_path = out_dir / "captions.ass"
@@ -55,6 +63,9 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     try:
         report = render(args.script, args.out_dir, args.cache_dir)
+    except ScriptRejected as rejected:
+        print("script rejected:", *rejected.args[0], sep="\n", file=sys.stderr)
+        return 2
     # The only real boundary of the CLI. Exit 1 must mean a real QA failure, so any other
     # exception (bad script encoding, a step bug) exits 2 with the full traceback printed.
     except Exception:
