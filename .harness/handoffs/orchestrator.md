@@ -25,7 +25,8 @@ You are the Stage 0 orchestrator (HARNESS.md section 10, Stage 0). Model: Sonnet
 
 ## State (2026-11-16, end of sixth orchestrator session)
 - p2-contracts merged (PR #62); added to status.yaml `done` on branch `docs/p2-closeout-1` (this branch).
-- Tasks 03 to 05 built, Gate 1 and Gate 2 passed, PRs open for the owner to merge:
+- Owner merged #63 to #65; their close-out (status.yaml, workflow.md, architecture.md, CLAUDE.md) is on this branch too. Next: task 06 p2-generate. The details below are history.
+- Tasks 03 to 05 built, Gate 1 and Gate 2 passed:
   - p2-gemini PR #63: CI green. Gate 2 and security approve.
   - p2-validate PR #64: CI green. Gate 2 and security approve.
   - p2-seed-sources PR #65 (Opus architect agent with web tools, since `open_task_window.ps1` disallows WebFetch and WebSearch): Gate 2 round 1 blocked on Bloop fact 6 abbreviating PMEL, fixed in 1d64fa9. CI was still pending when this session stopped; check `gh pr checks 65`. Owner must review every fact (PR body lists the open questions: BLC1 "unlikely", Cottingley names, Piltdown fact 409 wording).
