@@ -22,6 +22,11 @@ You are the Stage 0 orchestrator (HARNESS.md section 10, Stage 0). Model: Sonnet
 - One watcher per task; no polling loops in your own turns.
 - One Gate 2 pass per task; chase only blocking findings.
 
+## State (2026-11-16, third orchestrator session)
+- Phase-end reviews 11 to 13 done. CSO merged (PR #42, `docs/threat-model.md`, proposed P1-1 to P1-6; P1-1 must be decided before any repo secret is added). QA lead and Auditor handoffs written by the orchestrator (both roles are read-only) on `docs/p1-phase-end-reviews`. Auditor: no Phase 1 blockers; A1 to A3 block the first public publish. QA lead: 16 proposed tests for a `p1-qa-tests` locked-test task, waiting on owner approval.
+- Reports job fixed in three PRs (#41 mutmut `also_copy`, #43 mutmut skips heavy tests, #44 each report its own step and the upload runs unless cancelled). Run 43903542144 produced `phase-reports`; the job stays red on the accepted pip-audit findings, which is expected.
+- Next: owner approves the audit and picks QA tests; then CSO close-out docs (handoff Docs sections of p1-cso, p1-audit, p1-qa-lead) via Scribe, then task 14 phase review.
+
 ## State (2026-11-16, end of second orchestrator session)
 - Phase 1 code complete and owner manual acceptance done: run 43873059742 produced a 69.6 s video (QA passed, no silence), the owner approved the voice, pacing and tone. Decisions in force: every video about 65 s on every platform (62 to 90 s QA range), `VOICE_SPEED` 0.9, tone rules in PLAN.md section 4. Measured speech rate is about 144 wpm (167 words in 69.5 s), `SPEECH_WPM` is still 150 in constants.py: have the Architect set it to 144 when next touching constants.py. Owner still has to set the 65 s average view duration target (PLAN.md section 12 placeholder, after 30 days of data).
 - Next: the four phase-end tasks in `.harness/tasks/phase1/` (11 QA lead, 12 CSO, 13 Auditor, 14 phase review; 14 runs last). QA lead and Auditor first need the owner to run the CI `workflow_dispatch` reports job (mutmut and coverage, pip-licenses and pip-audit) and download the output to `out/reports/`: check ci.yml for the job, tell the owner the exact steps. CSO writes `docs/threat-model.md`. These are read-only or docs-only roles on Opus, run each in a fresh visible window or as the matching agent; max 2 at once.
