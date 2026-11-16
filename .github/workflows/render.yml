@@ -51,7 +51,7 @@ jobs:
 
       - name: Extract golden frames
         if: ${{ !cancelled() && hashFiles('out/render/final.mp4') != '' }}
-        run: python -c "from pathlib import Path; from pipeline import constants; from tests import media; media.extract_frames(Path('out/render/final.mp4'), 'golden', constants.GOLDEN_FRAME_TIMES_S)"
+        run: python -c "from pathlib import Path; from tests import media; media.extract_golden_frames(Path('out/render/final.mp4'))"
 
       - name: Upload render output
         if: ${{ !cancelled() && hashFiles('out/render/final.mp4') != '' }}
