@@ -44,8 +44,9 @@ SPEECH_RATE_TOLERANCE = 0.4
 # Format (PLAN.md section 4): every video is over a minute. (min, max) seconds and words.
 # TIKTOK_WORDS is TIKTOK_SECONDS at SPEECH_WPM, rounded inwards: 62 s * 144 / 60 = 148.8 -> 149,
 # 90 s * 144 / 60 = 216.0 -> 216.
-TIKTOK_SECONDS = (62.0, 90.0)  # PLAN.md allows 61 s, but QA requires at least 62 s
+TIKTOK_SECONDS = (62.0, 90.0)  # PLAN.md section 4: target about 65 s, accepted 62 to 90 s
 TIKTOK_WORDS = (149, 216)
+TARGET_WORDS = 156  # the 65 s target at SPEECH_WPM: 65 s * 144 / 60 = 156
 
 # QA
 MAX_SILENCE_S = 1.5
@@ -83,3 +84,35 @@ FONTS_DIR = "assets/fonts"
 # every video that passes QA; the end frame covers the rest of a longer video.
 GOLDEN_FRAME_TIMES_S = (1.0, 10.0, 20.0, 30.0, 40.0, 50.0, 60.0)
 GOLDEN_END_OFFSET_S = 0.5
+
+# Scripts (Phase 2). Published-field caps (CSO P1-3, owner decision D6): title is YouTube's limit.
+SCRIPTS_PER_BATCH = 7
+TITLE_MAX_CHARS = 100
+DESCRIPTION_MAX_CHARS = 1000
+TAGS_MAX = 10
+TAG_MAX_CHARS = 30
+TAGS_TOTAL_MAX_CHARS = 500
+# Size caps that keep a 7-script PR body under PR_BODY_MAX_CHARS (arithmetic in
+# tests/script/test_batch.py). TIKTOK_WORDS[1] words at about 7 characters each fit NARRATION_MAX_CHARS.
+SCENES_MAX = 10
+NARRATION_MAX_CHARS = 1500  # narration_text(): hook, scenes and loop line
+FACTS_PER_SOURCE_MAX = 10
+FACT_TEXT_MAX_CHARS = 160
+FACT_URL_MAX_CHARS = 100
+REASON_MAX_CHARS = 120  # a flag or meaning-check reason, clipped by its producer
+PR_BODY_MAX_CHARS = 60_000  # GitHub caps a PR body at 65536
+
+# Gemini (owner decision D5). Interactions API, read 2026-11-16 (PRD.md section 7). Writer and
+# checker are different models; never a gemini-2.5-* or preview model. Model ids retire: someone
+# checks the Gemini API deprecations page every few months (architecture.md section 7).
+GEMINI_ENDPOINT = "https://generativelanguage.googleapis.com/v1beta/interactions"
+GEMINI_API_REVISION = "2026-05-20"  # Api-Revision header in the structured-output examples
+WRITER_MODEL = "gemini-3.8-flash"
+CHECKER_MODEL = "gemini-3.5-flash-lite"
+CHECKER_TEMPERATURE = 0.0
+# 7 scripts, each one first try plus one retry or line rewrite. Must sit inside the free daily limits.
+WRITER_MAX_CALLS_PER_BATCH = 14
+CHECKER_MAX_CALLS_PER_BATCH = 14
+SCRIPT_ATTEMPTS = 2  # writer calls write_script may make: first try plus one retry
+GEMINI_TIMEOUT_S = 120
+GEMINI_RETRY_WAIT_S = 10  # wait before the single retry after HTTP 429, a 5xx or a timeout
