@@ -240,3 +240,11 @@ How it was caught: the phase-end QA lead review (p1-qa-lead).
 Fix: the oracle is now a hand-written unescape of the ASS escapes, and exact expected strings live in `tests/render/test_captions_exact.py`.
 Rule going forward: a test's expected value comes from the spec, a literal or an independent oracle, never from the code under test. Fake tool output (ffprobe, silencedetect, loudnorm) comes from a real capture, never hand-written.
 Test added: `tests/render/test_captions_exact.py::test_escape_gives_exact_text`.
+
+### 2026-11-16: Word bounds came from a speech rate that was never measured at the live voice speed
+What happened: `SPEECH_WPM` 150 was scaled from a speed 1.0 sample (167 wpm x 0.9) when `VOICE_SPEED` dropped to 0.9. The real rate was about 144 wpm, so the 65 s format's 225-word maximum would have run about 94 s and failed the 62 to 90 s QA range. The derivation comment in constants.py also disagreed with the code (155 vs 156).
+Why it happened (root cause, not symptom): the word bounds were derived by arithmetic from an assumed rate instead of from a render at the new speed, and nothing checks the comment against the values.
+How it was caught: the owner's 65 s acceptance render (167 words in 69.5 s, run 43873059742).
+Fix: `SPEECH_WPM` 144 and `TIKTOK_WORDS` (149, 216), with the arithmetic in the comment (branch docs/p1-constants-timeout-contracts). `RETENTION_WORDS` is flagged for the owner.
+Rule going forward: after any change to the voice or its speed, re-measure the speech rate from a real render and re-derive every word bound from it in the same change.
+Test added: none; these are constants, and the 65 s sample's fit is already checked by `tests/test_schema.py::test_default_sample_fits_the_65s_format`.
