@@ -183,6 +183,14 @@ def test_missing_script_file_exits_2(tmp_path: Path, fakes: Fakes) -> None:
     assert fakes.calls == []
 
 
+def test_non_utf8_script_exits_2(tmp_path: Path, fakes: Fakes) -> None:
+    """Regression: UnicodeDecodeError escaped main() when only named step errors were caught."""
+    script = tmp_path / "script.json"
+    script.write_bytes(b"\xff\xfe\x00")
+    assert render_one.main([str(script), str(tmp_path / "out")]) == 2
+    assert fakes.calls == []
+
+
 def test_voice_failure_stops_the_run(tmp_path: Path, fakes: Fakes,
                                      capsys: pytest.CaptureFixture[str]) -> None:
     fakes.voice_error = VoiceError("kokoro exploded")
