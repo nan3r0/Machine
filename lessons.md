@@ -184,3 +184,27 @@ How it was caught: taskkill output "The process cannot terminate itself".
 Fix: match on `open_task_window` only and exclude `$PID`.
 Rule going forward: process filters exclude the current process and match a string that only the target carries.
 Test added: none, process rule.
+
+### 2026-11-15: A merged PR missed the review fix because the fix was never pushed
+What happened: PR #31 (p1-render-cli) was merged with the blocking Gate 2 finding still in it, because the round-1 fix existed only as a local commit. A follow-up PR (#32) shipped it.
+Why it happened (root cause, not symptom): the orchestrator told the owner a fix session was running while the PR was still open and green, so the owner merged.
+How it was caught: the orchestrator checked git state after the merge.
+Fix: follow-up PR with the fix; the Architect added the regression test.
+Rule going forward: when a review requests changes, close the PR or mark it draft (`gh pr ready --undo`) before starting the fix round, and tell the owner not to merge until the fix is pushed and green.
+Test added: `tests/test_render_one.py::test_non_utf8_script_exits_2`.
+
+### 2026-11-15: A variable font silently fell back to DejaVu
+What happened: the committed Montserrat was a variable font whose name table says family "Montserrat Thin", so libass could not match the style name and rendered every caption in DejaVu. Code reviews flagged the risk twice; only a real frame proved it.
+Why it happened (root cause, not symptom): the compose test uses an empty fonts folder, and golden frames did not exist until render-cli, so nothing rendered the real font.
+How it was caught: orchestrator reading a CI golden frame after render-cli.
+Fix: static Montserrat-Bold.ttf (family "Montserrat", Bold), with a locked name-table test.
+Rule going forward: a font file is checked by its name table (family, style, no fvar) in a test, and the first render that uses it is looked at, not assumed.
+Test added: `tests/render/test_font.py`.
+
+### 2026-11-15: A local `tests` package shadows the repo's tests
+What happened: several task sessions needed a shim because an installed `tests` package in site-packages is imported instead of the repo's `tests/`.
+Why it happened (root cause, not symptom): the project's `tests/` is imported by name and a stray distribution on the owner's Python install installs a top-level `tests` package.
+How it was caught: implementers hit it in p1-captions-ass, p1-qa and p1-actions-workflow; the reviewer asked for it to be recorded.
+Fix: none in the repo yet; task venvs are created with the repo requirements only, and sessions use a runner that puts the repo first on sys.path.
+Rule going forward: if a task needs the shim, say so in the handoff Evidence; an owner decision on a permanent fix (for example a `pythonpath` entry in pytest config) is still open.
+Test added: none.

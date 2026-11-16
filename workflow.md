@@ -83,5 +83,8 @@ Locked by p1-contracts. Every task's acceptance test is `test_acceptance` in its
 | p1-align | done, merged 2026-11-15 (PR #26), heavy tests passed in CI | Gate 2 approved |
 | p1-captions-ass | done, merged 2026-11-15 (PR #27), 127 passed, 83 skipped | Gate 2 and visual QA approved (code only, no frames yet) |
 | p1-compose | done, merged 2026-11-15 (PR #28), heavy tests passed in CI after one fix round (two-pass loudnorm) | Gate 2, security and visual QA approved; Montserrat bold unverified on a real render |
-| p1-qa to p1-phase-review | in progress or not started | |
-| p1-font-fix | not started; locked test `tests/render/test_font.py` written | |
+| p1-qa | done, merged 2026-11-15 (PR #30), heavy tests passed in CI | Gate 2 and visual QA approved (code only) |
+| p1-render-cli | done, merged (PRs #31 and #32), heavy tests passed in CI | Gate 2: one blocking finding (exit codes), fixed in #32; regression test added by the Architect in #33 |
+| p1-font-fix | done, merged (PR #35); render run shows real Montserrat Bold | Locked name-table test; golden frame checked by the orchestrator |
+| p1-actions-workflow | done, merged (PR #34); first render run on GitHub passed QA (35.5 s) | Gate 2 and security approved. Owner manual acceptance still open |
+| QA lead, CSO, Auditor, phase review | not started | |

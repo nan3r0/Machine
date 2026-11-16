@@ -17,7 +17,7 @@ A $0, cloud-only pipeline that scripts, voices, renders and publishes faceless s
 
 ## Status
 
-Pipeline Phase 1 (core render), Harness Stage 0. Harness set up; Phase 1 task graph approved (Kokoro-only voice). Repo: private `nan3r0/Machine`. Niche: Solved Internet & Everyday Mysteries (content rules in PLAN.md section 4). Done: p1-contracts, p1-tts-kokoro, p1-docs-check, p1-align, p1-captions-ass, p1-compose. In progress: p1-qa. Next: p1-render-cli, p1-actions-workflow. Harness: automatic rotation hook live (`.claude/hooks/context_guard.py`); orchestrator state in `.harness/handoffs/orchestrator.md`. Voice: PyTorch `kokoro`, weights pinned. Everything must stay $0: free tiers only, no payment method on any account. No pipeline code yet. Done tasks: `.harness/status.yaml`. Weak points: architecture.md section 7.
+Pipeline Phase 1 (core render), Harness Stage 0. Harness set up; Phase 1 task graph approved (Kokoro-only voice). Repo: private `nan3r0/Machine`. Niche: Solved Internet & Everyday Mysteries (content rules in PLAN.md section 4). Done: all Phase 1 code tasks (p1-contracts through p1-actions-workflow, plus p1-font-fix). Open: owner manual acceptance of the rendered video, then the phase-end reviews (QA lead, CSO, Auditor, phase review). Pending owner decision: every video about 65 s once live (PLAN.md section 4). Harness: automatic rotation hook live (`.claude/hooks/context_guard.py`); orchestrator state in `.harness/handoffs/orchestrator.md`. Voice: PyTorch `kokoro`, weights pinned. Everything must stay $0: free tiers only, no payment method on any account. No pipeline code yet. Done tasks: `.harness/status.yaml`. Weak points: architecture.md section 7.
 
 ## Commands
 
