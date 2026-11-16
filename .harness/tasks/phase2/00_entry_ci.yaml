@@ -17,6 +17,9 @@ notes: |
        ("weekly_scripts.yml", "generate"): {"GEMINI_API_KEY"}. A secret anywhere else (another job,
        workflow-level env, a `run:` line) fails. GITHUB_TOKEN through `github.token` is allowed only
        in an allowlisted write job.
+     - Checkout credentials: every actions/checkout step sets `persist-credentials: false`, except
+       in a job on the write allowlist, which may persist them so it can push (the Architect's
+       choice for weekly_scripts.yml `open-pr`; the p2-contracts weekly-workflow test assumes it).
      - Keep assert_safe's current behaviour for ci.yml and render.yml (tests/test_ci_workflow.py and
        tests/test_workflows.py must still pass unedited, or be updated here with the same meaning).
      - Show each new rule failing first on a throwaway bad workflow written to tmp_path (lessons.md
@@ -27,7 +30,10 @@ notes: |
      work start with the task id in backticks or plain; a row whose first cell is not a task id is
      allowed only if it names no task id anywhere in the row (so "QA lead, CSO, Auditor" style rows
      must be split into one row per task id). Rewrite the existing workflow.md rows that break this.
-     Update tests/test_docs_check.py first.
+     Also fix a false positive: TASK_ID_IN_TEXT matches `p2-plan` inside `architect-p2-plan`
+     (a word boundary falls after the hyphen), so naming an architect handoff in the CLAUDE.md
+     Status section fails the check. A task id must not be preceded by a letter, digit or hyphen.
+     Update tests/test_docs_check.py first, with a regression test for that case.
   No pipeline code. Owned test files run always (no task owns them), so main must stay green.
 paths_allowed:
   - tests/workflow_rules.py

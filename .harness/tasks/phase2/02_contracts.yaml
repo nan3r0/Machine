@@ -70,12 +70,21 @@ notes: |
     `python -m pipeline.script.batch`, uploads the batch as an artifact) and job `open-pr` (needs
     generate, no secrets, contents and pull-requests write, downloads the artifact, commits to a
     `scripts/<date>` branch, opens the PR with --body-file); passes the p2-entry-ci rules.
+    `open-pr` pushes with the checkout's persisted credentials (the one place p2-entry-ci allows
+    them); no token appears in a `run:` line.
+  - queue/approved/sample-65s.json: its description holds a URL, which the D6 default forbids. The
+    Phase 1 render_one tests feed this sample to render_one, which p2-validate makes call
+    validate.problems, so fix the sample here: keep the source credit by name ("Source: NOAA
+    National Ocean Service, Ocean Facts.") without the URL. If the owner chose a URL allowlist for
+    D6 instead, make sure the sample passes it. Its fact ids 1 to 9 stay below the seed blocks
+    (101 and up).
   Add the new test paths to the criterion-to-test map in workflow.md.
 paths_allowed:
   - pipeline/schema.py
   - pipeline/constants.py
   - pipeline/script/**
   - pipeline/factcheck/semantic.py
+  - queue/approved/sample-65s.json
   - tests/**
   - spec.md
   - workflow.md

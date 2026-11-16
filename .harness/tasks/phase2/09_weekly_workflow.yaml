@@ -13,7 +13,8 @@ notes: |
     out/batch/pr_body.md as an artifact (retention 3 days). The key never reaches a job with write
     permissions.
   - Job `open-pr`: needs generate; permissions contents write and pull-requests write; no secrets
-    other than github.token; downloads the artifact, creates branch scripts/<run date>, commits only
+    other than github.token (gh reads it through `env: GH_TOKEN`); its checkout persists
+    credentials so `git push` works, the only checkout allowed to (p2-entry-ci rule); downloads the artifact, creates branch scripts/<run date>, commits only
     the new queue/approved/*.json files, pushes, and runs `gh pr create --body-file`. Branch name and
     title come from the date, never from model output. Every value reaches `run:` through `env:`.
   Pushes and PRs made with GITHUB_TOKEN start no ci.yml run (pull_request runs wait for the owner's

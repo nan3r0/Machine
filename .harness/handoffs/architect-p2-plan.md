@@ -54,7 +54,7 @@ Defaults are what the task YAMLs assume; a different answer changes p2-contracts
 
 **D5. Gemini models and budget.** The owner reads the writer and checker model ids and their free daily limits off the AI Studio dashboard (the docs page shows one model only). Not a `gemini-2.5-*` model (deprecated 2026-12-01). Default budget: at most 14 writer and 14 checker calls per batch.
 
-**D6. Published-field policy (P1-3).** Default: no URLs at all (no allowlist), no control, bidi or zero-width characters; title up to 100 characters, description up to 1000, at most 10 tags of up to 30 characters and 500 in total.
+**D6. Published-field policy (P1-3).** Default: no URLs at all (no allowlist), no control, bidi or zero-width characters; title up to 100 characters, description up to 1000, at most 10 tags of up to 30 characters and 500 in total. Links in Shorts, Reels and TikTok descriptions are not clickable, so a source credit by name loses little. The 65 s sample's description holds a NOAA URL today; p2-contracts removes it (keeping "Source: NOAA National Ocean Service, Ocean Facts."), because the Phase 1 render tests feed the sample through the new check. The alternative is a URL allowlist (for example only urls of the facts the script cites).
 
 **D7. Harness stage.** HARNESS.md sections 2a, 4 and 10 put Phase 2 at Stage 1 (build `loom run`). The Stage 0 exit criterion is met (14 outcome records). Default: run Phase 2 at Stage 0 and build Loom later, because Loom is a project of its own and slows the first upload. Needs an owner yes, since it departs from HARNESS.md.
 
