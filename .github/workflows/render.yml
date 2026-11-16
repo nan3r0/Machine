@@ -5,7 +5,7 @@ on:
     inputs:
       script:
         description: Script JSON to render
-        default: queue/approved/sample-40s.json
+        default: queue/approved/sample-65s.json
         required: true
         type: string
 
