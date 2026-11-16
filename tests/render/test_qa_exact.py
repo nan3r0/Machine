@@ -36,8 +36,7 @@ LONGEST_RUN = max(RUNS)
 def probe_video_with(**stream: str) -> str:
     return json.dumps({**VIDEO_INFO, "streams": [{**STREAM, **stream}]})
 
-RETENTION_MAX_WORDS = constants.RETENTION_WORDS[1]
-TIKTOK_MIN_WORDS = RETENTION_MAX_WORDS + 1
+TIKTOK_MIN_WORDS = constants.TIKTOK_WORDS[0]
 TOL = constants.DURATION_MATCH_TOLERANCE_S
 SLACK = constants.ALIGNMENT_SLACK_S
 
@@ -69,7 +68,8 @@ def failed(video: VideoStats, word_count: int, timings: list[WordTiming] | None 
 
 # --- item 7: boundaries and direction -------------------------------------------------------------
 
-RANGES = [(RETENTION_MAX_WORDS, constants.RETENTION_SECONDS), (TIKTOK_MIN_WORDS, constants.TIKTOK_SECONDS)]
+# The range never depends on the word count: a short script must still run over a minute.
+RANGES = [(count, constants.TIKTOK_SECONDS) for count in (10, TIKTOK_MIN_WORDS, constants.TIKTOK_WORDS[1])]
 
 
 @pytest.mark.parametrize(("count", "bounds"), RANGES)
@@ -86,11 +86,12 @@ def test_duration_just_outside_the_range_fails(count: int, bounds: tuple[float, 
     assert failed(stats(high + 0.1), count) == {"duration"}
 
 
-def test_word_count_switches_the_range() -> None:
-    """The live 65 s format: one word past RETENTION_WORDS max means TIKTOK_SECONDS applies."""
-    assert failed(stats(constants.TIKTOK_SECONDS[0]), RETENTION_MAX_WORDS) == {"duration"}
-    assert failed(stats(constants.RETENTION_SECONDS[1]), TIKTOK_MIN_WORDS) == {"duration"}
-    assert failed(stats(65.0), TIKTOK_MIN_WORDS) == set()
+@pytest.mark.parametrize("count", [10, 100, TIKTOK_MIN_WORDS])
+def test_a_video_under_a_minute_fails_whatever_the_word_count(count: int) -> None:
+    """Owner rule 2026-11-16: every video is over a minute; there is no shorter format."""
+    assert failed(stats(40.0), count) == {"duration"}
+    assert failed(stats(60.0), count) == {"duration"}
+    assert failed(stats(65.0), count) == set()
 
 
 VOICE_S = sum(constants.TIKTOK_SECONDS) / 2

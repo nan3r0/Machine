@@ -36,17 +36,10 @@ class VideoStats:
     longest_silence_s: float
 
 
-def duration_range_for(word_count: int) -> tuple[float, float]:
-    """RETENTION_SECONDS for scripts of up to RETENTION_WORDS max words, else TIKTOK_SECONDS."""
-    if word_count <= constants.RETENTION_WORDS[1]:
-        return constants.RETENTION_SECONDS
-    return constants.TIKTOK_SECONDS
-
-
-def _duration_failure(stats: VideoStats, word_count: int) -> str | None:
-    low, high = duration_range_for(word_count)
+def _duration_failure(stats: VideoStats) -> str | None:
+    low, high = constants.TIKTOK_SECONDS
     if not low <= stats.duration_s <= high:
-        return f"duration {stats.duration_s:.1f}s outside {low:g}-{high:g}s for {word_count} words"
+        return f"duration {stats.duration_s:.1f}s outside {low:g}-{high:g}s"
     gap = abs(stats.duration_s - stats.voice_duration_s)
     if gap > constants.DURATION_MATCH_TOLERANCE_S:
         return (f"video {stats.duration_s:.2f}s and voice {stats.voice_duration_s:.2f}s differ by "
@@ -71,7 +64,7 @@ def evaluate(stats: VideoStats, timings: list[WordTiming], script_words: list[st
     """Run every check on measured values and return the report. Pure, never raises.
 
     Checks, named as in QAFailure.check, all thresholds from constants.py:
-    - duration: inside `duration_range_for(len(script_words))`, and within
+    - duration: inside TIKTOK_SECONDS whatever the word count (every video is over a minute), and within
       DURATION_MATCH_TOLERANCE_S of the voice duration
     - silence: longest silence no longer than MAX_SILENCE_S
     - alignment: one timing per script word with the same word in the same order; starts and
@@ -83,7 +76,7 @@ def evaluate(stats: VideoStats, timings: list[WordTiming], script_words: list[st
     `measured` holds every VideoStats field by name.
     """
     reasons: list[tuple[Check, str | None]] = [
-        ("duration", _duration_failure(stats, len(script_words))),
+        ("duration", _duration_failure(stats)),
         ("silence", None if stats.longest_silence_s <= constants.MAX_SILENCE_S else
          f"silence of {stats.longest_silence_s:.2f}s, limit {constants.MAX_SILENCE_S}s"),
         ("alignment", _alignment_failure(timings, script_words, stats.voice_duration_s)),

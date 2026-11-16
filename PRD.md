@@ -30,12 +30,12 @@ Phases and their done-when lines are in PLAN.md section 11. Current phase: **Pha
 Goal: a hand-written script JSON becomes a good 65 s MP4, inside GitHub Actions.
 
 **R1. Script schema.** A script JSON in the PLAN.md section 7 shape is validated before any work.
-- R1.1 `queue/approved/sample-40s.json` validates.
+- R1.1 A well-formed script JSON validates (tested on `queue/approved/sample-65s.json`; the 40 s sample was removed with the Retention format).
 - R1.3 `queue/approved/sample-65s.json` validates, fits the 65 s format's word range and is the render workflow's default script.
 - R1.2 A script with a missing or wrong-typed field is rejected with an error naming the field.
 
 **R2. Voice.** Kokoro turns narration text into a mono wav.
-- R2.1 The wav is non-empty and its duration fits the word count at roughly 150 wpm (voice speed 0.9).
+- R2.1 The wav is non-empty and its duration fits the word count at roughly 144 wpm (voice speed 0.9).
 - R2.2 Model weights load from a cache directory given by the caller.
 - R2.3 If Kokoro fails, the run fails with an error. It never continues with a silent or empty file.
 
@@ -110,8 +110,10 @@ Confirmed by the owner:
   - TikTok: inbox upload needs only `video.upload` scope approval; one tap per video, at most 5 drafts pending.
   - Analytics: engaged views, average percentage viewed and retention for Shorts, pulled at days 3 and 7 (no swipe-away metric; 48–72 h lag).
   - Images: Flux output fitted to 9:16 over a blurred fill. Pexels clips credited in the description.
-- 2026-11-16: Every video, on every platform, targets about 65 s once the pipeline is live (about 175 words, accepted 62 to 90 s, mandatory curiosity reset at about 25 to 30 s). The Retention format stays in code and tests but is not used by default. PLAN.md sections 4, 7, 11 and 12 updated.
-- 2026-11-16: Delivery is slower, darker and mysterious to build suspense, while videos stay about 65 s. Voice speed 0.9, about 150 wpm, so the 65 s format is about 160 words (accepted 156 to 225) and the Retention format 70 to 112 words. A darker Kokoro voice and background music are deferred. Tone rules in PLAN.md section 4.
+- 2026-11-16: Every video, on every platform, targets about 65 s once the pipeline is live (about 175 words, accepted 62 to 90 s, mandatory curiosity reset at about 25 to 30 s). The Retention format stays in code and tests but is not used by default. PLAN.md sections 4, 7, 11 and 12 updated. (Retention part superseded by the 2026-11-16 over-a-minute entry below.)
+- 2026-11-16: Delivery is slower, darker and mysterious to build suspense, while videos stay about 65 s. Voice speed 0.9, about 150 wpm, so the 65 s format is about 160 words (accepted 156 to 225) and the Retention format 70 to 112 words (superseded below: 144 wpm, 149 to 216 words, Retention removed). A darker Kokoro voice and background music are deferred. Tone rules in PLAN.md section 4.
+- 2026-11-16: Speech rate set to the measured 144 wpm (167 words in 69.5 s, render run 43873059742), so the 65 s format accepts 149 to 216 words (62 and 90 s at 144 wpm, rounded inwards). A 225-word script would have run about 94 s. The numbers private to compose.py and qa.py move to constants.py, and compose's FFmpeg calls get a 600 s timeout (task p1-constants-timeout).
+- 2026-11-16: The only hard length rule is that every video runs over a minute; 65 s is a target, not a requirement. QA keeps the 62 to 90 s range (62 s lower bound, 90 s cap). The Retention format (25 to 45 s, 70 to 112 words) is removed from code, tests, PLAN.md and spec.md: it was unused, and QA's word-count switch let a short script pass against 25 to 45 s, breaking the over-a-minute rule. QA now checks every video against 62 to 90 s whatever its word count. The 40 s sample is deleted and the golden render uses the 65 s sample. This closes the open Retention word range question.
 - 2026-11-15: Niche is "Solved Internet & Everyday Mysteries", with the content rules in PLAN.md section 4 (sourced resolutions only, no private individuals, no graphic violence). Proposed by Claude, pending owner OK: the rules themselves.
 
 Assumed by Claude (owner can overrule):

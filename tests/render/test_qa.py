@@ -13,11 +13,11 @@ from pipeline.schema import WordTiming
 from tests.wavs import write_wav
 
 WORDS = [f"w{i}" for i in range(100)]
-GOOD = VideoStats(duration_s=40.0, voice_duration_s=40.0, width=constants.WIDTH, height=constants.HEIGHT,
+GOOD = VideoStats(duration_s=65.0, voice_duration_s=65.0, width=constants.WIDTH, height=constants.HEIGHT,
                   fps=float(constants.FPS), file_bytes=5_000_000, longest_silence_s=0.5)
 
 
-def timings(words: list[str] = WORDS, total: float = 39.0) -> list[WordTiming]:
+def timings(words: list[str] = WORDS, total: float = 64.0) -> list[WordTiming]:
     step = total / len(words)
     return [WordTiming(word=w, start=i * step, end=(i + 1) * step) for i, w in enumerate(words)]
 
@@ -46,13 +46,13 @@ def make_video(path: Path, seconds: float, silent_from: float | None = None, sil
 @pytest.mark.heavy
 def test_acceptance(tmp_path: Path) -> None:
     """A clean video passes; one with a 3 s silence fails and names the check."""
-    voice = write_wav(tmp_path / "voice.wav", 40.0, constants.VOICE_SAMPLE_RATE)
-    good = make_video(tmp_path / "good.mp4", 40.0)
+    voice = write_wav(tmp_path / "voice.wav", 65.0, constants.VOICE_SAMPLE_RATE)
+    good = make_video(tmp_path / "good.mp4", 65.0)
     report = qa.run_qa(good, voice, timings(), WORDS)
     assert report.passed, report.failures
     assert report.measured["width"] == constants.WIDTH
 
-    gap = make_video(tmp_path / "gap.mp4", 40.0, silent_from=10, silent_to=13)
+    gap = make_video(tmp_path / "gap.mp4", 65.0, silent_from=10, silent_to=13)
     report = qa.run_qa(gap, voice, timings(), WORDS)
     assert not report.passed
     assert "silence" in {f.check for f in report.failures}
@@ -89,8 +89,8 @@ def test_good_stats_pass_and_report_every_measurement() -> None:
 
 @pytest.mark.parametrize(("change", "check"), [
     ({"duration_s": 20.0, "voice_duration_s": 20.0}, "duration"),
-    ({"duration_s": 50.0, "voice_duration_s": 50.0}, "duration"),
-    ({"duration_s": 40.0, "voice_duration_s": 39.5}, "duration"),
+    ({"duration_s": 95.0, "voice_duration_s": 95.0}, "duration"),
+    ({"duration_s": 65.0, "voice_duration_s": 64.5}, "duration"),
     ({"longest_silence_s": constants.MAX_SILENCE_S + 0.1}, "silence"),
     ({"width": constants.HEIGHT, "height": constants.WIDTH}, "resolution"),
     ({"fps": 25.0}, "fps"),
@@ -116,7 +116,7 @@ def test_failure_reasons_are_not_empty() -> None:
     timings()[:-1],
     [*timings()[:5], timings()[5].model_copy(update={"word": "typo"}), *timings()[6:]],
     [timings()[1], timings()[0], *timings()[2:]],
-    [*timings()[:-1], timings()[-1].model_copy(update={"end": 40.0 + constants.ALIGNMENT_SLACK_S + 0.5})],
+    [*timings()[:-1], timings()[-1].model_copy(update={"end": 65.0 + constants.ALIGNMENT_SLACK_S + 0.5})],
     [],
 ])
 def test_alignment_problems_fail_alignment(broken: list[WordTiming]) -> None:
@@ -127,13 +127,3 @@ def test_timing_starting_before_previous_fails_alignment() -> None:
     t = timings()
     t[10] = WordTiming(word=WORDS[10], start=t[9].start - 0.1, end=t[10].end)
     assert failed_checks(t=t) == {"alignment"}
-
-
-@pytest.mark.parametrize(("count", "expected"), [
-    (constants.RETENTION_WORDS[0], constants.RETENTION_SECONDS),
-    (constants.RETENTION_WORDS[1], constants.RETENTION_SECONDS),
-    (constants.RETENTION_WORDS[1] + 1, constants.TIKTOK_SECONDS),
-    (constants.TIKTOK_WORDS[1], constants.TIKTOK_SECONDS),
-])
-def test_duration_range_follows_word_count(count: int, expected: tuple[float, float]) -> None:
-    assert qa.duration_range_for(count) == expected
