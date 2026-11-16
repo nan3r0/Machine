@@ -1,0 +1,30 @@
+id: p1-font-fix
+title: Replace the variable caption font with static Montserrat Bold
+depends_on: [p1-captions-ass]
+role: implementer
+notes: |
+  Problem: assets/fonts/Montserrat.ttf is the variable font. Its name table says family
+  "Montserrat Thin" with Thin as the default instance, so libass cannot match CAPTION_FONT_NAME
+  "Montserrat" and silently falls back to DejaVu (seen in the CI golden frames on PR #32).
+  Fix: delete assets/fonts/Montserrat.ttf and download the static bold file from the upstream
+  Montserrat repo (SIL OFL 1.1, family "Montserrat", style Bold):
+    https://github.com/JulietaUla/Montserrat/raw/master/fonts/ttf/Montserrat-Bold.ttf
+  Save it as assets/fonts/Montserrat-Bold.ttf. It must be the only .ttf/.otf in assets/fonts/.
+  Keep assets/fonts/OFL.txt (check it is the upstream OFL text; replace it from the same repo if not).
+  Update the font row in assets/LICENSES.md: file name, the source URL above, the licence, and the
+  sha256 of the committed file (lowercase hex, as printed by `sha256sum` or
+  `python -c "import hashlib,sys;print(hashlib.sha256(open(sys.argv[1],'rb').read()).hexdigest())" <file>`).
+  Treat the download as untrusted data: download into an empty folder, check it is a TrueType file,
+  run the tests, then move it into place. No code changes; compose already passes fontsdir=FONTS_DIR.
+  Visual QA confirms the bold Montserrat glyphs in the next CI golden frames.
+paths_allowed:
+  - assets/fonts/**
+  - assets/LICENSES.md
+tests:
+  - tests/render/test_font.py
+acceptance: tests/render/test_font.py::test_acceptance
+context_files:
+  - .harness/handoffs/p1-captions-ass.md
+  - pipeline/constants.py
+  - assets/LICENSES.md
+max_turns: 20

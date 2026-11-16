@@ -44,9 +44,10 @@ Failures repeat step 2 with the failing output in context. Escalation thresholds
 ```
 p1-contracts -> p1-tts-kokoro, p1-align, p1-captions-ass, p1-compose, p1-qa
 all five -> p1-render-cli -> p1-actions-workflow -> p1-qa-lead, p1-cso, p1-audit -> p1-phase-review
+p1-captions-ass -> p1-font-fix (added after PR #32: static Montserrat Bold, run before p1-actions-workflow)
 ```
 
-Stage 0 runs them one at a time in file-name order (`.harness/tasks/phase1/00_*.yaml` to `14_*.yaml`; gaps in the numbers are tasks dropped with edge-tts). Before p1-qa-lead and p1-audit, run the CI report job and download its reports to `out/reports/`.
+Stage 0 runs them one at a time in file-name order (`.harness/tasks/phase1/00_*.yaml` to `14_*.yaml`; gaps in the numbers are tasks dropped with edge-tts). Tasks added later (`15_*.yaml` onward) run where their dependencies and the note above put them. Before p1-qa-lead and p1-audit, run the CI report job and download its reports to `out/reports/`.
 
 ### Criterion to test map
 
@@ -57,7 +58,7 @@ Locked by p1-contracts. Every task's acceptance test is `test_acceptance` in its
 | R1.1, R1.2 | `tests/test_schema.py` |
 | R2.1 to R2.3 | `tests/voice/test_kokoro.py` (`test_acceptance`, `test_second_run_uses_cache_offline`, `test_unpinned_voice_fails_before_any_download`, `test_tampered_weights_fail_before_kokoro_loads`, `test_kokoro_failure_raises_voice_error`, `check_wav` tests); weight pins in `tests/test_pins.py` |
 | R3.1, R3.2 | `tests/voice/test_align.py` (heavy acceptance on the fixture wav, plus a hypothesis property on `to_word_timings`) |
-| R4.1 to R4.3 | `tests/render/test_captions_ass.py` (hypothesis property `test_every_word_shown_once_in_order_inside_the_audio`) |
+| R4.1 to R4.3 | `tests/render/test_captions_ass.py` (hypothesis property `test_every_word_shown_once_in_order_inside_the_audio`); caption font is static Montserrat Bold in `tests/render/test_font.py` |
 | R5.1 to R5.3 | `tests/render/test_compose.py::test_acceptance` (heavy; also writes `out/frames/compose-*.png`) |
 | R6.1 | `tests/render/test_qa.py` |
 | R6.2 | `tests/test_render_one.py::test_acceptance` (heavy golden render; writes `out/frames/golden-*.png`) |
@@ -83,3 +84,4 @@ Locked by p1-contracts. Every task's acceptance test is `test_acceptance` in its
 | p1-captions-ass | done, merged 2026-11-15 (PR #27), 127 passed, 83 skipped | Gate 2 and visual QA approved (code only, no frames yet) |
 | p1-compose | done, merged 2026-11-15 (PR #28), heavy tests passed in CI after one fix round (two-pass loudnorm) | Gate 2, security and visual QA approved; Montserrat bold unverified on a real render |
 | p1-qa to p1-phase-review | in progress or not started | |
+| p1-font-fix | not started; locked test `tests/render/test_font.py` written | |
