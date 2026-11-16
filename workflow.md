@@ -45,6 +45,7 @@ Failures repeat step 2 with the failing output in context. Escalation thresholds
 p1-contracts -> p1-tts-kokoro, p1-align, p1-captions-ass, p1-compose, p1-qa
 all five -> p1-render-cli -> p1-actions-workflow -> p1-qa-lead, p1-cso, p1-audit -> p1-phase-review
 p1-captions-ass -> p1-font-fix (added after PR #32: static Montserrat Bold, run before p1-actions-workflow)
+p1-actions-workflow -> p1-sample-65s (added 2026-11-16: render workflow defaults to the 65 s sample, run before the phase-end reviews)
 ```
 
 Stage 0 runs them one at a time in file-name order (`.harness/tasks/phase1/00_*.yaml` to `14_*.yaml`; gaps in the numbers are tasks dropped with edge-tts). Tasks added later (`15_*.yaml` onward) run where their dependencies and the note above put them. Before p1-qa-lead and p1-audit, run the CI report job and download its reports to `out/reports/`.
@@ -55,7 +56,7 @@ Locked by p1-contracts. Every task's acceptance test is `test_acceptance` in its
 
 | PRD criterion | Test |
 |---|---|
-| R1.1, R1.2 | `tests/test_schema.py` |
+| R1.1 to R1.3 | `tests/test_schema.py`; workflow default in `tests/test_render_default.py` (task p1-sample-65s) |
 | R2.1 to R2.3 | `tests/voice/test_kokoro.py` (`test_acceptance`, `test_second_run_uses_cache_offline`, `test_unpinned_voice_fails_before_any_download`, `test_tampered_weights_fail_before_kokoro_loads`, `test_kokoro_failure_raises_voice_error`, `check_wav` tests); weight pins in `tests/test_pins.py` |
 | R3.1, R3.2 | `tests/voice/test_align.py` (heavy acceptance on the fixture wav, plus a hypothesis property on `to_word_timings`) |
 | R4.1 to R4.3 | `tests/render/test_captions_ass.py` (hypothesis property `test_every_word_shown_once_in_order_inside_the_audio`); caption font is static Montserrat Bold in `tests/render/test_font.py` |
@@ -64,7 +65,7 @@ Locked by p1-contracts. Every task's acceptance test is `test_acceptance` in its
 | R6.2 | `tests/test_render_one.py::test_acceptance` (heavy golden render; writes `out/frames/golden-*.png`) |
 | R6.3 | `tests/test_render_one.py::test_qa_failure_exits_non_zero_and_names_checks` |
 | R7.1 | `tests/test_workflows.py` plus a manual run |
-| R7.2 | Manual, owner |
+| R7.2 | Manual, owner, on the 65 s sample |
 | R7.3 | CI run on push; structure in `tests/test_ci_workflow.py` |
 | R7.4 | `tests/test_conftest_selection.py` |
 | R7.5 | CI `make check`; scope check in `tests/test_scope_check.py` |
@@ -87,4 +88,5 @@ Locked by p1-contracts. Every task's acceptance test is `test_acceptance` in its
 | p1-render-cli | done, merged (PRs #31 and #32), heavy tests passed in CI | Gate 2: one blocking finding (exit codes), fixed in #32; regression test added by the Architect in #33 |
 | p1-font-fix | done, merged (PR #35); render run shows real Montserrat Bold | Locked name-table test; golden frame checked by the orchestrator |
 | p1-actions-workflow | done, merged (PR #34); first render run on GitHub passed QA (35.5 s) | Gate 2 and security approved. Owner manual acceptance still open |
+| p1-sample-65s | not started | |
 | QA lead, CSO, Auditor, phase review | not started | |

@@ -13,7 +13,6 @@ def test_acceptance() -> None:
     rules.assert_safe(wf)
     dispatch = wf["on"]["workflow_dispatch"]
     script_input = dispatch["inputs"]["script"]
-    assert script_input["default"] == "queue/approved/sample-40s.json"
     assert (ROOT / script_input["default"]).exists()
     assert set(wf["on"]) == {"workflow_dispatch"}, "render runs only by hand in Phase 1"
     assert all(job["runs-on"] == "ubuntu-latest" for job in wf["jobs"].values())

@@ -27,10 +27,11 @@ Phases and their done-when lines are in PLAN.md section 11. Current phase: **Pha
 
 ### Phase 1: core render
 
-Goal: a hand-written script JSON becomes a good 40 s MP4, inside GitHub Actions.
+Goal: a hand-written script JSON becomes a good 65 s MP4, inside GitHub Actions.
 
 **R1. Script schema.** A script JSON in the PLAN.md section 7 shape is validated before any work.
 - R1.1 `queue/approved/sample-40s.json` validates.
+- R1.3 `queue/approved/sample-65s.json` validates, fits the 65 s format's word range and is the render workflow's default script.
 - R1.2 A script with a missing or wrong-typed field is rejected with an error naming the field.
 
 **R2. Voice.** Kokoro turns narration text into a mono wav.
@@ -59,7 +60,7 @@ Goal: a hand-written script JSON becomes a good 40 s MP4, inside GitHub Actions.
 
 **R7. Runs in the cloud.**
 - R7.1 A manual `workflow_dispatch` run on GitHub renders the sample and uploads `final.mp4` as an artifact.
-- R7.2 Manual check: the owner watches the artifact and judges it a good 40 s video (clear voice, captions in sync by eye, nothing cut off).
+- R7.2 Manual check: the owner watches the artifact and judges it a good 65 s video (clear voice, captions in sync by eye, nothing cut off).
 - R7.3 Gate 1 (ruff, mypy, pytest) runs green in CI on every push.
 - R7.4 Main stays green while tasks are unbuilt: a task's tests run only once it is listed in `.harness/status.yaml` or is the current `LOOM_TASK`.
 - R7.5 CI's `make check` also runs the docs check, bandit, semgrep, gitleaks, pip-audit and actionlint, with no high-severity findings.
@@ -109,6 +110,7 @@ Confirmed by the owner:
   - TikTok: inbox upload needs only `video.upload` scope approval; one tap per video, at most 5 drafts pending.
   - Analytics: engaged views, average percentage viewed and retention for Shorts, pulled at days 3 and 7 (no swipe-away metric; 48–72 h lag).
   - Images: Flux output fitted to 9:16 over a blurred fill. Pexels clips credited in the description.
+- 2026-11-16: Every video, on every platform, targets about 65 s once the pipeline is live (about 175 words, accepted 62 to 90 s, mandatory curiosity reset at about 25 to 30 s). The Retention format stays in code and tests but is not used by default. PLAN.md sections 4, 7, 11 and 12 updated.
 - 2026-11-15: Niche is "Solved Internet & Everyday Mysteries", with the content rules in PLAN.md section 4 (sourced resolutions only, no private individuals, no graphic violence). Proposed by Claude, pending owner OK: the rules themselves.
 
 Assumed by Claude (owner can overrule):
@@ -126,6 +128,7 @@ Assumed by Claude (owner can overrule):
 
 ## 8. Open questions
 
+- **[Decision needed]** Average view duration target for 65 s videos (PLAN.md section 12), to be set by the owner after the first 30 days of data.
 - **[Decision needed]** Phase 2: Workflow A writes `used_facts.json` on a PR branch while Workflow B writes it on main, so a week-old PR will conflict. Derive used facts from queue files instead? Also: drop `queue/pending/` and `on_merge_approve.yml`, since merge already is approval?
 - To verify in Phase 4: one test upload confirms an unaudited YouTube project's uploads and `publishAt` schedules go public (official docs say yes since 2 Nov 2026, but no example covers an unaudited project).
 - To verify in Phase 2: Gemini free-tier limits for the chosen models in the owner's AI Studio dashboard (published figures come from third parties).
