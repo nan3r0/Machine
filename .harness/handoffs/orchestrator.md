@@ -22,14 +22,13 @@ You are the Stage 0 orchestrator (HARNESS.md section 10, Stage 0). Model: Sonnet
 - One watcher per task; no polling loops in your own turns.
 - One Gate 2 pass per task; chase only blocking findings.
 
-## State (2026-11-15, second orchestrator session, after compose)
-- Merged to main: p1-contracts (#6), p1-tts-kokoro (#22), p1-docs-check (#23), p1-align (#26), p1-captions-ass (#27), p1-compose (#28). Close-out docs for the last three are on `docs/p1-closeout-3`.
-- Running: `p1-qa` (Sonnet, worktree `qa`, branch `task/p1-qa`, started from main `65fc2a1`). Restart the watcher if needed: `sh .harness/scripts/wait_task.sh <abs worktree> p1-qa 65fc2a1 <cmd.exe pid under its open_task_window powershell>`; if it already committed, check git state first. On TASK_DONE: Gate 1, Gate 2 review, visual QA (render/ trigger), push, PR, wait_ci. Close its window (stop the `open_task_window` powershell, never match on the task name alone).
-- Next: `p1-render-cli` (depends on qa), then `p1-actions-workflow` (security review), then phase-end reviews (qa-lead, cso, auditor, phase review).
-- Launch helper: a small .ps1 that takes -Task -Worktree -Brief avoids shell quoting failures; Git Bash `cmd //c start` quoting fails.
-- Carry to render-cli and qa: caption font fell back to DejaVu in the compose test (empty fonts dir); Montserrat bold on the variable font is unverified, check a real render with `assets/fonts`; fallback is a static Montserrat-Bold.ttf. Overlapping caption events at chunk boundaries may need a CONTRACT_CHANGE.
-- Ask the Architect at close-out to move `_AUDIO_RATE_HZ` and `_STDERR_TAIL_LINES` from compose.py into `pipeline/constants.py` (locked file).
-- Gotchas: run launch and worktree commands from the main checkout. Create each task venv with an absolute path.
+## State (2026-11-15, second orchestrator session, Phase 1 code complete)
+- All Phase 1 code tasks merged: contracts, tts-kokoro, docs-check, align, captions-ass, compose, qa, render-cli (#31, #32), font-fix (#35), actions-workflow (#34). Close-out docs on `docs/p1-closeout-4`.
+- First GitHub render run (workflow `render.yml`, run 43784575673 on task/p1-font-fix): QA passed, 35.5 s, 1080x1920, 30 fps, real Montserrat Bold in the golden frames.
+- Open: (1) owner manual acceptance of a downloaded `final.mp4` (PLAN.md section 11); (2) phase-end reviews: QA lead (mutmut report), CSO threat model, Auditor, phase review (tasks 11 to 14 in `.harness/tasks/phase1/`); (3) owner decision pending: every video about 65 s once live. Recommended plan given to the owner: one Architect PR changing PLAN.md section 4 (65 s default format, 62 to 90 s QA range already exists, curiosity reset mandatory, replace the 30 to 45 s retention metric), plus `queue/approved/sample-65s.json` (about 175 words) and the workflow default path. Waiting for "go" and a retention target.
+- Architect follow-ups: move `_AUDIO_RATE_HZ`, `_STDERR_TAIL_LINES` (compose.py) and `_FPS_TOLERANCE`, `_TOOL_TIMEOUT_S`, `_STDERR_TAIL_LINES` (qa.py) into `pipeline/constants.py` (locked). Non-blocking notes not chased: render.yml log upload gating and `--` guard, composite action for shared CI setup, `FONTS_DIR` relative to cwd, stale `qa.json` on reused out dirs, `render_one` computes narration text twice.
+- Launch helper pattern: a small .ps1 taking -Task -Worktree -Brief (Git Bash `cmd //c start` quoting fails). Close windows by stopping the `open_task_window` powershell, excluding your own PID.
+- Process rule: when review requests changes, mark the PR draft before starting the fix round and tell the owner not to merge.
 
 ## Open items
 - Usage-limit fixture saved (`.harness/tests/fixtures/limit_messages/session_5h-2026-11-15.txt`). Add the weekly one when it happens.
