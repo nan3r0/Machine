@@ -122,8 +122,22 @@ def test_acceptance(tmp_path: Path) -> None:
         assert constants.SAFE_TOP_PX <= y <= constants.SAFE_BOTTOM_PX
 
     assert max(constants.GOLDEN_FRAME_TIMES_S) < media.duration(final)
-    frames = media.extract_frames(final, "golden", constants.GOLDEN_FRAME_TIMES_S)
-    assert all(f.stat().st_size > 0 for f in frames)
+    frames = media.extract_golden_frames(final)
+    assert len(frames) == len(constants.GOLDEN_FRAME_TIMES_S) + 1
+    for frame in frames:
+        image = media.stream(media.probe(frame), "video")
+        assert (image["width"], image["height"]) == (constants.WIDTH, constants.HEIGHT), frame.name
+
+
+def test_golden_frames_span_every_video_that_passes_qa() -> None:
+    """Fixed frames fit the shortest video QA passes, at most 10 s apart up to its length."""
+    times = constants.GOLDEN_FRAME_TIMES_S
+    shortest = constants.TIKTOK_SECONDS[0]
+    assert list(times) == sorted(set(times))
+    assert 0 < times[0] and 0 < constants.GOLDEN_END_OFFSET_S
+    assert times[-1] < shortest - constants.GOLDEN_END_OFFSET_S
+    gaps = [b - a for a, b in zip((0.0, *times), (*times, shortest), strict=True)]
+    assert max(gaps) <= 10.0, gaps
 
 
 def test_steps_run_in_order_and_files_are_written(tmp_path: Path, fakes: Fakes) -> None:

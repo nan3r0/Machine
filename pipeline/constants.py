@@ -78,5 +78,8 @@ CAPTION_FONT_SIZE = 96
 CAPTION_MAX_WORDS_PER_LINE = 3
 FONTS_DIR = "assets/fonts"
 
-# Golden render: frames extracted at these times for the visual-qa reviewer
-GOLDEN_FRAME_TIMES_S = (1.0, 10.0, 20.0, 30.0)
+# Golden render: frames extracted at these times for the visual-qa reviewer, plus one frame
+# GOLDEN_END_OFFSET_S before the video ends. Fixed times stay below TIKTOK_SECONDS[0], so they fit
+# every video that passes QA; the end frame covers the rest of a longer video.
+GOLDEN_FRAME_TIMES_S = (1.0, 10.0, 20.0, 30.0, 40.0, 50.0, 60.0)
+GOLDEN_END_OFFSET_S = 0.5

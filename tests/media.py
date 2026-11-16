@@ -6,6 +6,8 @@ import subprocess
 from pathlib import Path
 from typing import Any
 
+from pipeline import constants
+
 ROOT = Path(__file__).resolve().parent.parent
 FRAMES_DIR = ROOT / "out" / "frames"
 # An override block in caption text; escaped braces (`\{`, `\}`) do not open or close one.
@@ -78,3 +80,13 @@ def extract_frames(video: Path, prefix: str, times: tuple[float, ...]) -> list[P
                         "-frames:v", "1", str(frame)], check=True)
         frames.append(frame)
     return frames
+
+
+def extract_golden_frames(video: Path) -> list[Path]:
+    """The golden-render frames: GOLDEN_FRAME_TIMES_S plus one GOLDEN_END_OFFSET_S before the end.
+
+    The offset is well above the audio/video length difference compose's -shortest leaves, so the
+    end frame never lands past the last video frame.
+    """
+    end = duration(video) - constants.GOLDEN_END_OFFSET_S
+    return extract_frames(video, "golden", (*constants.GOLDEN_FRAME_TIMES_S, end))
