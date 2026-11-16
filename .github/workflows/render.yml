@@ -1,0 +1,72 @@
+name: render
+
+on:
+  workflow_dispatch:
+    inputs:
+      script:
+        description: Script JSON to render
+        default: queue/approved/sample-40s.json
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements*.txt
+
+      - name: Install system packages
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y -q --no-install-recommends ffmpeg espeak-ng
+
+      - name: Install torch from the PyTorch CPU index only
+        run: |
+          grep -E '^torch(audio)?==' requirements-heavy.txt > "$RUNNER_TEMP/torch.txt"
+          python -m pip install -q --no-deps --index-url https://download.pytorch.org/whl/cpu -r "$RUNNER_TEMP/torch.txt"
+          python -m pip install -q -r requirements.txt -r requirements-heavy.txt
+
+      - name: Cache model weights
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .cache/models
+          key: models-${{ hashFiles('requirements-heavy.txt', 'pipeline/constants.py') }}
+
+      - name: Render
+        env:
+          SCRIPT_PATH: ${{ inputs.script }}
+        run: python -m pipeline.render_one "$SCRIPT_PATH" out/render --cache-dir .cache/models
+
+      - name: Extract golden frames
+        if: ${{ !cancelled() && hashFiles('out/render/final.mp4') != '' }}
+        run: python -c "from pathlib import Path; from pipeline import constants; from tests import media; media.extract_frames(Path('out/render/final.mp4'), 'golden', constants.GOLDEN_FRAME_TIMES_S)"
+
+      - name: Upload render output
+        if: ${{ !cancelled() && hashFiles('out/render/final.mp4') != '' }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: render
+          path: out/render/
+          if-no-files-found: error
+          retention-days: 3
+
+      - name: Upload frames for visual QA
+        if: ${{ !cancelled() && hashFiles('out/frames/*.png') != '' }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: frames
+          path: out/frames/
+          if-no-files-found: error
+          retention-days: 3
