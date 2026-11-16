@@ -95,7 +95,6 @@ All task tests are written and locked by p1-contracts before implementation.
 - Heavy tests run only in CI, so every fix round on a heavy task waits for a CI run.
 - The task-aware conftest trusts `.harness/status.yaml`. Marking a task done by mistake turns on tests that may fail on main.
 - torch makes the install heavy. Without caching, a run may exceed the 15-minute target.
-- `compose._run_ffmpeg` has no `timeout=` (qa has one), so a hung FFmpeg is bounded only by the job limit. Fixed by task p1-constants-timeout once it merges.
 - The compose, qa, Kokoro and align heavy-only paths now have fast fake-based tests (p1-qa-tests). The ffprobe, silencedetect and loudnorm fakes use real FFmpeg output in `tests/fixtures/ffmpeg/`; the heavy guard `tests/render/test_ffmpeg_fixtures.py` flags drift when FFmpeg changes.
 - FFmpeg's `subtitles=` filter path escaping differs between Windows and Linux.
 - Outcome records are logged by hand in Stage 0, so they can be missed.
