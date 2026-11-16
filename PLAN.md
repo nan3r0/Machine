@@ -173,12 +173,20 @@ Evergreen, and every "solved" claim can be checked against a source, which suits
 
 Every video, on every platform, uses the 65 s format (owner decision, 2026-11-16).
 
-| Format | Length | Words (~160 wpm) | Structure |
+| Format | Length | Words (~150 wpm at 0.9x voice speed) | Structure |
 |---|---|---|---|
-| 65 s (default, all platforms) | Target ~65 s; accepted 62–90 s | Target ~175; accepted 165–230 | 2–3 s hook → escalating facts → **mandatory** "curiosity reset" at ~25–30 s → loop ending |
-| Retention (kept, not used by default) | 25–45 s | 70–120 | 2–3 s hook → escalating facts → loop ending |
+| 65 s (default, all platforms) | Target ~65 s; accepted 62–90 s | Target ~160; accepted 156–225 | 2–3 s hook → escalating facts → **mandatory** "curiosity reset" at ~25–30 s → loop ending |
+| Retention (kept, not used by default) | 25–45 s | 70–112 | 2–3 s hook → escalating facts → loop ending |
 
 The Retention format stays defined in code and tests, but scripts are not written for it unless the owner switches back.
+
+### Tone (owner decision, 2026-11-16)
+
+Slow, dark and mysterious, to build suspense. Slower speech means fewer words, not a longer video. Rules for the script generator:
+- Build suspense by withholding the answer. The hook poses the mystery inside the first 2–3 s and does not give the solution away.
+- Short sentences, with a deliberate beat (a full stop) before each reveal. Pauses come from full stops and commas, not ellipses or dashes.
+- Factual and advertiser-friendly: eerie, never graphic or sensational, no exaggeration and no claim the sources do not support.
+- The voice speaks at about 0.9x speed (`VOICE_SPEED`), about 150 wpm, so a 65 s script is about 160 words.
 
 ---
 
