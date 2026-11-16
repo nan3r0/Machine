@@ -23,6 +23,19 @@ tests/                    # mirrors pipeline/, plus tests/fixtures/
 .harness/  .claude/       # build harness, see HARNESS.md section 11
 ```
 
+Phase 2 adds (planned; stubs come from p2-contracts, except `factcheck/` which the plan branch already stubs):
+
+```
+pipeline/factcheck/normalise.py, exact.py   # exact layer: numbers and proper nouns
+pipeline/factcheck/semantic.py              # meaning layer: one checker call per script
+pipeline/script/validate.py                 # publishable-field and word-count checks
+pipeline/script/gemini.py                   # the only file that talks to Gemini
+pipeline/script/sources.py, generate.py     # pick unused sources, write a script
+pipeline/script/batch.py                    # entry point of Workflow A
+sources/<slug>.yaml                         # hand-curated facts, one solved mystery each
+.github/workflows/weekly_scripts.yml        # Workflow A
+```
+
 Import rule: `schema` and `constants` import nothing from `pipeline`. Modules under `voice/` and `render/` import only those two, never each other. `render_one.py` is the only file that imports the modules. Details in architecture.md section 2.
 
 ## 3. Data model
@@ -35,7 +48,11 @@ Narration text for voice and alignment is `hook`, then each scene's `narration`,
 
 **QAReport**: `passed` (bool), `failures[]` of `{check, reason}`, `measured` (dict of the values checked).
 
-Scripts move between `queue/approved/` and `queue/published/` as plain files. A schema change bumps a `schema_version` field and needs a contract change approved by the Architect.
+**Source file** (Phase 2, `sources/<slug>.yaml`): `topic`, `facts[]` of `{id, text, url}`. Fact ids are integers unique across all source files, urls are https. A script's `source_fact_ids` come from one source file. A source is "used" once any of its fact ids appears in a script under `queue/`; the queue files are the ledger (no `data/used_facts.json`).
+
+**Flag**: `script_id`, `scene` (index, or none for the whole script), `reason`. Flags go into the PR body, never into the script file. **LineVerdict**: `index`, `verdict` (`SUPPORTED | UNSUPPORTED | PARTIAL`), `reason`.
+
+Scripts move between `queue/approved/` and `queue/published/` as plain files. Workflow A writes new scripts straight into `queue/approved/` on its PR branch, so merging the PR is the approval (proposed owner decision D2; no `queue/pending/`, no `on_merge_approve.yml`). A schema change bumps a `schema_version` field and needs a contract change approved by the Architect.
 
 ## 4. Rules and numbers
 
@@ -46,7 +63,7 @@ All of these live in `pipeline/constants.py` and nowhere else.
 | Resolution, frame rate | 1080x1920, 30 fps | PLAN.md section 2 |
 | Loudness | -14 LUFS integrated, tolerance 1 LU | PLAN.md section 2 |
 | Speech rate | 144 wpm (measured: 167 words in 69.5 s at speed 0.9, render run 43873059742) | PLAN.md section 4 |
-| 65 s format (the only format: every video is over a minute; `TIKTOK_*` in code) | Target about 65 s and 156 words; accepted 62 to 90 s (PLAN.md allows 61 s, QA requires 62 s) and 149 to 216 words (the seconds at 144 wpm, rounded inwards) | PLAN.md section 4 |
+| 65 s format (the only format: every video is over a minute; `TIKTOK_*` in code) | Target about 65 s and 156 words; accepted 62 to 90 s and 149 to 216 words (the seconds at 144 wpm, rounded inwards) | PLAN.md section 4 |
 | Longest allowed silence | 1.5 s | PLAN.md section 7 |
 | Caption safe zone | Nothing in the top 15%, bottom 25% or right 15% of the frame, plus a 5% left margin: x from 54 to 918 px, y from 288 to 1440 px | Platform UI overlap |
 | File size range | 100 KB to 100 MB. Smaller means an empty or broken render; the top is far below every platform's upload limit | PLAN.md section 7 |
@@ -56,11 +73,22 @@ All of these live in `pipeline/constants.py` and nowhere else.
 | FFmpeg render | Audio 48 kHz, true peak -1 dBTP, 600 s timeout per FFmpeg call, last 20 stderr lines in errors | Player support, loudnorm linear mode, run 43873059742 |
 | QA tools | fps tolerance 0.01, 300 s timeout per ffprobe or silencedetect call, last 5 stderr lines in errors | |
 
+Phase 2 numbers (proposed; p2-contracts writes them into `constants.py` after owner decisions D5 and D6):
+
+| Rule | Value | Source |
+|---|---|---|
+| Scripts per batch | 7 | PLAN.md section 11 |
+| Writer and checker models | Ids from the owner's AI Studio dashboard; never a `gemini-2.5-*` model (deprecated 2026-12-01) | PRD.md section 7 |
+| Model calls per batch | At most 14 writer and 14 checker calls (7 scripts plus one retry or rewrite each); must sit inside the free daily limits | PLAN.md section 3 |
+| Published fields | Title up to 100 characters (YouTube's limit), description up to 1000, at most 10 tags of up to 30 characters, 500 in total; no URLs anywhere | CSO P1-3 |
+| PR body | Up to 60000 characters (GitHub caps a body at 65536) | R13.1 |
+
 Never allowed: a render that continues after voice failure, an empty or silent wav, a caption word that differs from the script word.
 
 ## 5. Security and privacy design
 
-- Secrets only in GitHub Actions encrypted secrets. Phase 1 needs none.
+- Secrets only in GitHub Actions encrypted secrets. Phase 1 needs none. Phase 2 needs one, `GEMINI_API_KEY`, added only after the owner decides CSO P1-1 (D1). It is read from the environment at call time, sent only in the `x-goog-api-key` header, and never logged or put in an exception. Only the `generate` job of `weekly_scripts.yml` gets it; that job has a read-only token. Restrict the key in Google Cloud to the Generative Language API.
+- Text from sources and from the model is untrusted: source facts go into prompts as delimited data, model output is parsed and validated before use, and branch names, PR titles and commit messages never come from model output.
 - Subprocess calls (FFmpeg, ffprobe) take an argument list. `shell=True` is never used.
 - Third-party GitHub Actions are pinned to a full commit SHA.
 - Python dependencies are pinned to exact versions.
@@ -93,5 +121,7 @@ Pinned by p1-contracts on 2026-11-15 to the newest stable release at least two w
 Voice package: `kokoro` (PyTorch, misaki G2P), by owner decision, for voice and timing quality. Weights come from the Hugging Face repo `hexgrad/Kokoro-82M` at commit `f3ff3571791e39611d31c381e3a41a3af07b4987` (`VOICE_REPO_REVISION`) into the cache folder the caller passes, and each loaded file (`config.json`, `kokoro-v1_0.pth`, `voices/af_heart.pt`) is checked against its sha256 in `VOICE_FILE_SHA256` before use. Alignment uses the whisper `small.en` model (`ALIGN_MODEL_NAME`), downloaded into the same cache folder; openai-whisper checks its sha256 itself.
 
 Install order: CI installs `torch` and `torchaudio` from the PyTorch CPU index alone and without their dependencies (`--no-deps --index-url https://download.pytorch.org/whl/cpu`), then every requirements file from PyPI alone. No requirements file names an extra index, so no package can be resolved from both. Direct wheel URLs carry a `#sha256=` fragment.
+
+Phase 2 adds no dependency: the Gemini client uses the standard library (`urllib.request`, `json`), and the fact-check is plain Python.
 
 Anything else needs owner approval first.

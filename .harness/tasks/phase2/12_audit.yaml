@@ -1,0 +1,21 @@
+id: p2-audit
+title: Phase 2 compliance audit (Gemini terms, secret handling, permissions, sources)
+depends_on: [p2-weekly-workflow]
+role: auditor
+notes: |
+  HARNESS.md section 6b. Read-only report in the handoff for the owner to approve. Phase 2 items:
+  Gemini free-tier terms (free-tier prompts may be used to improve Google products; acceptable for
+  public content per PLAN.md section 3), the key is restricted and stored per decision D1, the
+  weekly workflow token permissions, source attribution and copying limits for sources/*.yaml, and
+  the niche content rules (PLAN.md section 4) against the seeded sources.
+paths_allowed: []
+tests: []
+acceptance: null
+context_files:
+  - PLAN.md#3
+  - PLAN.md#4
+  - HARNESS.md#6b
+  - .github/workflows/
+  - sources/
+  - out/reports/
+max_turns: 25

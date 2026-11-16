@@ -1,0 +1,18 @@
+id: p2-phase-review
+title: Phase-end architecture check of Phase 2 as a whole
+depends_on: [p2-qa-lead, p2-cso, p2-audit]
+role: reviewer
+notes: |
+  HARNESS.md section 6a. Short pass: interfaces between sources, generate, factcheck and batch fit;
+  no duplicated logic; nothing contradicts PLAN.md, PRD.md, spec.md or architecture.md. Weighs the
+  QA Lead, CSO and Auditor handoffs. Findings in the handoff; fixes become new tasks.
+paths_allowed: []
+tests: []
+acceptance: null
+context_files:
+  - PLAN.md#11
+  - architecture.md
+  - pipeline/
+  - .harness/handoffs/
+  - docs/threat-model.md
+max_turns: 25

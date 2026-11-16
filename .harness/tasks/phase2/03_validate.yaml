@@ -1,0 +1,32 @@
+id: p2-validate
+title: Publishable-script checks (CSO P1-3) and the word-count check before voice (phase review N5)
+depends_on: [p2-contracts]
+role: implementer
+notes: |
+  pipeline/script/validate.py `problems(script)`: one readable message per problem, empty when the
+  script may be published. Word count of narration_words() inside constants.TIKTOK_WORDS; no URL
+  or `www.` in any published or spoken field; no control, bidi or zero-width characters (newline
+  allowed in description only); title, description and tag caps from constants.py. Messages name
+  the field and fit one line on a phone (they go into the PR body).
+  pipeline/render_one.py: call validate.problems after Script validation and before the voice
+  step; any problem prints the messages and exits 2 without calling kokoro (a 45 minute render of
+  an oversized script is the cost this avoids). Call it through the module (validate.problems), the
+  file's existing idiom.
+  tests/test_queue_scripts.py checks every queue/**/*.json. If queue/approved/sample-65s.json fails
+  it, say so in the handoff and stop: the sample is outside paths_allowed.
+paths_allowed:
+  - pipeline/script/validate.py
+  - pipeline/render_one.py
+tests:
+  - tests/script/test_validate.py
+  - tests/test_render_one_validate.py
+  - tests/test_queue_scripts.py
+acceptance: tests/script/test_validate.py::test_acceptance
+context_files:
+  - docs/threat-model.md#5
+  - pipeline/schema.py
+  - pipeline/constants.py
+  - pipeline/render_one.py
+  - pipeline/script/validate.py
+  - lessons.md
+max_turns: 30

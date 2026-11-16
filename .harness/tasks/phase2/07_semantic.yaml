@@ -1,0 +1,24 @@
+id: p2-semantic
+title: Meaning fact-check - one checker call per script, one verdict per line
+depends_on: [p2-gemini]
+role: implementer
+notes: |
+  pipeline/factcheck/semantic.py check_script(script, facts): one gemini.generate_json call with the
+  checker model (Flash-Lite class, constants.py) per script, asking for each scene "Does the source
+  reasonably support this statement? Ignore rewording. Answer SUPPORTED / UNSUPPORTED / PARTIAL with
+  a one-line reason" (PLAN.md section 5), with each scene's linked facts as delimited data. Returns
+  one LineVerdict per scene in order. A missing, duplicated or malformed verdict becomes UNSUPPORTED
+  with a reason saying the checker gave no answer: a broken answer is never a pass. GeminiError
+  propagates; the batch decides.
+paths_allowed:
+  - pipeline/factcheck/semantic.py
+tests:
+  - tests/factcheck/test_semantic.py
+acceptance: tests/factcheck/test_semantic.py::test_acceptance
+context_files:
+  - PLAN.md#5
+  - pipeline/schema.py
+  - pipeline/constants.py
+  - pipeline/script/gemini.py
+  - lessons.md
+max_turns: 30

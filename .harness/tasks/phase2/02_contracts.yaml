@@ -1,0 +1,111 @@
+id: p2-contracts
+title: Phase 2 contracts, module stubs and locked tests for the script batch
+depends_on: [p2-entry-ci]
+role: test_author
+notes: |
+  Starts only after the owner has answered D2 to D6 in .harness/handoffs/architect-p2-plan.md
+  (approval path, ledger, sources, Gemini models and budget, published-field policy). If an answer
+  differs from the default written here, follow the answer and say so in the handoff.
+  One PR the owner reviews and merges (HARNESS.md section 5). Interfaces first, then tests.
+  Expected values come from PLAN.md, spec.md, literals or independent oracles, never from the code
+  under test (lessons.md 2026-11-16). Fake Gemini responses are hand-built JSON in the documented
+  Interactions API shape (source in PRD.md section 7); mark them as such in the fixture file.
+
+  Contracts (locked):
+  - pipeline/schema.py: `Fact` (id int >= 1, text NonBlank, url https only) and `SourceFile`
+    (topic, facts min 1) for sources/*.yaml; `Flag` (script_id, scene index or None for the whole
+    script, reason NonBlank) for PR flags; `LineVerdict` (index, verdict SUPPORTED | UNSUPPORTED |
+    PARTIAL, reason). Script keeps its shape and schema_version 1 (constraints live in validate.py,
+    because schema.py may not import constants).
+  - pipeline/constants.py, spec.md section 4 Phase 2 rows: SCRIPTS_PER_BATCH 7; the writer and checker
+    Gemini model ids from the owner's AI Studio dashboard (D5; never a gemini-2.5 model, deprecated
+    2026-12-01); WRITER_MAX_CALLS_PER_BATCH and CHECKER_MAX_CALLS_PER_BATCH (default 14 each, inside the
+    free daily limits the owner reads off the dashboard); GEMINI_TIMEOUT_S; GEMINI_ENDPOINT and
+    GEMINI_API_REVISION; TITLE_MAX_CHARS 100, DESCRIPTION_MAX_CHARS 1000, TAGS_MAX 10, TAG_MAX_CHARS 30,
+    TAGS_TOTAL_MAX_CHARS 500; PR_BODY_MAX_CHARS 60000 (GitHub caps a PR body at 65536). Also fix the
+    "PLAN.md allows 61 s" comment (phase review N7).
+  - Stubs with signatures and docstrings, bodies raising NotImplementedError:
+    pipeline/script/__init__.py; pipeline/script/validate.py `problems(script) -> list[str]`;
+    pipeline/script/gemini.py `generate_json(model, prompt, schema) -> dict` and `GeminiError`;
+    pipeline/script/sources.py `load_sources(dir)`, `unused_sources(sources, queue_dir)`;
+    pipeline/script/generate.py `write_script(source, script_id, publish_after) -> Script` and
+    `rewrite_line(script, index, source, reason) -> Script`; pipeline/factcheck/semantic.py
+    `check_script(script, facts) -> list[LineVerdict]`; pipeline/script/batch.py `run(...)`, `main(argv)`
+    and `pr_body(...)`. Steps call each other through modules (`gemini.generate_json`), never imported
+    by name, so tests can fake them (the render_one.py idiom).
+
+  Locked tests, one file per task, each with test_acceptance (never a file an earlier task owns):
+  - tests/test_schema_sources.py (this task): Fact, SourceFile, Flag and LineVerdict accept good
+    input and reject bad fields by name; a non-https url is rejected.
+  - tests/script/test_validate.py (p2-validate): word count outside TIKTOK_WORDS, any URL or
+    `www.` in title, description, tags, hook, narration, on_screen_text or loop_line, control, bidi
+    and zero-width characters (Unicode Cc except newline in description, Cf, Co, Cs), each field cap.
+    Plus tests/test_render_one_validate.py: render_one exits 2 before kokoro.synthesize is called for
+    a script outside TIKTOK_WORDS (phase review N5).
+  - tests/test_queue_scripts.py (owned by p2-validate): every queue/**/*.json validates and has no
+    problems. This is what a mobile edit of an approval PR is checked against.
+  - tests/script/test_gemini.py (p2-gemini): request shape (endpoint, x-goog-api-key header, JSON
+    schema in response_format), key read only from the GEMINI_API_KEY env var, missing key raises
+    GeminiError naming the variable, the key never appears in any exception text or log record
+    (caplog), HTTP 429, 5xx, timeout and malformed JSON each raise GeminiError, at most one retry.
+    Fakes replace urllib.request.urlopen; no network in tests.
+  - tests/test_sources_files.py (p2-seed-sources): every sources/*.yaml parses as SourceFile, fact ids
+    unique across all files, https urls, at least 14 files.
+  - tests/script/test_generate.py (p2-generate): prompt carries the PLAN.md section 4 tone rules and
+    the 65 s format, source facts inside a delimited data block and the instruction to treat them as
+    data; one retry when the result fails validate.problems; source_fact_ids only from the given
+    source; unused_sources skips any source whose fact ids appear in a script under queue/.
+  - tests/factcheck/test_semantic.py (p2-semantic): one checker call per script; one verdict per
+    scene, in order; a malformed or short answer becomes UNSUPPORTED for the missing lines, never a
+    pass.
+  - tests/script/test_batch.py (p2-batch): with fakes, 7 unused sources give 7 files in
+    queue/approved/ and a PR body; a failing line is rewritten once then flagged with its reason; the
+    call budgets are never exceeded (budget gone means flag, not call); a script that still fails
+    validation is left out and listed in the PR body; zero scripts exits non-zero; the PR body shows
+    every flag first, then per script the hook, each scene's narration with its fact texts and urls,
+    and title, description and tags verbatim in a fenced block; a 7-script batch at every field cap
+    stays under PR_BODY_MAX_CHARS, and an over-long body raises instead of truncating.
+  - tests/test_weekly_workflow.py (p2-weekly-workflow): schedule Sunday 06:00 UTC plus
+    workflow_dispatch; job `generate` (contents: read, GEMINI_API_KEY in its step env only, runs
+    `python -m pipeline.script.batch`, uploads the batch as an artifact) and job `open-pr` (needs
+    generate, no secrets, contents and pull-requests write, downloads the artifact, commits to a
+    `scripts/<date>` branch, opens the PR with --body-file); passes the p2-entry-ci rules.
+    `open-pr` pushes with the checkout's persisted credentials (the one place p2-entry-ci allows
+    them); no token appears in a `run:` line.
+  - queue/approved/sample-65s.json: its description holds a URL, which the D6 default forbids. The
+    Phase 1 render_one tests feed this sample to render_one, which p2-validate makes call
+    validate.problems, so fix the sample here: keep the source credit by name ("Source: NOAA
+    National Ocean Service, Ocean Facts.") without the URL. If the owner chose a URL allowlist for
+    D6 instead, make sure the sample passes it. Its fact ids 1 to 9 stay below the seed blocks
+    (101 and up).
+  Add the new test paths to the criterion-to-test map in workflow.md.
+paths_allowed:
+  - pipeline/schema.py
+  - pipeline/constants.py
+  - pipeline/script/**
+  - pipeline/factcheck/semantic.py
+  - queue/approved/sample-65s.json
+  - tests/**
+  - spec.md
+  - workflow.md
+  - .harness/locks.yaml
+tests:
+  - tests/test_schema_sources.py
+# A test file may belong to one task only: tests/conftest.py maps each file to the last task that
+# lists it, so naming tests/test_schema.py (p1-contracts) here would skip it on main.
+acceptance: tests/test_schema_sources.py::test_acceptance
+context_files:
+  - PLAN.md#4
+  - PLAN.md#5
+  - PLAN.md#7
+  - PRD.md#4
+  - spec.md
+  - architecture.md
+  - .harness/handoffs/architect-p2-plan.md
+  - .harness/tasks/phase2/
+  - docs/threat-model.md
+  - pipeline/schema.py
+  - pipeline/constants.py
+  - pipeline/render_one.py
+  - lessons.md
+max_turns: 80

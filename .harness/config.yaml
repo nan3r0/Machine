@@ -18,7 +18,8 @@ roles:
 # A task whose changed files match these globs gets that specialist review in addition to Gate 2.
 specialist_reviews:
   security: ["pipeline/publish/**", "pipeline/ingest/**", "**/auth*", ".github/workflows/**",
-             "pipeline/render/compose.py"]
+             "pipeline/render/compose.py", "pipeline/script/gemini.py", "pipeline/script/batch.py",
+             "pipeline/script/validate.py"]
   visual_qa: ["pipeline/render/**", "pipeline/visuals/**", "assets/**"]
 
 limits:

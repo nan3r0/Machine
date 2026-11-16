@@ -1,0 +1,27 @@
+id: p2-gemini
+title: Gemini client - one JSON-mode call, key from env, never logged
+depends_on: [p2-contracts]
+role: implementer
+notes: |
+  pipeline/script/gemini.py `generate_json(model, prompt, schema) -> dict` over the standard
+  library (urllib.request, json): no SDK, no new dependency (spec.md section 7). Endpoint, API
+  revision header and the `response_format` JSON-schema shape are in constants.py and PRD.md
+  section 7 (source and date). The API key comes only from the GEMINI_API_KEY environment variable,
+  read at call time, sent only in the x-goog-api-key header, never in a URL, a log line or an
+  exception message (HTTP errors are reported with status code and a short body excerpt, never the
+  request headers). Timeout constants.GEMINI_TIMEOUT_S. One retry after a short wait on 429, 5xx or
+  timeout, then GeminiError. The model output is untrusted: parse it as JSON and return the dict;
+  the callers validate it. No prompt building here.
+  Security specialist review runs (config.yaml specialist_reviews: secret handling, untrusted input).
+paths_allowed:
+  - pipeline/script/gemini.py
+tests:
+  - tests/script/test_gemini.py
+acceptance: tests/script/test_gemini.py::test_acceptance
+context_files:
+  - PRD.md#7
+  - docs/threat-model.md#5
+  - pipeline/constants.py
+  - pipeline/script/gemini.py
+  - lessons.md
+max_turns: 30

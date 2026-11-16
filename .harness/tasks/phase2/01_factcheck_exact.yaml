@@ -1,0 +1,29 @@
+id: p2-factcheck-exact
+title: Exact fact-check layer - numbers and proper nouns in one standard form
+depends_on: []
+role: implementer
+notes: |
+  Contracts written by the Architect on branch docs/p2-plan: the stubs pipeline/factcheck/normalise.py
+  and pipeline/factcheck/exact.py (their docstrings are the spec, follow them to the letter) and the
+  locked tests tests/factcheck/test_exact.py. No owner decision affects this task, so it can run as
+  soon as the plan PR merges.
+  Pure Python, standard library only (re, decimal). Use Decimal for scaled values ("3.2 million"),
+  never float. No new dependency: num2words exists only in the heavy environment and converts the
+  wrong way anyway.
+  Keep the docstrings; replace only the NotImplementedError bodies plus whatever private helpers you
+  need. Functions under about 30 lines each.
+  Expect hypothesis to find edge cases in the word parser (years versus scale phrases). Fix the
+  parser, never the inputs.
+paths_allowed:
+  - pipeline/factcheck/normalise.py
+  - pipeline/factcheck/exact.py
+tests:
+  - tests/factcheck/test_exact.py
+acceptance: tests/factcheck/test_exact.py::test_acceptance
+context_files:
+  - PLAN.md#5
+  - pipeline/factcheck/normalise.py
+  - pipeline/factcheck/exact.py
+  - tests/factcheck/test_exact.py
+  - lessons.md
+max_turns: 40
