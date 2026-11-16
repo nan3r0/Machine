@@ -118,7 +118,7 @@ kokoro.synthesize("Cached voice works offline.", Path(sys.argv[1]), Path(sys.arg
 """
     env = {**os.environ, "HF_HUB_OFFLINE": "1", "TRANSFORMERS_OFFLINE": "1"}
     result = subprocess.run([sys.executable, "-c", code, str(out), str(cache_dir)], cwd=ROOT, env=env,
-                            capture_output=True, text=True)
+                            capture_output=True, text=True, timeout=600)
     assert result.returncode == 0, result.stderr[-2000:]
     assert kokoro.check_wav(out) > 0
 

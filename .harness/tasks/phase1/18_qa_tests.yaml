@@ -1,0 +1,63 @@
+id: p1-qa-tests
+title: Locked tests for the Phase 1 QA lead's high-risk gaps
+depends_on: [p1-qa-lead]
+role: test_author
+notes: |
+  Owner decision 2026-11-16: fix the high-risk test gaps from .harness/handoffs/p1-qa-lead.md, meaning
+  anything that could break pipeline logic at any step (voice, alignment, captions, render, QA, edge
+  cases). In scope: proposed tests 1 to 13; 16 (timeout= on two heavy subprocess calls) as a small
+  extra. Out of scope: 14 (_header style fields) and 15 (_ass_time round trip).
+  Written by the Architect on branch docs/p1-qa-tests-contracts. Every test passes on current pipeline
+  code, so no implementer task follows. A new test that fails on current code is a pipeline bug: it
+  goes to an implementer task, the test is never bent to pass.
+  Rules the tests follow:
+  - New tests live in new files owned by this task. Existing files stay owned by their tasks (the
+    conftest maps each file to one task, last YAML wins), so only two small edits touch them: the
+    circular oracle at tests/render/test_captions_ass.py:81 (item 1) and the two timeouts (item 16).
+  - Expected values are literals or built from pipeline.constants, never from the function under
+    test and never from module-private names (compose._AUDIO_RATE_HZ, qa._FPS_TOLERANCE and the like
+    are moving to constants.py, so the tests write 48000, -1 dBTP, 20 and 0.01 as literals).
+  - Float limits are tested just inside and just outside (0.19/0.21 s, 30.009/30.011 fps). QA bounds
+    cover both live formats: RETENTION_SECONDS and TIKTOK_SECONDS edges, and the word-count switch at
+    RETENTION_WORDS[1] and RETENTION_WORDS[1] + 1.
+  - Fake tool output: tests/fixtures/ffmpeg/loudnorm_pass1.log is real, the compose.log from render
+    run 43873059742 (the owner-approved 65 s video), copied unchanged. No real ffprobe or
+    silencedetect output existed in any CI log or artifact (run 43903542144 phase-reports holds only
+    reports; QA never logs tool output), so silencedetect.log, ffprobe_video.json and
+    ffprobe_voice.json follow FFmpeg's print format with numbers from that run's qa.json. The heavy
+    guard tests/render/test_ffmpeg_fixtures.py runs the real tools in CI and fails, printing the real
+    output, if their shape differs; then replace the fixture with that output.
+  - mutmut does not run locally (Windows, heavy deps). Mutants were confirmed from source by applying
+    representative mutations by hand and watching the new tests fail (handoff Evidence). The next CI
+    reports run (workflow_dispatch) confirms the kill counts.
+  CI: the new files skip unless this task is in .harness/status.yaml done or is LOOM_TASK. Run them on
+  a task/p1-qa-tests branch (CI sets LOOM_TASK) or add the id to done when the PR merges.
+paths_allowed:
+  - tests/render/test_captions_exact.py
+  - tests/render/test_captions_ass.py
+  - tests/render/test_compose_exact.py
+  - tests/render/test_qa_exact.py
+  - tests/render/test_ffmpeg_fixtures.py
+  - tests/voice/test_kokoro_audio.py
+  - tests/voice/test_kokoro.py
+  - tests/voice/test_align_model.py
+  - tests/test_render_one_files.py
+  - tests/test_render_one.py
+  - tests/fixtures/ffmpeg/**
+  - workflow.md
+tests:
+  - tests/render/test_captions_exact.py
+  - tests/render/test_compose_exact.py
+  - tests/render/test_qa_exact.py
+  - tests/render/test_ffmpeg_fixtures.py
+  - tests/voice/test_kokoro_audio.py
+  - tests/voice/test_align_model.py
+  - tests/test_render_one_files.py
+acceptance: tests/render/test_compose_exact.py::test_acceptance
+context_files:
+  - .harness/handoffs/p1-qa-lead.md
+  - HARNESS.md#6b
+  - lessons.md
+  - pipeline/
+  - tests/
+max_turns: 40

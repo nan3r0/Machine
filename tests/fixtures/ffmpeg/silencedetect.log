@@ -1,0 +1,20 @@
+Input #0, mov,mp4,m4a,3gp,3g2,mj2, from 'out/render/final.mp4':
+  Metadata:
+    major_brand     : isom
+    minor_version   : 512
+    compatible_brands: isomiso2avc1mp41
+    encoder         : Lavf62.3.100
+  Duration: 00:01:09.60, start: 0.000000, bitrate: 275 kb/s
+  Stream #0:0[0x1](und): Video: h264 (High) (avc1 / 0x31637661), yuv420p(progressive), 1080x1920, 79 kb/s, 30 fps, 30 tbr, 15360 tbn (default)
+  Stream #0:1[0x2](und): Audio: aac (LC) (mp4a / 0x6134706D), 48000 Hz, mono, fltp, 192 kb/s (default)
+Stream mapping:
+  Stream #0:1 -> #0:0 (aac (native) -> pcm_s16le (native))
+Press [q] to stop, [?] for help
+Output #0, null, to 'pipe:':
+  Stream #0:0(und): Audio: pcm_s16le, 48000 Hz, mono, s16, 768 kb/s (default)
+[silencedetect @ 0x5626f0a4b8c0] silence_start: 12.4021
+[silencedetect @ 0x5626f0a4b8c0] silence_end: 14.5021 | silence_duration: 2.1
+[silencedetect @ 0x5626f0a4b8c0] silence_start: 40.25
+[silencedetect @ 0x5626f0a4b8c0] silence_end: 41.85 | silence_duration: 1.6
+[out#0/null @ 0x5626f0a3c1c0] video:0KiB audio:6525KiB subtitle:0KiB other streams:0KiB global headers:0KiB muxing overhead: unknown
+size=N/A time=00:01:09.60 bitrate=N/A speed= 412x elapsed=0:00:00.16
