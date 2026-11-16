@@ -79,4 +79,7 @@ Locked by p1-contracts. Every task's acceptance test is `test_acceptance` in its
 | p1-contracts | done, merged 2026-11-15 (PR #6), 100 passed, 110 skipped, CI green | Gate 2 and security approved after 5 fix rounds |
 | p1-tts-kokoro | done, merged 2026-11-15 (PR #22), heavy tests passed in CI | Gate 2 approved |
 | p1-docs-check | done, merged 2026-11-15 (PR #23), 127 passed, 110 skipped | Gate 2 and security approved |
-| p1-align to p1-phase-review | in progress or not started | |
+| p1-align | done, merged 2026-11-15 (PR #26), heavy tests passed in CI | Gate 2 approved |
+| p1-captions-ass | done, merged 2026-11-15 (PR #27), 127 passed, 83 skipped | Gate 2 and visual QA approved (code only, no frames yet) |
+| p1-compose | done, merged 2026-11-15 (PR #28), heavy tests passed in CI after one fix round (two-pass loudnorm) | Gate 2, security and visual QA approved; Montserrat bold unverified on a real render |
+| p1-qa to p1-phase-review | in progress or not started | |

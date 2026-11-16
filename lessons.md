@@ -160,3 +160,27 @@ How it was caught: the orchestrator checking a task that had gone quiet, after t
 Fix: steps run separately; scripts are run from main's copy.
 Rule going forward: launch commands never depend on a file written in the same chained command, and the orchestrator checks git state directly whenever a watcher has been silent longer than the task should take.
 Test added: none, process rule.
+
+### 2026-11-15: Finished task sessions never closed their windows
+What happened: four task windows (two already merged) sat open at the prompt after the work was committed, because the session ended its turn without exiting.
+Why it happened (root cause, not symptom): the launch brief said to finish the handoff but never said to run /exit, and the watcher only reports; it does not close the window.
+How it was caught: the owner saw four idle windows in the taskbar.
+Fix: the launch brief now ends with "run /exit"; the orchestrator also stops the window's parent powershell.exe after Gate 1.
+Rule going forward: every task brief ends with an explicit /exit step, and the orchestrator confirms no `open_task_window` process is left before reporting a task closed.
+Test added: none, process rule.
+
+### 2026-11-15: Single-pass loudnorm missed the loudness target
+What happened: p1-compose measured -15.6 LUFS against -14 in CI (tolerance 1 LU). The Gate 2 reviewer had named the risk but called it non-blocking because the heavy test could not run locally.
+Why it happened (root cause, not symptom): single-pass loudnorm applies a true-peak limit that pulls integrated loudness below target on speech; the heavy test was the first real measurement.
+How it was caught: CI, as the reviewer predicted.
+Fix: two-pass loudnorm (measure, then apply with measured values and linear mode).
+Rule going forward: a risk a reviewer flags on a heavy-test path is fixed before the first CI run when the fix is cheap; for loudness use two-pass loudnorm from the start.
+Test added: `tests/render/test_compose.py::test_acceptance` (existing, locked) is the regression.
+
+### 2026-11-15: Orchestrator window-close command killed its own shell
+What happened: a pattern match on `p1-compose` in a PowerShell command line also matched the command running it, so the close step tried to terminate itself.
+Why it happened (root cause, not symptom): the filter was on the task name, which appears in the orchestrator's own command text.
+How it was caught: taskkill output "The process cannot terminate itself".
+Fix: match on `open_task_window` only and exclude `$PID`.
+Rule going forward: process filters exclude the current process and match a string that only the target carries.
+Test added: none, process rule.
