@@ -22,7 +22,7 @@ flowchart LR
     Q --> R[qa.json + exit code]
 ```
 
-Everything runs in one GitHub Actions job (`.github/workflows/render.yml`), started by hand. `pipeline/render_one.py` wires the steps; each step is a module with no knowledge of the others.
+Everything runs in one GitHub Actions job (`.github/workflows/render.yml`), started by hand. `pipeline/render_one.py` wires the steps; each step is a module with no knowledge of the others. The golden frames (every 10 s from 1 s to 60 s plus one 0.5 s before the end) come from `tests/media.py::extract_golden_frames`, used by both render.yml and the heavy test; they are for visual review, not pixel comparison.
 
 ## 2. Layers and boundaries
 
