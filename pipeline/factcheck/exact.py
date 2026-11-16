@@ -6,6 +6,8 @@ Pure function over strings; the caller decides what to do with the result (regen
 
 from collections.abc import Sequence
 
+from pipeline.factcheck.normalise import numbers, plain_words, proper_nouns
+
 
 def unsupported(narration: str, facts: Sequence[str]) -> list[str]:
     """Tokens of `narration` that none of `facts` supports: unsupported numbers first, then
@@ -16,4 +18,8 @@ def unsupported(narration: str, facts: Sequence[str]) -> list[str]:
     words (`normalise.plain_words`) of some fact. An empty list means the line passes. With no
     facts at all, every token is unsupported.
     """
-    raise NotImplementedError
+    supported_numbers = {number for fact in facts for number in numbers(fact)}
+    supported_words = {word for fact in facts for word in plain_words(fact)}
+    missing_numbers = [n for n in dict.fromkeys(numbers(narration)) if n not in supported_numbers]
+    missing_names = [w for w in dict.fromkeys(proper_nouns(narration)) if w not in supported_words]
+    return missing_numbers + missing_names
