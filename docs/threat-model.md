@@ -127,9 +127,11 @@ Each phase's Architect turns the relevant rows into contracts and tests; the CSO
 
 Details, failure scenarios and fix hints are in `.harness/handoffs/p1-cso.md`.
 
+P1-1 conflicts with PLAN.md section 11, Phase 0 ("All keys stored in GitHub Secrets"). Until P1-1 is decided, no key goes into the repo's secrets.
+
 | ID | Severity | Gap | Must be closed before |
 |---|---|---|---|
-| P1-1 | High | Repo secrets reachable from any pushed branch's workflow | The first secret is added (Phase 2) |
+| P1-1 | High | Repo secrets reachable from any pushed branch's workflow | Any secret is added to the repo |
 | P1-2 | High | No branch protection; agent sessions can push to `main` and, later, to `queue/approved/` | Phase 4 publishing |
 | P1-3 | High | PR review does not show every published field; no limits on title, description, tags | Phase 2 Workflow A |
 | P1-4 | Medium | Transitive Python dependencies unpinned and not hash-checked | The first secret is added |

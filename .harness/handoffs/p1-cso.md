@@ -24,7 +24,9 @@ done. Owner sign-off of `docs/threat-model.md` is still pending; it is required 
 - The whisper checkpoint is only protected by openai-whisper's own checksum, not by this repo.
 
 ## Next step
-The orchestrator turns the proposed tasks below into task YAMLs (or owner decisions), then the owner reviews and signs off `docs/threat-model.md`.
+Owner action first: PLAN.md section 11 Phase 0 says to store all keys in GitHub Secrets. Do not add any repo secret until P1-1 is decided, because any pushed branch's workflow could read it. The repo has none today.
+
+Then the orchestrator turns the proposed tasks below into task YAMLs (or owner decisions), then the owner reviews and signs off `docs/threat-model.md`.
 
 ### Proposed tasks
 Each finding: location, severity, failure scenario, fix hint.
@@ -47,7 +49,7 @@ Each finding: location, severity, failure scenario, fix hint.
 
 **P1-5. CI can drain the Actions minutes.** Medium. Location: `.github/workflows/ci.yml:3-6` (push, pull_request, no `concurrency`).
 - Scenario: an agent fix loop pushes ten times in an hour; each push and each PR sync runs the heavy job (up to 45 minutes). The 2,000 free minutes run out, and in Phase 4 the daily publish stops until the month resets.
-- Fix hint: add `concurrency: { group: ci-${{ github.ref }}, cancel-in-progress: true }`, and consider running only `pull_request` plus `push` on `main`. Update `tests/test_ci_workflow.py` first (locked, Architect).
+- Fix hint: both halves are needed. Run CI on `pull_request` plus `push` to `main` only, which removes the double run per commit (`github.ref` differs between the push and PR events, so a concurrency group alone does not merge them). Then add `concurrency: { group: ci-${{ github.ref }}, cancel-in-progress: true }` to cancel superseded runs within one event type. Update `tests/test_ci_workflow.py` first (locked, Architect).
 
 **P1-6. Workflow safety rules cover only named files and assume read-only tokens.** Medium. Location: `tests/workflow_rules.py:29-40`, called per file from `tests/test_workflows.py` and `tests/test_ci_workflow.py`.
 - Scenario: Phase 2 adds `weekly_scripts.yml` with `contents: write`. No test loads it, so a `${{ }}` in `run:`, an unpinned Action or `pull_request_target` goes unchecked; or the author loosens `assert_safe` for everyone to get write access through.
@@ -63,6 +65,7 @@ Each finding: location, severity, failure scenario, fix hint.
 - `CLAUDE.md`: add `docs/threat-model.md` to "Where things are"; Status: CSO review done, P1-1 to P1-6 proposed.
 - `workflow.md`: mark p1-cso done in the status table.
 - `architecture.md` section 7: add a pointer to `docs/threat-model.md` for the security gaps (P1-1, P1-2, P1-4, P1-5).
+- `PLAN.md` section 11 Phase 0: keys go into Secrets only after P1-1 is decided (owner decision).
 - `lessons.md`: none.
 
 ## Evidence
