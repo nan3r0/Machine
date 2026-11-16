@@ -248,3 +248,11 @@ How it was caught: the owner's 65 s acceptance render (167 words in 69.5 s, run 
 Fix: `SPEECH_WPM` 144 and `TIKTOK_WORDS` (149, 216), with the arithmetic in the comment (branch docs/p1-constants-timeout-contracts). The Retention format, whose word bounds had the same flaw, was removed (owner rule: every video over a minute).
 Rule going forward: after any change to the voice or its speed, re-measure the speech rate from a real render and re-derive every word bound from it in the same change.
 Test added: none; these are constants, and the 65 s sample's fit is already checked by `tests/test_schema.py::test_acceptance`.
+
+### 2026-11-16: The orchestrator passed 50% context without rotating
+What happened: the fifth orchestrator session ran to 62% context before the owner noticed and asked why it had not rotated. The handoff says to rotate at about 50% or after every task close-out.
+Why it happened (root cause, not symptom): rotation depended on the Stop hook `context_guard.py`, which only guards an orchestrator started with `open_task_window.ps1 -Task orchestrator` (it sets `LOOM_ROLE`). This session was started another way, so the hook never fired, and nothing else checked the context size. Close-outs were also batched into later PRs, so the "rotate after every close-out" trigger never came up.
+How it was caught: the owner read `/context` and asked.
+Fix: orchestrator.md now has a numbered step in the Token rules that applies when the hook is absent: check `/context` at every task close-out and before launching each task, and rotate at 50% by writing the State block, opening the docs PR and telling the owner to start a fresh session.
+Rule going forward: a control that exists only in one launch path is not a control for every session. The orchestrator checks its own context size at each close-out and launch, hook or no hook, and rotates at 50%, not when asked.
+Test added: none. This is a process rule; the Token rules step in `.harness/handoffs/orchestrator.md` is the check.
