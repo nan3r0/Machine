@@ -143,10 +143,10 @@ Specialist reviews: security for p2-validate, p2-gemini, p2-batch and p2-weekly-
 |---|---|---|
 | p2-entry-ci | done, merged 2026-11-16 (PR #60) | Gate 2 approved; non-blocking notes in architecture.md section 7 |
 | p2-factcheck-exact | done, merged 2026-11-16 (PR #59) | Gate 2 approved |
-| p2-contracts | contracts and locked tests on branch `docs/p2-contracts`, awaiting owner review | |
-| p2-validate | not started | |
-| p2-gemini | not started | |
-| p2-seed-sources | not started | |
+| p2-contracts | done, merged 2026-11-16 (PR #62) | Owner approved |
+| p2-validate | in review, PR #64 | Gate 2 and security approved |
+| p2-gemini | in review, PR #63 | Gate 2 and security approved |
+| p2-seed-sources | in review, PR #65; owner checks every fact | Gate 2 approved after round 1 |
 | p2-generate | not started | |
 | p2-semantic | not started | |
 | p2-batch | not started | |

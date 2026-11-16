@@ -23,6 +23,20 @@ You are the Stage 0 orchestrator (HARNESS.md section 10, Stage 0). Model: Sonnet
 - One watcher per task; no polling loops in your own turns.
 - One Gate 2 pass per task; chase only blocking findings.
 
+## State (2026-11-16, end of sixth orchestrator session)
+- p2-contracts merged (PR #62); added to status.yaml `done` on branch `docs/p2-closeout-1` (this branch).
+- Tasks 03 to 05 built, Gate 1 and Gate 2 passed, PRs open for the owner to merge:
+  - p2-gemini PR #63: CI green. Gate 2 and security approve.
+  - p2-validate PR #64: CI green. Gate 2 and security approve.
+  - p2-seed-sources PR #65 (Opus architect agent with web tools, since `open_task_window.ps1` disallows WebFetch and WebSearch): Gate 2 round 1 blocked on Bloop fact 6 abbreviating PMEL, fixed in 1d64fa9. CI was still pending when this session stopped; check `gh pr checks 65`. Owner must review every fact (PR body lists the open questions: BLC1 "unlikely", Cottingley names, Piltdown fact 409 wording).
+- After the owner merges 63 to 65: close-out on a new `docs/*` branch (status.yaml `done` += p2-validate, p2-gemini, p2-seed-sources; workflow.md rows; architecture.md render_one flow notes the pre-voice rejection, exit 2; CLAUDE.md status). Then task 06 p2-generate.
+- Follow-ups for the Architect (non-blocking review notes):
+  - validate.py URL check misses bare domains (`bit.ly/abc`) and fullwidth `www`, short of threat-model P1-3 (description URL allowlist). U+2028/2029 and unassigned code points pass. `topic` and `visual.data` unchecked until they reach a published surface.
+  - gemini.py: some failures escape as raw exceptions (connection reset, RecursionError, null steps); urllib's redirect handler would forward the key header on a 3xx.
+  - Queue-side: sample scene 4 ("eight years ... not alive") should also cite Bloop facts 7 and 8.
+- Both Sonnet implementers this session rewrote source files with a Python script instead of Edit or Write (lessons.md rule). Add a line to the task brief: "Edit and Write only, never a Python or heredoc rewrite".
+- Stale worktrees under `.claude/worktrees/` still need cleanup.
+
 ## State (2026-11-16, end of fifth orchestrator session)
 - Phase 1 closed (owner approved the Auditor report, PR #57). Phase 2 planned (PR #58): 14 tasks in `.harness/tasks/phase2/`, decisions D1 to D8 in `architect-p2-plan.md`.
 - Phase 2 done so far: p2-factcheck-exact (PR #59), p2-entry-ci (PR #60). Both merged; their status.yaml and workflow.md close-out is in the p2-contracts branch (see below).
