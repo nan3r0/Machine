@@ -4,11 +4,13 @@ depends_on: [p2-gemini]
 role: implementer
 notes: |
   pipeline/factcheck/semantic.py check_script(script, facts): one gemini.generate_json call with the
-  checker model (Flash-Lite class, constants.py) per script, asking for each scene "Does the source
+  checker model (constants.CHECKER_MODEL at CHECKER_TEMPERATURE 0) per script, asking for each scene "Does the source
   reasonably support this statement? Ignore rewording. Answer SUPPORTED / UNSUPPORTED / PARTIAL with
   a one-line reason" (PLAN.md section 5), with each scene's linked facts as delimited data. Returns
   one LineVerdict per scene in order. A missing, duplicated or malformed verdict becomes UNSUPPORTED
-  with a reason saying the checker gave no answer: a broken answer is never a pass. GeminiError
+  with a reason saying the checker gave no answer: a broken answer is never a pass. Every verdict
+  names its supporting fact ids (owner decision D5); SUPPORTED or PARTIAL with no fact id, or one not
+  linked to that scene, becomes UNSUPPORTED. Reasons clipped to REASON_MAX_CHARS. GeminiError
   propagates; the batch decides.
 paths_allowed:
   - pipeline/factcheck/semantic.py

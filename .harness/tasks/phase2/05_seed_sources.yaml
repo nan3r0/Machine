@@ -5,10 +5,16 @@ role: architect
 notes: |
   Content research, so it runs on Opus with web tools (the implementer agent has none). Only if the
   owner keeps default D4 (hand-curated sources, no RSS ingest in Phase 2).
-  Write one sources/<slug>.yaml per mystery in the SourceFile shape: topic plus 6 to 12 facts, each
-  a short sentence copied or closely paraphrased from the page at its https url, with the numbers,
-  dates and names a 65 s script would use. Fact ids unique across all files (101, 102, ... per file
-  block of 100 keeps them readable).
+  First list the existing sources/ slugs and topics, and never add a mystery already there under
+  another name (tests compare topics ignoring case and punctuation).
+  Write one sources/<slug>.yaml per mystery in the SourceFile shape: topic plus 6 to 10 facts
+  (FACTS_PER_SOURCE_MAX), each a short sentence of at most FACT_TEXT_MAX_CHARS copied or closely
+  paraphrased from the page at its https url (at most FACT_URL_MAX_CHARS), with the numbers, dates
+  and names a 65 s script would use, and no link, `<`, `>` or backtick in the text. Fact ids unique
+  across all files (101, 102, ... per file block of 100 keeps them readable).
+  Also write sources/bloop.yaml for the Phase 1 sample (queue/approved/sample-65s.json): facts 1 to
+  9 from NOAA's "What is the Bloop?" page (https://oceanservice.noaa.gov/facts/bloop.html), each
+  supporting the sample scenes that cite it, so every queued fact id resolves. So at least 15 files.
   Content rules, PLAN.md section 4: a documented, sourced resolution only, never speculation as the
   answer, skip disputed solutions; public figures and organisations only, no private individuals; no
   violence, gore, crime detail or cases centred on a death. Prefer an encyclopedia or a primary

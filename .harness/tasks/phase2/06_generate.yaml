@@ -14,8 +14,10 @@ notes: |
   (narration, on_screen_text, source_fact_ids), loop_line, title, description, tags and template,
   and calls gemini.generate_json with the writer model. It fills id, platforms, publish_after and
   each scene's visual ({type: template, data: {}}, Phase 3 fills data) itself, validates with
-  Script and validate.problems, and retries the whole script once on any problem. rewrite_line
-  rewrites one scene's narration with the reason it failed, same rules.
+  Script and validate.problems, and raises GenerateError on any problem after exactly one call (the
+  batch owns the retry, so it can count every call against the budget). rewrite_line rewrites one
+  scene's narration with the reason it failed, same rules, one call. The stub docstrings are the
+  contract, including the answer shapes and DATA_START / DATA_END.
   Prompts are module constants in generate.py, not files (YAGNI; PLAN.md section 9 lists
   script/prompts/).
 paths_allowed:

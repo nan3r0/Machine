@@ -249,6 +249,14 @@ Fix: `SPEECH_WPM` 144 and `TIKTOK_WORDS` (149, 216), with the arithmetic in the 
 Rule going forward: after any change to the voice or its speed, re-measure the speech rate from a real render and re-derive every word bound from it in the same change.
 Test added: none; these are constants, and the 65 s sample's fit is already checked by `tests/test_schema.py::test_acceptance`.
 
+### 2026-11-16: A shell and Python rewrite mangled regex backslashes
+What happened: in p2-entry-ci a Bash heredoc feeding a Python rewrite of `tests/workflow_rules.py` turned `\b` into a backspace and `\n` into a real newline; a sed repair then dropped the backslash again.
+Why it happened (root cause, not symptom): two layers of escaping (the shell, then the Python string) sat between the intended text and the file.
+How it was caught: ruff and pytest failed at once.
+Fix: repaired with the Edit tool.
+Rule going forward: edit source files with the Edit or Write tools only, never through a shell heredoc, sed or a Python rewrite script.
+Test added: none, a process rule.
+
 ### 2026-11-16: The orchestrator passed 50% context without rotating
 What happened: the fifth orchestrator session ran to 62% context before the owner noticed and asked why it had not rotated. The handoff says to rotate at about 50% or after every task close-out.
 Why it happened (root cause, not symptom): rotation depended on the Stop hook `context_guard.py`, which only guards an orchestrator started with `open_task_window.ps1 -Task orchestrator` (it sets `LOOM_ROLE`). This session was started another way, so the hook never fired, and nothing else checked the context size. Close-outs were also batched into later PRs, so the "rotate after every close-out" trigger never came up.

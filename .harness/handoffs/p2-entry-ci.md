@@ -4,7 +4,7 @@
 Workflow safety rules for every file in `.github/workflows/` with per-job allowlists (CSO P1-6), and a docs check that reads every `### Phase <n> status` table (phase review N9), plus the task-id false positive fix.
 
 ## Status
-done (Test Author, locked files only). Branch `docs/p2-entry-ci-tests`, committed, not pushed.
+done (Test Author, locked files only). Branch `task/p2-entry-ci`, merged 2026-11-16 (PR #60), Gate 2 approved.
 
 ## What changed (and why)
 - `tests/workflow_rules.py`: new `safety_problems(workflow, name)`, `directory_problems(directory)` and `workflow_files(directory)`; `load` takes an optional `directory`. Allowlists `WRITE_JOBS` and `SECRET_JOBS`, keyed by (file, job id), seeded with exactly the two Phase 2 entries from the task. Rules: workflow-level permissions exactly `contents: read`; job permissions absent, `contents: read` or exactly equal to the allowlist entry; no `pull_request_target`; step and job-level (reusable workflow) `uses:` pinned to a full SHA; no `${{` in `run:`; any `secrets` reference (any case, any syntax incl. `toJSON(secrets)`, `secrets['X']`, `secrets: inherit`, bare `if:`) only as an allowlisted `secrets.NAME` in its job, never at workflow level and never inside `run:`; `github.token` only in an allowlisted write job; every checkout sets `persist-credentials: false` (the boolean) except in an allowlisted write job. `assert_safe(workflow, name="")` now wraps `safety_problems`, so ci.yml and render.yml keep their old checks plus the new ones; their tests are unedited.
