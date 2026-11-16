@@ -83,6 +83,19 @@ def test_report_job_runs_only_by_hand_and_uploads() -> None:
     assert any(s.get("uses", "").startswith("actions/upload-artifact@") for s in job["steps"])
 
 
+def test_report_findings_fail_the_job_without_losing_the_reports() -> None:
+    """A finding in one report must not skip the others or the upload, and must still turn the
+    job red: every report and the upload run unless cancelled, and nothing hides an exit code."""
+    job = rules.load("ci.yml")["jobs"]["reports"]
+    reports = [s for s in job["steps"] if "out/reports/" in str(s.get("run", ""))]
+    assert len(reports) == 4
+    for step in reports[1:] + [s for s in job["steps"] if "upload-artifact@" in s.get("uses", "")]:
+        assert "!cancelled()" in str(step.get("if", "")), step.get("name")
+    for step in job["steps"]:
+        assert "continue-on-error" not in step
+        assert "|| true" not in str(step.get("run", ""))
+
+
 def test_makefile_check_runs_every_gate_tool() -> None:
     makefile = (ROOT / "Makefile").read_text(encoding="utf-8")
     for tool in GATE_TOOLS:

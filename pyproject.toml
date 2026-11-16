@@ -51,7 +51,7 @@ markers = [
 ]
 
 [tool.mutmut]
-paths_to_mutate = ["pipeline/"]
+source_paths = ["pipeline/"]
 tests_dir = ["tests/"]
 # mutmut appends these to every pytest call it makes (clean run, stats, each mutant). The reports
 # job sets CI=true, so without this every mutant would rerun the heavy renders and the job hits
