@@ -93,4 +93,4 @@ Locked by p1-contracts. Every task's acceptance test is `test_acceptance` in its
 | p1-sample-65s | done, merged (PR #38); default render is the 65 s sample | Diff read by the orchestrator; no separate review (one default path) |
 | Owner manual acceptance | done 2026-11-16: 69.6 s video from run 43873059742 approved (voice pacing and tone) | Owner |
 | QA lead, CSO, Auditor, phase review | not started | |
-| p1-qa-tests | tests written by the Architect (branch docs/p1-qa-tests-contracts), not yet through the gates | |
+| p1-qa-tests | done 2026-11-16: PRs #47 and #48 merged; real FFmpeg fixtures from CI run 43917100099; CI green with LOOM_TASK (run 43918370324) | |

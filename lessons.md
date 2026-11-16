@@ -232,3 +232,11 @@ How it was caught: the owner's manual dispatch of the reports job.
 Fix: one step per report; every report after the first and the upload run on `${{ !cancelled() }}`. A failing report still turns the job red; nothing uses `|| true` or `continue-on-error`. pip-audit keeps auditing the whole installed env with no ignores, so the Auditor sees dev tool and accepted advisories too; Gate 1 stays the merge blocker with its narrower scope.
 Rule going forward: a job that collects findings uploads them whatever the findings are. Give each report its own step, run later steps and the upload unless cancelled, and let the failure show in the job status rather than hiding it.
 Test added: `tests/test_ci_workflow.py::test_report_findings_fail_the_job_without_losing_the_reports`.
+
+### 2026-11-16: A test built its expected value with the code under test
+What happened: the QA lead's mutation review found that the caption escaping test at `tests/render/test_captions_ass.py:81` computed its expected text with the same function it was testing, so a bug in that function could not fail it.
+Why it happened (root cause, not symptom): the test was written from the code's output shape instead of from the spec, so it could only agree with the code.
+How it was caught: the phase-end QA lead review (p1-qa-lead).
+Fix: the oracle is now a hand-written unescape of the ASS escapes, and exact expected strings live in `tests/render/test_captions_exact.py`.
+Rule going forward: a test's expected value comes from the spec, a literal or an independent oracle, never from the code under test. Fake tool output (ffprobe, silencedetect, loudnorm) comes from a real capture, never hand-written.
+Test added: `tests/render/test_captions_exact.py::test_escape_gives_exact_text`.
