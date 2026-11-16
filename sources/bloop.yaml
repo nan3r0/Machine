@@ -1,0 +1,29 @@
+topic: "The Bloop"
+facts:
+  - id: 1
+    text: "In 1997, a mysterious rumble was recorded in the ocean."
+    url: "https://oceanservice.noaa.gov/facts/bloop.html"
+  - id: 2
+    text: "Researchers were listening for underwater volcanic activity in the southern Pacific when they recorded the sound."
+    url: "https://oceanservice.noaa.gov/facts/bloop.html"
+  - id: 3
+    text: "The sound was picked up by hydrophones placed more than 3,219 kilometers apart across the Pacific."
+    url: "https://oceanservice.noaa.gov/facts/bloop.html"
+  - id: 4
+    text: "The sound was loud and had a unique characteristic that came to be known as the Bloop."
+    url: "https://oceanservice.noaa.gov/facts/bloop.html"
+  - id: 5
+    text: "Guesses included secret underwater military exercises, ship engines, fishing boat winches, giant squids, whales, or a sea creature unknown to science."
+    url: "https://oceanservice.noaa.gov/facts/bloop.html"
+  - id: 6
+    text: "After 1997, scientists at NOAA's Pacific Marine Environmental Laboratory deployed hydrophones ever closer to Antarctica and found the source in 2005."
+    url: "https://oceanservice.noaa.gov/facts/bloop.html"
+  - id: 7
+    text: "In 2005, NOAA researchers finally discovered the source of the rumbles."
+    url: "https://oceanservice.noaa.gov/facts/bloop.html"
+  - id: 8
+    text: "The loud Bloop, heard across the Pacific, was an icequake, an iceberg cracking and breaking away from an Antarctic glacier."
+    url: "https://oceanservice.noaa.gov/facts/bloop.html"
+  - id: 9
+    text: "About 95 percent of the ocean is still unexplored."
+    url: "https://oceanservice.noaa.gov/facts/bloop.html"

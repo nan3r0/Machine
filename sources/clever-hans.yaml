@@ -1,0 +1,26 @@
+topic: "Clever Hans, the counting horse"
+facts:
+  - id: 1201
+    text: "Clever Hans was a horse owned by Wilhelm von Osten, a mathematics teacher."
+    url: "https://en.wikipedia.org/wiki/Clever_Hans"
+  - id: 1202
+    text: "Hans appeared to perform arithmetic and other intellectual tasks."
+    url: "https://en.wikipedia.org/wiki/Clever_Hans"
+  - id: 1203
+    text: "Hans answered by tapping his hoof, for example eleven times for eleven."
+    url: "https://en.wikipedia.org/wiki/Clever_Hans"
+  - id: 1204
+    text: "In September 1904, a commission concluded that no tricks were involved in Hans's performance."
+    url: "https://en.wikipedia.org/wiki/Clever_Hans"
+  - id: 1205
+    text: "In 1907, Oskar Pfungst tested Hans with blinders and with questioners who did not know the answer."
+    url: "https://en.wikipedia.org/wiki/Clever_Hans"
+  - id: 1206
+    text: "Hans gave the right answer only when the questioner knew it and the horse could see the questioner."
+    url: "https://en.wikipedia.org/wiki/Clever_Hans"
+  - id: 1207
+    text: "Hans was reading involuntary cues in the body language of the people asking the questions."
+    url: "https://en.wikipedia.org/wiki/Clever_Hans"
+  - id: 1208
+    text: "The effect has since been called the Clever Hans effect and still matters in studies of observer expectancy."
+    url: "https://en.wikipedia.org/wiki/Clever_Hans"
