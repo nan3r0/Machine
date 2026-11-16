@@ -138,16 +138,31 @@ jobs:
           python -m pip install -q --no-deps --index-url https://download.pytorch.org/whl/cpu -r "$RUNNER_TEMP/torch.txt"
           python -m pip install -q -r requirements.txt -r requirements-dev.txt -r requirements-heavy.txt
 
-      - name: Phase-end reports (mutation, coverage, licences, audit)
+      # One step per report, each run unless cancelled: a finding in one (a failing test, a
+      # vulnerable package) still fails the job but no longer skips the other reports or the upload.
+      - name: Coverage report
         run: |
           mkdir -p out/reports
           pytest -q --cov=pipeline --cov-report=xml:out/reports/coverage.xml --cov-report=term > out/reports/coverage.txt
+
+      - name: Mutation report
+        if: ${{ !cancelled() }}
+        run: |
           mutmut run
           mutmut results > out/reports/mutmut.txt
-          pip-licenses --format=markdown --with-urls > out/reports/licenses.md
-          pip-audit --format json --output out/reports/pip-audit.json
 
-      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+      - name: Licence report
+        if: ${{ !cancelled() }}
+        run: pip-licenses --format=markdown --with-urls > out/reports/licenses.md
+
+      # Audits the whole installed env (dev tools and runner packages included) with no ignores,
+      # unlike Gate 1, so the Auditor sees every advisory, accepted ones too.
+      - name: Vulnerability report
+        if: ${{ !cancelled() }}
+        run: pip-audit --format json --output out/reports/pip-audit.json
+
+      - if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: phase-reports
           path: out/reports/

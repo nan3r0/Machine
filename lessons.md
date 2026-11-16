@@ -224,3 +224,11 @@ How it was caught: the owner's manual dispatch of the reports job.
 Fix: `[tool.mutmut] pytest_add_cli_args = ["-m", "not heavy"]`. mutmut 3.8.1 appends this to every pytest call it makes, so heavy tests are deselected from the clean run, the stats run and each mutant run. The coverage line in the job runs outside mutmut and still includes heavy tests.
 Rule going forward: mutation testing runs only the fast suite. Code reached only by heavy tests shows as "no tests" in `mutmut.txt`; the QA lead judges that code from `coverage.xml`, not as a gap mutmut found.
 Test added: none. The reports run is the real check.
+
+### 2026-11-16: A finding in the last report threw away all four reports
+What happened: the third phase-end `reports` run (CI run 43898395038) finished coverage and mutmut (997 of 997 mutants), then `pip-audit` found 9 known vulnerabilities in 3 packages and exited 1. The step failed, so the `upload-artifact` step was skipped and the coverage, mutation, licence and audit reports were all lost.
+Why it happened (root cause, not symptom): the job was written fail-fast, like a gate. Every report ran in one shell step and the upload ran only on success, but this job exists to collect findings, so a finding is an expected outcome, not a reason to drop the evidence.
+How it was caught: the owner's manual dispatch of the reports job.
+Fix: one step per report; every report after the first and the upload run on `${{ !cancelled() }}`. A failing report still turns the job red; nothing uses `|| true` or `continue-on-error`. pip-audit keeps auditing the whole installed env with no ignores, so the Auditor sees dev tool and accepted advisories too; Gate 1 stays the merge blocker with its narrower scope.
+Rule going forward: a job that collects findings uploads them whatever the findings are. Give each report its own step, run later steps and the upload unless cancelled, and let the failure show in the job status rather than hiding it.
+Test added: `tests/test_ci_workflow.py::test_report_findings_fail_the_job_without_losing_the_reports`.
