@@ -216,3 +216,11 @@ How it was caught: the owner's manual dispatch of the reports job.
 Fix: `also_copy` now lists every repo-root path the suite reads at test time, found by grepping `tests/` for `ROOT /` reads, `cwd=ROOT` and the files `tests/docs_check.py` opens.
 Rule going forward: a test that reads a new repo-root file or folder adds it to `[tool.mutmut] also_copy` in the same change. A nested file goes in as its folder, since mutmut does not create parent folders for single files.
 Test added: none. A test mirroring the list would be a second hand-kept copy of it and could not see reads inside subprocesses; the reports run is the real check.
+
+### 2026-11-16: The mutation run reran heavy renders for every mutant
+What happened: the second phase-end `reports` run (CI run 43881197536) was cancelled at the job's 90-minute limit inside `mutmut run`, after 487 of 997 mutants. The first 400 mutants took about 4 minutes; the rest, in render and voice alignment code, took up to 4.5 minutes each and many timed out. The runner also warned it was down to 10 MB of free disk.
+Why it happened (root cause, not symptom): the reports job installs ffmpeg and torch and GitHub sets CI=true, so `tests/conftest.py` keeps the `heavy` tests (full renders, Kokoro, alignment). mutmut reran them for every mutant they touch, each with a CPU limit of about 30 times the test's clean runtime.
+How it was caught: the owner's manual dispatch of the reports job.
+Fix: `[tool.mutmut] pytest_add_cli_args = ["-m", "not heavy"]`. mutmut 3.8.1 appends this to every pytest call it makes, so heavy tests are deselected from the clean run, the stats run and each mutant run. The coverage line in the job runs outside mutmut and still includes heavy tests.
+Rule going forward: mutation testing runs only the fast suite. Code reached only by heavy tests shows as "no tests" in `mutmut.txt`; the QA lead judges that code from `coverage.xml`, not as a gap mutmut found.
+Test added: none. The reports run is the real check.

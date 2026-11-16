@@ -53,6 +53,12 @@ markers = [
 [tool.mutmut]
 paths_to_mutate = ["pipeline/"]
 tests_dir = ["tests/"]
+# mutmut appends these to every pytest call it makes (clean run, stats, each mutant). The reports
+# job sets CI=true, so without this every mutant would rerun the heavy renders and the job hits
+# its 90-minute limit. Coverage still includes heavy tests: that pytest line runs outside mutmut.
+# Code reached only by heavy tests shows as "no tests" in mutmut.txt, not as a test gap; judge
+# those parts (render, voice alignment, Kokoro) from coverage.xml instead.
+pytest_add_cli_args = ["-m", "not heavy"]
 # Tests read these from the repo root, so mutmut must copy them into its working tree (mutants/).
 # mutmut already copies tests/ and pyproject.toml. A nested file needs its folder listed, since
 # mutmut copies single files without creating parent folders.
