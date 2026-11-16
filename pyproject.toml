@@ -53,8 +53,14 @@ markers = [
 [tool.mutmut]
 paths_to_mutate = ["pipeline/"]
 tests_dir = ["tests/"]
-# Tests read these from the repo root, so mutmut must copy them into its working tree.
-also_copy = ["queue/", ".harness/", "assets/"]
+# Tests read these from the repo root, so mutmut must copy them into its working tree (mutants/).
+# mutmut already copies tests/ and pyproject.toml. A nested file needs its folder listed, since
+# mutmut copies single files without creating parent folders.
+also_copy = [
+    "queue/", ".harness/", "assets/", ".github/", ".claude/hooks/",
+    "Makefile", "requirements.txt", "requirements-dev.txt", "requirements-heavy.txt",
+    "CLAUDE.md", "workflow.md", "lessons.md",
+]
 
 [tool.coverage.run]
 source = ["pipeline"]
