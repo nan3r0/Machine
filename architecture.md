@@ -22,7 +22,7 @@ flowchart LR
     Q --> R[qa.json + exit code]
 ```
 
-Everything runs in one GitHub Actions job (`.github/workflows/render.yml`), started by hand. `pipeline/render_one.py` wires the steps; each step is a module with no knowledge of the others.
+Everything runs in one GitHub Actions job (`.github/workflows/render.yml`), started by hand. `pipeline/render_one.py` wires the steps; each step is a module with no knowledge of the others. The golden frames (every 10 s from 1 s to 60 s plus one 0.5 s before the end) come from `tests/media.py::extract_golden_frames`, used by both render.yml and the heavy test; they are for visual review, not pixel comparison.
 
 ## 2. Layers and boundaries
 
@@ -81,6 +81,8 @@ Imports only point upward in that table: wiring imports adapters and contracts, 
 All task tests are written and locked by p1-contracts before implementation.
 
 ## 7. Known weak points
+
+Threat model and open security items: `docs/threat-model.md`.
 
 - The lock hook only watches Edit, Write, MultiEdit and NotebookEdit. A Bash command can still write a file. The control that holds is CI's scope check on `task/<id>` branches (diff against `paths_allowed`, `locks.yaml` and the admin files), added by p1-contracts. Until then it is a manual Gate 1 check.
 - The hook matches globs with `fnmatch`, where `*` also crosses `/`. Patterns are slightly more permissive than they look.
