@@ -1,0 +1,25 @@
+id: p1-golden-65s
+title: Render workflow extracts the full-length golden frames through the shared helper
+depends_on: [p1-sample-65s]
+role: implementer
+notes: |
+  The Architect already extended the golden render on branch docs/p1-golden-65s-contracts:
+  GOLDEN_FRAME_TIMES_S now runs 1 to 60 s, and tests/media.py has extract_golden_frames(video),
+  which adds one frame GOLDEN_END_OFFSET_S before the video ends. The heavy golden test uses it.
+  This task changes one step in .github/workflows/render.yml: "Extract golden frames" calls
+  media.extract_golden_frames(Path('out/render/final.mp4')) instead of extract_frames with
+  constants.GOLDEN_FRAME_TIMES_S. Keep the step's name, its `if:` condition and everything else in
+  the workflow unchanged. No pipeline code changes. Workflow change, so the security specialist
+  review runs.
+paths_allowed:
+  - .github/workflows/render.yml
+tests:
+  - tests/test_golden_frames.py
+acceptance: tests/test_golden_frames.py::test_acceptance
+context_files:
+  - .github/workflows/render.yml
+  - tests/media.py
+  - tests/test_golden_frames.py
+  - .harness/handoffs/architect-p1-golden-65s.md
+  - lessons.md
+max_turns: 10
