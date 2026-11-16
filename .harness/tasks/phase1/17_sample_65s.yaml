@@ -1,0 +1,25 @@
+id: p1-sample-65s
+title: Make the 65 s sample the render workflow's default script
+depends_on: [p1-actions-workflow]
+role: implementer
+notes: |
+  Owner decision 2026-11-16: every video targets about 65 s (PLAN.md section 4). The approved
+  sample queue/approved/sample-65s.json already exists and validates (tests/test_schema.py).
+  Change one line: the `script` input default in .github/workflows/render.yml becomes
+  queue/approved/sample-65s.json. Nothing else in the workflow changes.
+  Keep queue/approved/sample-40s.json: the locked heavy golden test renders it.
+  Acceptance has two parts: the locked test below, and a MANUAL check by the owner that a run on
+  GitHub produces a good 65 s video artifact (PLAN.md section 11, Phase 1 done-when). QA must pass
+  with the 62 to 90 s range; if the voice comes out under 62 s, report it in the handoff, do not
+  edit the script. Workflow change, so the security specialist review runs.
+paths_allowed:
+  - .github/workflows/render.yml
+tests:
+  - tests/test_render_default.py
+acceptance: tests/test_render_default.py::test_acceptance
+manual_acceptance: Owner runs the workflow on GitHub with the default input and approves the downloaded 65 s final.mp4.
+context_files:
+  - PLAN.md#4
+  - PLAN.md#11
+  - .harness/handoffs/p1-actions-workflow.md
+max_turns: 10

@@ -11,6 +11,7 @@ notes: |
   actionlint. No secrets needed in Phase 1. Triggers the security specialist review.
   Acceptance has two parts: the locked structure test below, and a MANUAL check by the owner that a
   run on GitHub produces a good 40 s video artifact (PLAN.md section 11, Phase 1 done-when).
+  Superseded 2026-11-16: the manual check moves to p1-sample-65s and a 65 s video.
 paths_allowed:
   - .github/workflows/render.yml
 tests:

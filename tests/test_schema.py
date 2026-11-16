@@ -40,6 +40,15 @@ def test_acceptance() -> None:
     assert "scenes.0.source_fact_ids.0" in error_fields(exc.value)
 
 
+def test_default_sample_fits_the_65s_format() -> None:
+    """The default sample (PLAN.md section 4, owner decision 2026-11-16) fits the 65 s format."""
+    path = SAMPLE.with_name("sample-65s.json")
+    script = Script.model_validate_json(path.read_text(encoding="utf-8"))
+    assert script.id == path.stem
+    low, high = constants.TIKTOK_WORDS
+    assert low <= len(script.narration_words()) <= high
+
+
 @pytest.mark.parametrize("field", ["id", "topic", "template", "hook", "scenes", "loop_line", "title",
                                    "description", "tags", "platforms", "publish_after"])
 def test_missing_field_is_named(field: str) -> None:

@@ -171,10 +171,14 @@ Evergreen, and every "solved" claim can be checked against a source, which suits
 
 ### Duration targets
 
+Every video, on every platform, uses the 65 s format (owner decision, 2026-11-16).
+
 | Format | Length | Words (~160 wpm) | Structure |
 |---|---|---|---|
-| Retention | 25–45 s | 70–120 | 2–3 s hook → escalating facts → loop ending |
-| TikTok monetisation | 61–90 s | 165–230 | Same + "curiosity reset" at ~25–30 s; QA requires ≥ 62 s |
+| 65 s (default, all platforms) | Target ~65 s; accepted 62–90 s | Target ~175; accepted 165–230 | 2–3 s hook → escalating facts → **mandatory** "curiosity reset" at ~25–30 s → loop ending |
+| Retention (kept, not used by default) | 25–45 s | 70–120 | 2–3 s hook → escalating facts → loop ending |
+
+The Retention format stays defined in code and tests, but scripts are not written for it unless the owner switches back.
 
 ---
 
@@ -209,7 +213,7 @@ Two layers, each with a clear job:
 ### Workflow A — Weekly script batch (Sunday)
 1. Ingest: new RSS/API items + any `sources/*.md` you added.
 2. Choose unused facts from `data/used_facts.json`, steering away from recently covered topics.
-3. Gemini (JSON mode) generates **N scripts** (N = videos per week; up to 28 for "vacation mode" via `workflow_dispatch` input):
+3. Gemini (JSON mode) generates **N scripts** in the 65 s format of section 4 (N = videos per week; up to 28 for "vacation mode" via `workflow_dispatch` input):
    ```json
    {
      "id": "2026-11-16-ai-chip-war",
@@ -320,7 +324,7 @@ shorts-pipeline/                  # private GitHub repo
 | Phase | Goal | Done when |
 |---|---|---|
 | 0 · Admin (week 1) | Create the Google Cloud project (OAuth consent screen "In production"), IG Business account linked to a Facebook Page + Meta app with Facebook Login for Business, TikTok dev app with `video.upload` scope requested, Cloudflare account. No payment method anywhere | All keys stored in GitHub Secrets; TikTok scope approved |
-| 1 · Core render | Hand-written script JSON → voice → aligned .ass captions → FFmpeg MP4, **inside GitHub Actions** | A good 40 s video produced as a workflow artifact |
+| 1 · Core render | Hand-written script JSON → voice → aligned .ass captions → FFmpeg MP4, **inside GitHub Actions** | A good 65 s video produced as a workflow artifact |
 | 2 · Scripts + fact-check | Workflow A opens a real PR with flagged scripts | 7 scripts per PR, flags readable on mobile |
 | 3 · Visual templates | Chart + Flux + b-roll templates | Two videos on similar topics look clearly different |
 | 4 · Publishing | Workflow B publishes to YouTube, IG, TikTok inbox; weekly Instagram token refresh | Full loop runs with your PC off |
@@ -332,7 +336,7 @@ shorts-pipeline/                  # private GitHub repo
 ## 12. Success Metrics (first 60 days)
 
 - Pipeline: ≥ 90% of daily runs publish without intervention
-- Average view duration ≥ 70% on 30–45 s videos
+- Average view duration on 65 s videos: **target to be set by the owner after the first 30 days of data**
 - Zero factual corrections needed after publishing
 - Weekly human time ≤ 20 min (excluding TikTok taps)
 - At least one template + hook combination clearly outperforming the others

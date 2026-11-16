@@ -46,8 +46,8 @@ All of these live in `pipeline/constants.py` and nowhere else.
 | Resolution, frame rate | 1080x1920, 30 fps | PLAN.md section 2 |
 | Loudness | -14 LUFS integrated, tolerance 1 LU | PLAN.md section 2 |
 | Speech rate | about 160 wpm | PLAN.md section 4 |
-| Retention format | 25 to 45 s, 70 to 120 words | PLAN.md section 4 |
-| TikTok format | 61 to 90 s, 165 to 230 words, QA minimum 62 s | PLAN.md section 4 |
+| 65 s format (default for every video; `TIKTOK_*` in code) | Target about 65 s and 175 words; accepted 62 to 90 s (PLAN.md allows 61 s, QA requires 62 s) and 165 to 230 words | PLAN.md section 4 |
+| Retention format (kept, not used by default) | 25 to 45 s, 70 to 120 words | PLAN.md section 4 |
 | Longest allowed silence | 1.5 s | PLAN.md section 7 |
 | Caption safe zone | Nothing in the top 15%, bottom 25% or right 15% of the frame, plus a 5% left margin: x from 54 to 918 px, y from 288 to 1440 px | Platform UI overlap |
 | File size range | 100 KB to 100 MB. Smaller means an empty or broken render; the top is far below every platform's upload limit | PLAN.md section 7 |
