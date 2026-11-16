@@ -12,12 +12,13 @@ A $0, cloud-only pipeline that scripts, voices, renders and publishes faceless s
 | `spec.md` | Stack, data model, numbers, security, gates, approved dependencies |
 | `architecture.md` | Layers, flows, decisions, testing map, known weak points |
 | `workflow.md` | Stage 0 how-to, module order, criterion to test map, status |
+| `docs/threat-model.md` | STRIDE threat model of the pipeline (CSO). Read before adding an integration or secret |
 | `lessons.md` | Mistakes and the rule each produced. Read before changing code |
 | `.harness/tasks/` | Task YAMLs. Your task is the one named in `LOOM_TASK`. No `LOOM_TASK` means you are the orchestrator: read `.harness/handoffs/orchestrator.md` first |
 
 ## Status
 
-Pipeline Phase 1 (core render), Harness Stage 0. Harness set up; Phase 1 task graph approved (Kokoro-only voice). Repo: private `nan3r0/Machine`. Niche: Solved Internet & Everyday Mysteries (content rules in PLAN.md section 4). Done: all Phase 1 code tasks and the owner manual acceptance (69.6 s video, slower suspense pacing, VOICE_SPEED 0.9; every video targets about 65 s). Done too: the phase-end reviews (QA lead, CSO, Auditor) and the high-risk QA tests (p1-qa-tests). Done too: the speech-rate constants fix (144 wpm, 62 to 90 s over-a-minute rule, Retention format removed) and the compose FFmpeg timeout. Done too: golden frames across the full video (visual QA approved). Open: the phase review (task 14). Harness: automatic rotation hook live (`.claude/hooks/context_guard.py`); orchestrator state in `.harness/handoffs/orchestrator.md`. Voice: PyTorch `kokoro`, weights pinned. Everything must stay $0: free tiers only, no payment method on any account. No pipeline code yet. Done tasks: `.harness/status.yaml`. Weak points: architecture.md section 7.
+Pipeline Phase 1 (core render), Harness Stage 0. Harness set up; Phase 1 task graph approved (Kokoro-only voice). Repo: private `nan3r0/Machine`. Niche: Solved Internet & Everyday Mysteries (content rules in PLAN.md section 4). Done: all Phase 1 code tasks and the owner manual acceptance (69.6 s video, slower suspense pacing, VOICE_SPEED 0.9; every video targets about 65 s). Done too: the phase-end reviews (QA lead, CSO, Auditor) and the high-risk QA tests (p1-qa-tests). Done too: the speech-rate constants fix (144 wpm, 62 to 90 s over-a-minute rule, Retention format removed) and the compose FFmpeg timeout. Done too: golden frames across the full video (visual QA approved). Open: the phase review (task 14). Harness: automatic rotation hook live (`.claude/hooks/context_guard.py`); orchestrator state in `.harness/handoffs/orchestrator.md`. Voice: PyTorch `kokoro`, weights pinned. Everything must stay $0: free tiers only, no payment method on any account. Done tasks: `.harness/status.yaml`. Weak points: architecture.md section 7.
 
 ## Commands
 
