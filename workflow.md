@@ -88,5 +88,6 @@ Locked by p1-contracts. Every task's acceptance test is `test_acceptance` in its
 | p1-render-cli | done, merged (PRs #31 and #32), heavy tests passed in CI | Gate 2: one blocking finding (exit codes), fixed in #32; regression test added by the Architect in #33 |
 | p1-font-fix | done, merged (PR #35); render run shows real Montserrat Bold | Locked name-table test; golden frame checked by the orchestrator |
 | p1-actions-workflow | done, merged (PR #34); first render run on GitHub passed QA (35.5 s) | Gate 2 and security approved. Owner manual acceptance still open |
-| p1-sample-65s | not started | |
+| p1-sample-65s | done, merged (PR #38); default render is the 65 s sample | Diff read by the orchestrator; no separate review (one default path) |
+| Owner manual acceptance | done 2026-11-16: 69.6 s video from run 43873059742 approved (voice pacing and tone) | Owner |
 | QA lead, CSO, Auditor, phase review | not started | |
