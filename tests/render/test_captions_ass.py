@@ -78,7 +78,8 @@ def assert_captions_match(ass: str, timings: list[WordTiming], words_per_line: i
         assert start == pytest.approx(timing.start, abs=CS)
         assert timing.end - CS <= end <= max(timing.end, later) + CS
         plain = OVERRIDE.sub("", text)
-        assert escape_ass_text(timing.word) in plain
+        # Independent oracle: undo the escaping by hand, never with escape_ass_text itself.
+        assert timing.word in plain.replace("\\{", "{").replace("\\}", "}").replace("\\​", "\\")
         assert len(plain.split()) <= words_per_line
         # Only override blocks count: an escaped word may show "\pos(...)" as plain text.
         positions = media.ASS_POS.findall("".join(OVERRIDE.findall(text)))

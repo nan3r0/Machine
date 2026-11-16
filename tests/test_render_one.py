@@ -96,7 +96,7 @@ def test_acceptance(tmp_path: Path) -> None:
     out = tmp_path / "out"
     result = subprocess.run([sys.executable, "-m", "pipeline.render_one", str(SAMPLE), str(out),
                              "--cache-dir", str(ROOT / render_one.DEFAULT_CACHE_DIR)],
-                            cwd=ROOT, capture_output=True, text=True)
+                            cwd=ROOT, capture_output=True, text=True, timeout=1200)
     assert result.returncode == 0, result.stdout[-2000:] + result.stderr[-2000:]
     for name in ("voice.wav", "captions.ass", "final.mp4", "qa.json"):
         assert (out / name).exists(), name
