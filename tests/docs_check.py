@@ -3,9 +3,10 @@
 Usage: python tests/docs_check.py [repo-root]
 
 Prints one line per problem and exits 1 if there are any (HARNESS.md section 10, Stage 0). Checks:
-- every task in .harness/status.yaml `done` has a task YAML, is marked done in the workflow.md
-  Phase 1 status table, and has a handoff with a filled `## Docs` section ("none" counts)
-- every task id marked done in that table is in .harness/status.yaml
+- every task in .harness/status.yaml `done` has a task YAML, is marked done in a workflow.md
+  `### Phase <n> status` table, and has a handoff with a filled `## Docs` section ("none" counts)
+- every task id marked done in those tables is in .harness/status.yaml
+- a status row that names a task id anywhere starts with that task id, one task per row
 - every backticked `tests/...` path in the workflow.md criterion-to-test map exists, and every
   `path::name` names a test function in that file
 - every task id in the CLAUDE.md `## Status` section has a task YAML
@@ -22,11 +23,13 @@ from typing import Any
 import yaml
 
 TASK_ID = re.compile(r"^[a-z0-9]+(-[a-z0-9]+)*$")
-# Task ids as they appear in prose: p1-contracts, h-rotation-hook.
-TASK_ID_IN_TEXT = re.compile(r"\b(?:p\d+|h)-[a-z0-9]+(?:-[a-z0-9]+)*\b")
+# Task ids as they appear in prose: p1-contracts, h-rotation-hook. Not inside a longer name such as
+# architect-p2-plan, where `\b` would still match after the hyphen.
+TASK_ID_IN_TEXT = re.compile(r"(?<![A-Za-z0-9-])(?:p\d+|h)-[a-z0-9]+(?:-[a-z0-9]+)*\b")
+PHASE_STATUS = re.compile(r"^### Phase \d+ status$")
 TEST_REF = re.compile(r"`(tests/[^`]+)`")
 REQUIRED_SECTIONS = {
-    "workflow.md": ["### Phase 1 status", "### Criterion to test map"],
+    "workflow.md": ["### Phase 1 status", "### Phase 2 status", "### Criterion to test map"],
     "CLAUDE.md": ["## Status"],
     "lessons.md": ["## Entry format", "## Entries"],
 }
@@ -64,21 +67,36 @@ def task_ids(root: Path) -> set[str]:
     return {str(load_yaml(p).get("id")) for p in (root / ".harness" / "tasks").glob("**/*.yaml")}
 
 
-def workflow_done(workflow: list[str]) -> set[str]:
-    rows = table_rows(section(workflow, "### Phase 1 status") or [])
-    return {r[0].strip("`") for r in rows if TASK_ID.match(r[0].strip("`")) and r[1].startswith("done")}
+def status_tables(workflow: list[str]) -> dict[str, list[list[str]]]:
+    """Rows of every `### Phase <n> status` table, keyed by the heading without its marker."""
+    headings = [line for line in workflow if PHASE_STATUS.match(line)]
+    return {heading[4:]: table_rows(section(workflow, heading) or []) for heading in headings}
 
 
-def status_problems(done: list[str], known: set[str], in_workflow: set[str]) -> list[str]:
+def workflow_done(tables: dict[str, list[list[str]]]) -> dict[str, str]:
+    """Task id to the table that marks it done."""
+    return {r[0].strip("`"): table for table, rows in tables.items() for r in rows
+            if TASK_ID.match(r[0].strip("`")) and r[1].startswith("done")}
+
+
+def row_problems(tables: dict[str, list[list[str]]]) -> list[str]:
+    """A row about task work starts with its task id, so the done cross-check can see it."""
+    return [f"workflow.md: {table} table row '{r[0]}' names a task id but does not start with one; "
+            "give each task its own row"
+            for table, rows in tables.items() for r in rows
+            if not TASK_ID.match(r[0].strip("`")) and TASK_ID_IN_TEXT.search(" | ".join(r))]
+
+
+def status_problems(done: list[str], known: set[str], in_workflow: dict[str, str]) -> list[str]:
     found = []
     for task in done:
         if task not in known:
             found.append(f".harness/status.yaml: done task {task} has no task YAML in .harness/tasks/")
         if task not in in_workflow:
-            found.append(f".harness/status.yaml: done task {task} is not marked done in the workflow.md "
-                         "Phase 1 status table")
-    for task in sorted(in_workflow - set(done)):
-        found.append(f"workflow.md: task {task} is marked done in the Phase 1 status table but not in "
+            found.append(f".harness/status.yaml: done task {task} is not marked done in any workflow.md "
+                         "phase status table")
+    for task in sorted(set(in_workflow) - set(done)):
+        found.append(f"workflow.md: task {task} is marked done in the {in_workflow[task]} table but not in "
                      ".harness/status.yaml")
     return found
 
@@ -149,9 +167,11 @@ def problems(root: Path) -> list[str]:
     known = task_ids(root)
     done = [str(t) for t in load_yaml(root / ".harness" / "status.yaml").get("done") or []]
     docs = {doc: read_lines(root / doc) for doc in REQUIRED_SECTIONS}
+    tables = status_tables(docs["workflow.md"])
     return [
         *missing_sections(docs),
-        *status_problems(done, known, workflow_done(docs["workflow.md"])),
+        *status_problems(done, known, workflow_done(tables)),
+        *row_problems(tables),
         *map_problems(root, docs["workflow.md"]),
         *claude_status_problems(docs["CLAUDE.md"], known),
         *handoff_problems(root, done),

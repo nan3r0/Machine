@@ -110,8 +110,10 @@ Phase 2 rows without backticks name test files that do not exist yet; the task t
 | p1-actions-workflow | done, merged (PR #34); first render run on GitHub passed QA (35.5 s) | Gate 2 and security approved. Owner manual acceptance still open |
 | p1-sample-65s | done, merged (PR #38); default render is the 65 s sample | Diff read by the orchestrator; no separate review (one default path) |
 | Owner manual acceptance | done 2026-11-16: 69.6 s video from run 43873059742 approved (voice pacing and tone) | Owner |
-| QA lead, CSO, Auditor | done 2026-11-16 (handoffs p1-qa-lead, p1-cso, p1-audit; read-only roles, so not in status.yaml) | |
-| Phase review | done by the Architect, findings in .harness/handoffs/p1-phase-review.md; Phase 1 closes when the owner approves the Auditor report (R7.6) and main CI is green | |
+| p1-qa-lead | reviewed 2026-11-16 (QA lead; read-only role, so not in status.yaml) | |
+| p1-cso | reviewed 2026-11-16 (CSO; read-only role, so not in status.yaml) | |
+| p1-audit | reviewed 2026-11-16 (Auditor; read-only role, so not in status.yaml) | |
+| p1-phase-review | reviewed by the Architect (read-only role, so not in status.yaml), findings in .harness/handoffs/p1-phase-review.md; Phase 1 closes when the owner approves the Auditor report (R7.6) and main CI is green | |
 | p1-qa-tests | done 2026-11-16: PRs #47 and #48 merged; real FFmpeg fixtures from CI run 43917100099; CI green with LOOM_TASK (run 43918370324) | |
 | p1-constants-timeout | done 2026-11-16: PR #50 (contracts) and #51 merged; CI green incl. heavy tests; Gate 2 and security review approved | |
 | p1-golden-65s | done 2026-11-16: PRs #53 (contracts) and #54 merged; render.yml uses the shared frame helper; visual QA approved the 65 s frames | Gate 2, security review and visual QA approved |

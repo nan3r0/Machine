@@ -43,9 +43,11 @@ FILES = {
         "| R1.2 | `tests/test_a.py::test_b` |\n| R1.3 | Manual, owner |\n\n"
         "### Phase 1 status\n\n| Task | Status | Review |\n|---|---|---|\n"
         "| Harness setup (hook) | done, 25 tests | none |\n| p1-a | done, merged | approved |\n"
-        "| p1-b to p1-z | not started | |\n"
+        "| Owner acceptance | not started | |\n\n## Phase 2 module order\n\n"
+        "### Phase 2 status\n\n| Task | Status | Review |\n|---|---|---|\n| `p2-b` | not started | |\n"
     ),
-    "CLAUDE.md": ("# Project\n\n## Status\n\nDone: p1-a. Next: h-hook, then more (Kokoro-only voice).\n\n"
+    "CLAUDE.md": ("# Project\n\n## Status\n\nDone: p1-a. Next: h-hook, then more (Kokoro-only voice). "
+                  "Plan in `.harness/handoffs/architect-p2-plan.md`.\n\n"
                   "## Commands\n\np1-ghost is not in the Status section.\n"),
     "lessons.md": (f"# Lessons\n\n{LESSON_FORMAT}\n## Traps\n\n- a trap\n\n"
                    f"## Entries\n\n{LESSON_ENTRY}\n{LESSON_ENTRY}"),
@@ -88,18 +90,50 @@ def test_done_task_without_yaml(repo: Path) -> None:
 def test_done_task_not_done_in_workflow(repo: Path) -> None:
     edit(repo, "workflow.md", "| p1-a | done, merged |", "| p1-a | in review |")
     assert docs_check.problems(repo) == [
-        ".harness/status.yaml: done task p1-a is not marked done in the workflow.md Phase 1 status table"]
+        ".harness/status.yaml: done task p1-a is not marked done in any workflow.md phase status table"]
 
 
 def test_workflow_done_task_missing_from_status(repo: Path) -> None:
-    edit(repo, "workflow.md", "| p1-b to p1-z |", "| h-hook | done, merged | approved |\n| p1-b to p1-z |")
+    edit(repo, "workflow.md", "| Owner acceptance |",
+         "| h-hook | done, merged | approved |\n| Owner acceptance |")
     assert docs_check.problems(repo) == [
         "workflow.md: task h-hook is marked done in the Phase 1 status table but not in .harness/status.yaml"]
+
+
+def test_every_phase_status_table_is_read(repo: Path) -> None:
+    edit(repo, "workflow.md", "| `p2-b` | not started |", "| `p2-b` | done, merged |")
+    assert docs_check.problems(repo) == [
+        "workflow.md: task p2-b is marked done in the Phase 2 status table but not in .harness/status.yaml"]
+
+
+def test_done_task_found_in_a_later_phase_table(repo: Path) -> None:
+    edit(repo, "workflow.md", "| p1-a | done, merged | approved |\n", "")
+    edit(repo, "workflow.md", "| `p2-b` |", "| p1-a | done, merged | |\n| `p2-b` |")
+    assert docs_check.problems(repo) == []
+
+
+@pytest.mark.parametrize("row", [
+    "| QA lead, CSO | done (handoffs p1-qa-lead, p1-cso) | |",
+    "| Phase review | findings in .harness/handoffs/p2-phase-review.md | |",
+    "| Harness setup | done | approved in h-hook |",
+])
+def test_status_row_naming_a_task_must_start_with_its_id(repo: Path, row: str) -> None:
+    edit(repo, "workflow.md", "| `p2-b` |", f"{row}\n| `p2-b` |")
+    first = row.split("|")[1].strip()
+    assert docs_check.problems(repo) == [
+        f"workflow.md: Phase 2 status table row '{first}' names a task id but does not start with one; "
+        "give each task its own row"]
 
 
 def test_backticked_task_id_in_status_table_counts(repo: Path) -> None:
     edit(repo, "workflow.md", "| p1-a | done, merged |", "| `p1-a` | done, merged |")
     assert docs_check.problems(repo) == []
+
+
+def test_task_id_inside_a_longer_name_is_not_a_task_id() -> None:
+    """Regression: `\\b` matched p2-plan inside architect-p2-plan, failing a valid CLAUDE.md Status."""
+    text = "architect-p2-plan.md, xp1-a, 2p1-a, p1-a, (h-hook), `p2-b`"
+    assert docs_check.TASK_ID_IN_TEXT.findall(text) == ["p1-a", "h-hook", "p2-b"]
 
 
 def test_missing_test_path(repo: Path) -> None:
@@ -168,7 +202,8 @@ def test_lessons_fields_come_from_the_entry_format(repo: Path) -> None:
 
 
 @pytest.mark.parametrize(("doc", "heading"), [
-    ("workflow.md", "### Phase 1 status"), ("workflow.md", "### Criterion to test map"),
+    ("workflow.md", "### Phase 1 status"), ("workflow.md", "### Phase 2 status"),
+    ("workflow.md", "### Criterion to test map"),
     ("CLAUDE.md", "## Status"), ("lessons.md", "## Entry format"), ("lessons.md", "## Entries")])
 def test_missing_section_is_a_problem_not_a_pass(repo: Path, doc: str, heading: str) -> None:
     edit(repo, doc, f"{heading}\n", "")
