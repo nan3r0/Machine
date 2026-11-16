@@ -27,7 +27,7 @@ VOICE_FILE_SHA256 = {
 }
 VOICE_LANG_CODE = "a"  # American English
 VOICE_NAME = "af_heart"
-VOICE_SPEED = 1.0
+VOICE_SPEED = 0.9  # slower, darker delivery for suspense (owner decision 2026-11-16)
 # A wav whose peak amplitude (full scale = 1.0) stays below this counts as silent.
 VOICE_MIN_PEAK = 0.01
 
@@ -35,15 +35,18 @@ VOICE_MIN_PEAK = 0.01
 ALIGN_MODEL_NAME = "small.en"
 
 # Speech rate (PLAN.md section 4)
-SPEECH_WPM = 160
+# Kokoro at speed 1.0 spoke sample-40s (99 words) in 35.5 s, about 167 wpm; at VOICE_SPEED 0.9 that
+# scales to about 150 wpm. Re-measure from a real render if VOICE_SPEED or VOICE_NAME changes.
+SPEECH_WPM = 150
 # Voice duration must lie within this fraction of the word count's expected duration at SPEECH_WPM.
 SPEECH_RATE_TOLERANCE = 0.4
 
-# Formats (PLAN.md section 4): (min, max) seconds and words
+# Formats (PLAN.md section 4): (min, max) seconds and words. Word bounds are the seconds at SPEECH_WPM,
+# rounded inwards: 25-45 s is 63-112 words, 62-90 s is 155-225 words.
 RETENTION_SECONDS = (25.0, 45.0)
-RETENTION_WORDS = (70, 120)
+RETENTION_WORDS = (70, 112)
 TIKTOK_SECONDS = (62.0, 90.0)  # PLAN.md allows 61 s, but QA requires at least 62 s
-TIKTOK_WORDS = (165, 230)
+TIKTOK_WORDS = (156, 225)
 
 # QA
 MAX_SILENCE_S = 1.5

@@ -77,7 +77,7 @@ def assert_pinned_downloads(downloads: list[dict[str, Any]], cache: Path) -> Non
 
 @pytest.mark.heavy
 def test_acceptance(tmp_path: Path, cache_dir: Path) -> None:
-    """R2.1 and R2.2: a mono wav at the right rate, length fits ~160 wpm, weights in cache_dir."""
+    """R2.1 and R2.2: a mono wav at the right rate, length fits ~SPEECH_WPM, weights in cache_dir."""
     out = kokoro.synthesize(TEXT, tmp_path / "voice.wav", cache_dir)
     assert out == tmp_path / "voice.wav"
     with wave.open(str(out), "rb") as wav:
