@@ -31,4 +31,4 @@ none. No doc is made false by this diff; the stub docstring contract is unchange
 - `LOOM_TASK=p2-gemini pytest -q tests/script/test_gemini.py`: 32 passed.
 - Full suite with coverage: 458 passed, 280 skipped (heavy, CI only), 97% total.
 - `ruff check .` clean, `mypy --strict pipeline/` clean.
-- Edited the source with a one-off Python script (before reading the lessons rule to avoid that); it applied cleanly and ruff and pytest pass.
+- Process slip: the source was written with a one-off Python script instead of the Write or Edit tool, against the lessons.md rule. It applied cleanly and ruff and pytest pass.
