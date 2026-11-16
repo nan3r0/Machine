@@ -9,11 +9,6 @@ from pathlib import Path, PurePath
 
 from pipeline import constants
 
-# loudnorm resamples to 192 kHz, which most players reject.
-_AUDIO_RATE_HZ = "48000"
-_STDERR_TAIL_LINES = 20
-# constants.py has no true-peak value; -1 dBTP leaves linear mode room to reach the target.
-_TRUE_PEAK_DB = "-1"
 # loudnorm option name -> field in its pass 1 JSON.
 _MEASURED_FIELDS = {"measured_I": "input_i", "measured_TP": "input_tp",
                     "measured_LRA": "input_lra", "measured_thresh": "input_thresh",
@@ -41,7 +36,7 @@ def _quote_filter_arg(path: PurePath) -> str:
 
 
 def _loudnorm_target() -> str:
-    return f"loudnorm=I={constants.LOUDNESS_LUFS:g}:TP={_TRUE_PEAK_DB}"
+    return f"loudnorm=I={constants.LOUDNESS_LUFS:g}:TP={constants.TRUE_PEAK_DBTP:g}"
 
 
 def build_measure_args(voice: Path) -> list[str]:
@@ -85,7 +80,7 @@ def build_ffmpeg_args(voice: Path, captions: Path, out: Path, fonts_dir: Path,
         "-vf", subtitles,
         "-af", loudnorm,
         "-c:v", "libx264", "-pix_fmt", "yuv420p", "-r", str(constants.FPS),
-        "-c:a", "aac", "-b:a", constants.AUDIO_BITRATE, "-ar", _AUDIO_RATE_HZ,
+        "-c:a", "aac", "-b:a", constants.AUDIO_BITRATE, "-ar", str(constants.AUDIO_SAMPLE_RATE_HZ),
         "-shortest",
         str(out),
     ]
@@ -111,14 +106,26 @@ def compose(voice: Path, captions: Path, out: Path, fonts_dir: Path, log_path: P
 
 
 def _tail(stderr: str) -> str:
-    return "\n".join(stderr.splitlines()[-_STDERR_TAIL_LINES:])
+    return "\n".join(stderr.splitlines()[-constants.COMPOSE_STDERR_TAIL_LINES:])
+
+
+def _log_partial(log_path: Path, partial: str | bytes | None) -> None:
+    """Append what FFmpeg printed before a timeout; TimeoutExpired may hold bytes or None."""
+    if isinstance(partial, bytes):
+        partial = partial.decode("utf-8", errors="replace")
+    if partial:
+        with log_path.open("a", encoding="utf-8") as log:
+            log.write(partial)
 
 
 def _run_ffmpeg(args: list[str], log_path: Path) -> str:
     """Run FFmpeg, append its stderr to `log_path` and return it. Raises ComposeError on failure."""
     try:
         result = subprocess.run(args, capture_output=True, text=True, encoding="utf-8",
-                                errors="replace")
+                                errors="replace", timeout=constants.COMPOSE_TIMEOUT_S)
+    except subprocess.TimeoutExpired as exc:
+        _log_partial(log_path, exc.stderr)
+        raise ComposeError(f"ffmpeg timed out after {constants.COMPOSE_TIMEOUT_S} s") from exc
     except OSError as exc:
         raise ComposeError(f"could not run ffmpeg: {exc}") from exc
     with log_path.open("a", encoding="utf-8") as log:

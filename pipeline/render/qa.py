@@ -14,9 +14,6 @@ from typing import Any, Literal
 from pipeline import constants
 from pipeline.schema import QAFailure, QAReport, WordTiming
 
-_FPS_TOLERANCE = 0.01
-_TOOL_TIMEOUT_S = 300
-_STDERR_TAIL_LINES = 5
 _SILENCE_START = re.compile(r"silence_start: (-?[\d.]+)")
 _SILENCE_DURATION = re.compile(r"silence_duration: ([\d.]+)")
 
@@ -82,7 +79,7 @@ def evaluate(stats: VideoStats, timings: list[WordTiming], script_words: list[st
         ("alignment", _alignment_failure(timings, script_words, stats.voice_duration_s)),
         ("resolution", None if (stats.width, stats.height) == (constants.WIDTH, constants.HEIGHT) else
          f"{stats.width}x{stats.height}, expected {constants.WIDTH}x{constants.HEIGHT}"),
-        ("fps", None if abs(stats.fps - constants.FPS) <= _FPS_TOLERANCE else
+        ("fps", None if abs(stats.fps - constants.FPS) <= constants.QA_FPS_TOLERANCE else
          f"{stats.fps:g} fps, expected {constants.FPS}"),
         ("file_size", None if constants.MIN_FILE_BYTES <= stats.file_bytes <= constants.MAX_FILE_BYTES else
          f"{stats.file_bytes} bytes, expected {constants.MIN_FILE_BYTES}-{constants.MAX_FILE_BYTES}"),
@@ -95,11 +92,11 @@ def _run(args: list[str]) -> subprocess.CompletedProcess[str]:
     """Run a tool with an argument list. Raises RuntimeError with the stderr tail on any failure."""
     try:
         result = subprocess.run(args, capture_output=True, text=True, encoding="utf-8",
-                                errors="replace", timeout=_TOOL_TIMEOUT_S, check=False)
+                                errors="replace", timeout=constants.QA_TOOL_TIMEOUT_S, check=False)
     except (OSError, subprocess.SubprocessError) as exc:
         raise RuntimeError(f"could not run {args[0]}: {exc}") from exc
     if result.returncode != 0:
-        tail = "\n".join(result.stderr.splitlines()[-_STDERR_TAIL_LINES:])
+        tail = "\n".join(result.stderr.splitlines()[-constants.QA_STDERR_TAIL_LINES:])
         raise RuntimeError(f"{args[0]} exited {result.returncode} on {args[-1]}:\n{tail}")
     return result
 
