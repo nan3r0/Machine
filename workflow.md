@@ -47,6 +47,7 @@ all five -> p1-render-cli -> p1-actions-workflow -> p1-qa-lead, p1-cso, p1-audit
 p1-captions-ass -> p1-font-fix (added after PR #32: static Montserrat Bold, run before p1-actions-workflow)
 p1-actions-workflow -> p1-sample-65s (added 2026-11-16: render workflow defaults to the 65 s sample, run before the phase-end reviews)
 p1-qa-lead -> p1-qa-tests (added 2026-11-16: locked tests for QA lead items 1 to 13 and 16, run before p1-phase-review)
+p1-qa-tests -> p1-constants-timeout (added 2026-11-16: compose and qa numbers from constants.py, timeout on compose's FFmpeg calls, run before p1-phase-review)
 ```
 
 Stage 0 runs them one at a time in file-name order (`.harness/tasks/phase1/00_*.yaml` to `14_*.yaml`; gaps in the numbers are tasks dropped with edge-tts). Tasks added later (`15_*.yaml` onward) run where their dependencies and the note above put them. Before p1-qa-lead and p1-audit, run the CI report job and download its reports to `out/reports/`.
@@ -72,6 +73,7 @@ Locked by p1-contracts. Every task's acceptance test is `test_acceptance` in its
 | R7.5 | CI `make check`; scope check in `tests/test_scope_check.py` |
 | R7.6 | Handoffs of p1-qa-lead, p1-cso, p1-audit; owner approves |
 | QA lead gaps (p1-qa-tests) | `tests/render/test_captions_exact.py`, `tests/render/test_compose_exact.py`, `tests/render/test_qa_exact.py`, `tests/render/test_ffmpeg_fixtures.py` (heavy fixture guard), `tests/voice/test_kokoro_audio.py`, `tests/voice/test_align_model.py`, `tests/test_render_one_files.py` |
+| Numbers in constants.py, compose FFmpeg timeout (p1-constants-timeout) | `tests/render/test_render_constants.py` |
 
 `tests/test_ci_workflow.py`, `tests/test_pins.py` and `tests/test_scope_check.py` belong to no task, so they always run. CI uploads `out/frames/` as the `frames` artifact for the visual-qa reviewer.
 
@@ -94,3 +96,4 @@ Locked by p1-contracts. Every task's acceptance test is `test_acceptance` in its
 | Owner manual acceptance | done 2026-11-16: 69.6 s video from run 43873059742 approved (voice pacing and tone) | Owner |
 | QA lead, CSO, Auditor, phase review | not started | |
 | p1-qa-tests | done 2026-11-16: PRs #47 and #48 merged; real FFmpeg fixtures from CI run 43917100099; CI green with LOOM_TASK (run 43918370324) | |
+| p1-constants-timeout | not started; locked tests and constants.py changes on branch docs/p1-constants-timeout-contracts | |

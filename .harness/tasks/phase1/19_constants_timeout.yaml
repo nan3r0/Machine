@@ -1,0 +1,36 @@
+id: p1-constants-timeout
+title: compose and qa read their numbers from constants.py; compose FFmpeg calls get a timeout
+depends_on: [p1-qa-tests]
+role: implementer
+notes: |
+  Owner-approved plan, 2026-11-16. The Architect already changed pipeline/constants.py (locked) on
+  branch docs/p1-constants-timeout-contracts: SPEECH_WPM 144, TIKTOK_WORDS (149, 216), and new
+  constants for the numbers that were private to compose.py and qa.py. This task only moves the code
+  over to them and adds the missing timeout.
+  - compose.py: delete _AUDIO_RATE_HZ, _TRUE_PEAK_DB and _STDERR_TAIL_LINES; use
+    constants.AUDIO_SAMPLE_RATE_HZ (int, pass str() to FFmpeg), constants.TRUE_PEAK_DBTP (float,
+    format with :g so -1.0 stays "TP=-1", which tests/render/test_compose_exact.py pins) and
+    constants.COMPOSE_STDERR_TAIL_LINES.
+  - compose._run_ffmpeg: pass timeout=constants.COMPOSE_TIMEOUT_S to subprocess.run. Catch
+    subprocess.TimeoutExpired and raise ComposeError ... from exc, like the OSError branch. Its
+    stderr may be None or bytes even with text=True; do not assume a str. Whatever partial output
+    there is may go to the log, but the error must not escape as TimeoutExpired.
+  - qa.py: delete _FPS_TOLERANCE, _TOOL_TIMEOUT_S and _STDERR_TAIL_LINES; use
+    constants.QA_FPS_TOLERANCE, constants.QA_TOOL_TIMEOUT_S and constants.QA_STDERR_TAIL_LINES.
+  - Read every constant as constants.NAME at call time (the existing idiom). The tests patch the
+    constants module, so a copied value or a default argument fails them.
+  No behaviour changes beyond the timeout: all existing compose and qa tests must still pass unedited.
+paths_allowed:
+  - pipeline/render/compose.py
+  - pipeline/render/qa.py
+tests:
+  - tests/render/test_render_constants.py
+acceptance: tests/render/test_render_constants.py::test_acceptance
+context_files:
+  - pipeline/constants.py
+  - pipeline/render/compose.py
+  - pipeline/render/qa.py
+  - tests/render/test_render_constants.py
+  - tests/render/test_compose_exact.py
+  - lessons.md
+max_turns: 25

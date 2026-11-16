@@ -35,7 +35,7 @@ Goal: a hand-written script JSON becomes a good 65 s MP4, inside GitHub Actions.
 - R1.2 A script with a missing or wrong-typed field is rejected with an error naming the field.
 
 **R2. Voice.** Kokoro turns narration text into a mono wav.
-- R2.1 The wav is non-empty and its duration fits the word count at roughly 150 wpm (voice speed 0.9).
+- R2.1 The wav is non-empty and its duration fits the word count at roughly 144 wpm (voice speed 0.9).
 - R2.2 Model weights load from a cache directory given by the caller.
 - R2.3 If Kokoro fails, the run fails with an error. It never continues with a silent or empty file.
 
@@ -112,6 +112,7 @@ Confirmed by the owner:
   - Images: Flux output fitted to 9:16 over a blurred fill. Pexels clips credited in the description.
 - 2026-11-16: Every video, on every platform, targets about 65 s once the pipeline is live (about 175 words, accepted 62 to 90 s, mandatory curiosity reset at about 25 to 30 s). The Retention format stays in code and tests but is not used by default. PLAN.md sections 4, 7, 11 and 12 updated.
 - 2026-11-16: Delivery is slower, darker and mysterious to build suspense, while videos stay about 65 s. Voice speed 0.9, about 150 wpm, so the 65 s format is about 160 words (accepted 156 to 225) and the Retention format 70 to 112 words. A darker Kokoro voice and background music are deferred. Tone rules in PLAN.md section 4.
+- 2026-11-16: Speech rate set to the measured 144 wpm (167 words in 69.5 s, render run 43873059742), so the 65 s format accepts 149 to 216 words (62 and 90 s at 144 wpm, rounded inwards). A 225-word script would have run about 94 s. The Retention word range (70 to 112) is not re-derived; at 144 wpm, 112 words is about 47 s, over its 45 s limit. Owner to decide. The numbers private to compose.py and qa.py move to constants.py, and compose's FFmpeg calls get a 600 s timeout (task p1-constants-timeout).
 - 2026-11-15: Niche is "Solved Internet & Everyday Mysteries", with the content rules in PLAN.md section 4 (sourced resolutions only, no private individuals, no graphic violence). Proposed by Claude, pending owner OK: the rules themselves.
 
 Assumed by Claude (owner can overrule):

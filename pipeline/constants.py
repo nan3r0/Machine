@@ -35,18 +35,20 @@ VOICE_MIN_PEAK = 0.01
 ALIGN_MODEL_NAME = "small.en"
 
 # Speech rate (PLAN.md section 4)
-# Kokoro at speed 1.0 spoke sample-40s (99 words) in 35.5 s, about 167 wpm; at VOICE_SPEED 0.9 that
-# scales to about 150 wpm. Re-measure from a real render if VOICE_SPEED or VOICE_NAME changes.
-SPEECH_WPM = 150
+# Measured at VOICE_SPEED 0.9: sample-65s (167 words) spoke in 69.5 s in render run 43873059742,
+# about 144 wpm. Re-measure from a real render if VOICE_SPEED or VOICE_NAME changes.
+SPEECH_WPM = 144
 # Voice duration must lie within this fraction of the word count's expected duration at SPEECH_WPM.
 SPEECH_RATE_TOLERANCE = 0.4
 
-# Formats (PLAN.md section 4): (min, max) seconds and words. Word bounds are the seconds at SPEECH_WPM,
-# rounded inwards: 25-45 s is 63-112 words, 62-90 s is 155-225 words.
+# Formats (PLAN.md section 4): (min, max) seconds and words.
+# TIKTOK_WORDS is TIKTOK_SECONDS at SPEECH_WPM, rounded inwards: 62 s * 144 / 60 = 148.8 -> 149,
+# 90 s * 144 / 60 = 216.0 -> 216. RETENTION_WORDS predates the 144 wpm measurement and is not
+# derived (at 144 wpm, 25-45 s is 60-108 words); its max is also the QA word-count switch.
 RETENTION_SECONDS = (25.0, 45.0)
 RETENTION_WORDS = (70, 112)
 TIKTOK_SECONDS = (62.0, 90.0)  # PLAN.md allows 61 s, but QA requires at least 62 s
-TIKTOK_WORDS = (156, 225)
+TIKTOK_WORDS = (149, 216)
 
 # QA
 MAX_SILENCE_S = 1.5
@@ -55,6 +57,18 @@ DURATION_MATCH_TOLERANCE_S = 0.2  # video duration vs voice duration
 ALIGNMENT_SLACK_S = 0.05  # word timings may end this far past the voice duration (rounding)
 MIN_FILE_BYTES = 100_000  # smaller means an empty or broken render
 MAX_FILE_BYTES = 100_000_000  # well under every platform's upload limit
+QA_FPS_TOLERANCE = 0.01  # measured fps may differ from FPS by this much (30000/1001 does not pass)
+QA_TOOL_TIMEOUT_S = 300  # per ffprobe or silencedetect call
+QA_STDERR_TAIL_LINES = 5  # stderr lines kept in a QA tool error
+
+# Render (FFmpeg)
+AUDIO_SAMPLE_RATE_HZ = 48_000  # loudnorm resamples to 192 kHz, which most players reject
+TRUE_PEAK_DBTP = -1.0  # loudnorm true-peak ceiling; leaves linear mode room to reach LOUDNESS_LUFS
+COMPOSE_STDERR_TAIL_LINES = 20  # FFmpeg stderr lines kept in a ComposeError
+# Per FFmpeg call (loudnorm measure, then render). The whole render step (voice, alignment, compose,
+# QA) of the 69.6 s video took 125 s in run 43873059742, so 600 s leaves headroom for a 90 s video
+# well inside render.yml's 45 minute job limit.
+COMPOSE_TIMEOUT_S = 600
 
 # Captions. The safe zone keeps text clear of platform UI: nothing in the top 15%, bottom 25%
 # or right 15% of the frame, plus a 5% left margin. Values are pixel bounds of the frame.
