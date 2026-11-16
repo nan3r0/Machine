@@ -1,0 +1,42 @@
+id: p2-batch
+title: Weekly batch - 7 scripts, two-layer fact-check, flags, files and PR body
+depends_on: [p2-factcheck-exact, p2-generate, p2-semantic]
+role: implementer
+notes: |
+  pipeline/script/batch.py, run as `python -m pipeline.script.batch SOURCES_DIR QUEUE_DIR OUT_DIR`.
+  1. Take the first constants.SCRIPTS_PER_BATCH unused sources (fewer if fewer remain; say so in the
+     PR body). publish_after: one per day starting the Monday after the run date.
+  2. For each: generate.write_script; then per scene exact.unsupported against that scene's linked
+     facts, and semantic.check_script once per script. Any red or PARTIAL line: generate.rewrite_line
+     once, re-check that line (exact, and the semantic check again for the script), and if it still
+     fails keep the script and add a Flag with the reason (PLAN.md section 5). The run never stops on
+     a fact-check result.
+  3. Budgets: never more than WRITER_MAX_CALLS_PER_BATCH writer calls or
+     CHECKER_MAX_CALLS_PER_BATCH checker calls. When a budget is used up, flag instead of rewriting.
+  4. GeminiError or a script that still fails validate.problems: leave that script out and list it
+     in the PR body with the reason. Zero scripts written: exit non-zero (the workflow run fails and
+     GitHub emails the owner; Phase 4 adds alerts).
+  5. Write each script to QUEUE_DIR/approved/<id>.json (owner decision D2: merge is approval) and the
+     PR body to OUT_DIR/pr_body.md. PR body, readable on a phone: all flags first with script and
+     line; then per script a heading with the title, the hook, each scene's narration with its fact
+     texts and urls under it, and title, description and tags verbatim in a fenced code block (CSO
+     P1-3: the owner sees every published field). No wide tables. Over PR_BODY_MAX_CHARS raises.
+  Logs: counts and script ids only, never prompts, model output or the key.
+paths_allowed:
+  - pipeline/script/batch.py
+tests:
+  - tests/script/test_batch.py
+acceptance: tests/script/test_batch.py::test_acceptance
+context_files:
+  - PLAN.md#5
+  - PLAN.md#7
+  - pipeline/schema.py
+  - pipeline/constants.py
+  - pipeline/factcheck/exact.py
+  - pipeline/factcheck/semantic.py
+  - pipeline/script/generate.py
+  - pipeline/script/sources.py
+  - pipeline/script/validate.py
+  - pipeline/render_one.py
+  - lessons.md
+max_turns: 50

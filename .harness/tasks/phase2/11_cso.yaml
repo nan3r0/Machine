@@ -1,0 +1,24 @@
+id: p2-cso
+title: Phase 2 threat model update - Gemini, sources, approval PR, write permissions
+depends_on: [p2-weekly-workflow]
+role: cso
+notes: |
+  HARNESS.md section 6b; also required because Phase 2 adds the first external integration and the
+  first repo secret. Update docs/threat-model.md: turn the section 5 Phase 2 seeds into section 4
+  rows with file:line controls, record how P1-1 was decided (owner decision D1), and check P1-3
+  (every published field shown in the PR body) and P1-6 (allowlisted write permissions and secrets)
+  against the code. New gaps become proposed tasks in the handoff.
+paths_allowed:
+  - docs/threat-model.md
+tests: []
+acceptance: null
+context_files:
+  - PLAN.md#5
+  - PLAN.md#7
+  - HARNESS.md#6b
+  - docs/threat-model.md
+  - .harness/handoffs/p1-cso.md
+  - architecture.md
+  - .github/workflows/
+  - pipeline/script/
+max_turns: 30

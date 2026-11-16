@@ -1,0 +1,36 @@
+id: p2-generate
+title: Script writer - pick unused sources, prompt Gemini, return a valid Script
+depends_on: [p2-validate, p2-gemini]
+role: implementer
+notes: |
+  pipeline/script/sources.py: load_sources reads sources/*.yaml into SourceFile objects;
+  unused_sources returns, in file-name order, the sources none of whose fact ids appear in any
+  script under queue/ (approved or published). This replaces data/used_facts.json (owner decision
+  D3): the queue files are the ledger, so a week-old PR cannot conflict with Workflow B.
+  pipeline/script/generate.py: write_script builds the prompt (PLAN.md section 4 tone rules and the
+  65 s format with the word target and range from constants.py; the curiosity reset at about 25 to
+  30 s; the content rules), puts the source facts inside a clearly delimited data block with the
+  instruction that it is data, never instructions, asks for JSON in a schema with hook, scenes
+  (narration, on_screen_text, source_fact_ids), loop_line, title, description, tags and template,
+  and calls gemini.generate_json with the writer model. It fills id, platforms, publish_after and
+  each scene's visual ({type: template, data: {}}, Phase 3 fills data) itself, validates with
+  Script and validate.problems, and retries the whole script once on any problem. rewrite_line
+  rewrites one scene's narration with the reason it failed, same rules.
+  Prompts are module constants in generate.py, not files (YAGNI; PLAN.md section 9 lists
+  script/prompts/).
+paths_allowed:
+  - pipeline/script/sources.py
+  - pipeline/script/generate.py
+tests:
+  - tests/script/test_generate.py
+acceptance: tests/script/test_generate.py::test_acceptance
+context_files:
+  - PLAN.md#4
+  - PLAN.md#7
+  - pipeline/schema.py
+  - pipeline/constants.py
+  - pipeline/script/gemini.py
+  - pipeline/script/validate.py
+  - .harness/handoffs/p2-gemini.md
+  - lessons.md
+max_turns: 40

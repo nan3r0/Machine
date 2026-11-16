@@ -1,0 +1,18 @@
+id: p2-qa-lead
+title: Phase 2 test quality review (mutation testing and coverage gaps)
+depends_on: [p2-weekly-workflow]
+role: qa_lead
+notes: |
+  HARNESS.md section 6b. The owner first runs the CI workflow_dispatch reports job and downloads
+  the output to out/reports/. Focus on pipeline/factcheck/ and pipeline/script/: the exact layer
+  (hypothesis coverage of number forms), the flag path and the call budgets. Read-only: proposed
+  tests go in the handoff and become a locked-test task if the owner agrees.
+paths_allowed: []
+tests: []
+acceptance: null
+context_files:
+  - HARNESS.md#6b
+  - .harness/tasks/phase2/
+  - tests/
+  - out/reports/
+max_turns: 25

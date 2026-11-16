@@ -1,0 +1,53 @@
+id: p2-entry-ci
+title: Phase 2 entry - workflow safety for every workflow file (CSO P1-6) and a docs check that reads every phase
+depends_on: []
+role: test_author
+notes: |
+  Locked-file work only, no owner decision needed. Must merge before any Phase 2 task is marked done
+  and before .github/workflows/weekly_scripts.yml exists.
+  1. CSO P1-6 (docs/threat-model.md section 4.3, .harness/handoffs/p1-cso.md):
+     - One test that loads EVERY file in .github/workflows/ (glob, not a named list) and runs the
+       safety rules on it: no pull_request_target, every third-party `uses:` pinned to a full SHA,
+       no `${{ }}` inside `run:`.
+     - Permissions: the workflow-level block stays `contents: read`. Any job-level permission other
+       than `contents: read` must match an explicit allowlist in tests/workflow_rules.py keyed by
+       (workflow file, job id). Seed it with exactly one entry for Phase 2:
+       ("weekly_scripts.yml", "open-pr"): {"contents": "write", "pull-requests": "write"}.
+     - Secrets: any `secrets.` reference must match an allowlist keyed the same way. Seed:
+       ("weekly_scripts.yml", "generate"): {"GEMINI_API_KEY"}. A secret anywhere else (another job,
+       workflow-level env, a `run:` line) fails. GITHUB_TOKEN through `github.token` is allowed only
+       in an allowlisted write job.
+     - Keep assert_safe's current behaviour for ci.yml and render.yml (tests/test_ci_workflow.py and
+       tests/test_workflows.py must still pass unedited, or be updated here with the same meaning).
+     - Show each new rule failing first on a throwaway bad workflow written to tmp_path (lessons.md
+       2026-11-15, fail-closed tests), by making the helpers take a parsed workflow or a directory.
+  2. docs check (phase review N9, and Phase 2 needs it): tests/docs_check.py reads every
+     `### Phase <n> status` table in workflow.md, not only Phase 1, for both the status.yaml
+     cross-check and REQUIRED_SECTIONS (Phase 1 and Phase 2 headings required). Status rows for task
+     work start with the task id in backticks or plain; a row whose first cell is not a task id is
+     allowed only if it names no task id anywhere in the row (so "QA lead, CSO, Auditor" style rows
+     must be split into one row per task id). Rewrite the existing workflow.md rows that break this.
+     Update tests/test_docs_check.py first.
+  No pipeline code. Owned test files run always (no task owns them), so main must stay green.
+paths_allowed:
+  - tests/workflow_rules.py
+  - tests/test_workflow_safety.py
+  - tests/test_ci_workflow.py
+  - tests/test_workflows.py
+  - tests/docs_check.py
+  - tests/test_docs_check.py
+  - workflow.md
+  - .harness/locks.yaml
+tests:
+  - tests/test_workflow_safety.py
+acceptance: tests/test_workflow_safety.py::test_acceptance
+context_files:
+  - docs/threat-model.md
+  - .harness/handoffs/p1-cso.md
+  - .harness/handoffs/p1-phase-review.md
+  - tests/workflow_rules.py
+  - tests/docs_check.py
+  - tests/test_docs_check.py
+  - workflow.md
+  - lessons.md
+max_turns: 40

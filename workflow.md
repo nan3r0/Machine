@@ -74,6 +74,22 @@ Locked by p1-contracts. Every task's acceptance test is `test_acceptance` in its
 | R7.6 | Handoffs of p1-qa-lead, p1-cso, p1-audit; owner approves |
 | QA lead gaps (p1-qa-tests) | `tests/render/test_captions_exact.py`, `tests/render/test_compose_exact.py`, `tests/render/test_qa_exact.py`, `tests/render/test_ffmpeg_fixtures.py` (heavy fixture guard), `tests/voice/test_kokoro_audio.py`, `tests/voice/test_align_model.py`, `tests/test_render_one_files.py` |
 | Numbers in constants.py, compose FFmpeg timeout (p1-constants-timeout) | `tests/render/test_render_constants.py` |
+| R8.1 | tests/test_sources_files.py (p2-contracts writes it) |
+| R8.2 | Manual, owner, in the p2-seed-sources PR |
+| R9.1, R9.2 | `tests/factcheck/test_exact.py` |
+| R10.1 to R10.4 | tests/script/test_generate.py (p2-contracts writes it) |
+| R11.1 | tests/factcheck/test_semantic.py (p2-contracts writes it) |
+| R11.2, R11.3, R13.1 | tests/script/test_batch.py (p2-contracts writes it) |
+| R12.1 | tests/script/test_validate.py (p2-contracts writes it) |
+| R12.2 | tests/test_render_one_validate.py (p2-contracts writes it) |
+| R12.3 | tests/test_queue_scripts.py (p2-contracts writes it) |
+| R13.2 | tests/test_weekly_workflow.py (p2-contracts writes it) |
+| R13.3 | tests/test_workflow_safety.py (p2-entry-ci writes it) |
+| R13.4 | PRD.md section 7 entry for owner decision D1 |
+| R13.5 | Manual, owner, on the first Workflow A PR |
+| R13.6 | Handoffs of p2-qa-lead, p2-cso, p2-audit; owner approves |
+
+Phase 2 rows without backticks name test files that do not exist yet; the task that writes each file adds the backticks, so the docs check starts checking them.
 
 `tests/test_ci_workflow.py`, `tests/test_pins.py` and `tests/test_scope_check.py` belong to no task, so they always run. CI uploads `out/frames/` as the `frames` artifact for the visual-qa reviewer.
 
@@ -99,3 +115,39 @@ Locked by p1-contracts. Every task's acceptance test is `test_acceptance` in its
 | p1-qa-tests | done 2026-11-16: PRs #47 and #48 merged; real FFmpeg fixtures from CI run 43917100099; CI green with LOOM_TASK (run 43918370324) | |
 | p1-constants-timeout | done 2026-11-16: PR #50 (contracts) and #51 merged; CI green incl. heavy tests; Gate 2 and security review approved | |
 | p1-golden-65s | done 2026-11-16: PRs #53 (contracts) and #54 merged; render.yml uses the shared frame helper; visual QA approved the 65 s frames | Gate 2, security review and visual QA approved |
+
+## Phase 2 module order
+
+Planned 2026-11-16 by the Architect (`.harness/handoffs/architect-p2-plan.md`); waits for owner approval of the plan and decisions D1 to D8. Still Stage 0 unless the owner chooses otherwise (D7). Task files: `.harness/tasks/phase2/00_*.yaml` to `13_*.yaml`, run in file-name order where dependencies allow.
+
+```
+p2-entry-ci, p2-factcheck-exact            (no owner decision needed; can start at once)
+p2-entry-ci -> p2-contracts                (after owner decisions D2 to D6)
+p2-contracts -> p2-validate, p2-gemini, p2-seed-sources
+p2-validate, p2-gemini -> p2-generate
+p2-gemini -> p2-semantic
+p2-factcheck-exact, p2-generate, p2-semantic -> p2-batch
+p2-batch, p2-seed-sources, p2-entry-ci -> p2-weekly-workflow   (live run needs D1 and the repo secret)
+p2-weekly-workflow -> p2-qa-lead, p2-cso, p2-audit -> p2-phase-review
+```
+
+Specialist reviews: security for p2-validate, p2-gemini, p2-batch and p2-weekly-workflow (`specialist_reviews` in `.harness/config.yaml`). No visual QA: Phase 2 changes no render code.
+
+### Phase 2 status
+
+| Task | Status | Review |
+|---|---|---|
+| p2-entry-ci | not started | |
+| p2-factcheck-exact | not started; contracts and locked tests on the plan branch | |
+| p2-contracts | not started; waits for owner decisions D2 to D6 | |
+| p2-validate | not started | |
+| p2-gemini | not started | |
+| p2-seed-sources | not started | |
+| p2-generate | not started | |
+| p2-semantic | not started | |
+| p2-batch | not started | |
+| p2-weekly-workflow | not started; live run waits for D1 | |
+| p2-qa-lead | not started | |
+| p2-cso | not started | |
+| p2-audit | not started | |
+| p2-phase-review | not started | |

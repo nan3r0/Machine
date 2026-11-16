@@ -1,0 +1,41 @@
+id: p2-weekly-workflow
+title: Workflow A - weekly_scripts.yml opens the scripts PR
+depends_on: [p2-batch, p2-seed-sources, p2-entry-ci]
+role: implementer
+notes: |
+  .github/workflows/weekly_scripts.yml. `on: schedule` (cron "0 6 * * 0", Sunday 06:00 UTC) and
+  `workflow_dispatch` (no inputs: vacation-mode counts are deferred, owner decision D8). Workflow-level
+  `permissions: contents: read`.
+  - Job `generate`: ubuntu-latest, checkout with persist-credentials false, setup-python 3.12 with
+    the light requirements only (no torch, no ffmpeg), runs `python -m pipeline.script.batch sources
+    queue out/batch` with GEMINI_API_KEY from secrets in that step's env only (batch writes only
+    scripts that pass Script and validate.problems), and uploads queue/approved/ plus
+    out/batch/pr_body.md as an artifact (retention 3 days). The key never reaches a job with write
+    permissions.
+  - Job `open-pr`: needs generate; permissions contents write and pull-requests write; no secrets
+    other than github.token; downloads the artifact, creates branch scripts/<run date>, commits only
+    the new queue/approved/*.json files, pushes, and runs `gh pr create --body-file`. Branch name and
+    title come from the date, never from model output. Every value reaches `run:` through `env:`.
+  Pushes and PRs made with GITHUB_TOKEN start no ci.yml run (pull_request runs wait for the owner's
+  approval), which is why the batch validates before the PR opens. The owner's own edit commits on
+  the PR do start ci.yml, where tests/test_queue_scripts.py re-checks every edited script.
+  Actions pinned by full SHA (copy the pins ci.yml uses). Must pass actionlint and the p2-entry-ci
+  safety rules. Security specialist review runs.
+  Manual acceptance (PLAN.md section 11 Phase 2 done-when), only after owner decision D1 (CSO P1-1)
+  and the repo secret exist: the owner dispatches the workflow, a PR with 7 scripts opens, and the
+  owner reads it on the GitHub mobile app and judges the flags readable.
+paths_allowed:
+  - .github/workflows/weekly_scripts.yml
+tests:
+  - tests/test_weekly_workflow.py
+acceptance: tests/test_weekly_workflow.py::test_acceptance
+manual_acceptance: Owner dispatches Workflow A after D1; a PR with 7 scripts opens and its flags read well on the GitHub mobile app.
+context_files:
+  - PLAN.md#7
+  - .github/workflows/ci.yml
+  - tests/workflow_rules.py
+  - tests/test_weekly_workflow.py
+  - .harness/handoffs/p2-batch.md
+  - docs/threat-model.md#5
+  - lessons.md
+max_turns: 30

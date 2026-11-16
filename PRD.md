@@ -21,7 +21,7 @@ Non-goals:
 
 ## 3. Phasing
 
-Phases and their done-when lines are in PLAN.md section 11. Current phase: **Phase 1, core render**. Phase 0 (admin: Google Cloud project, YouTube audit, Meta and TikTok apps, Cloudflare) runs in parallel and is done by the owner.
+Phases and their done-when lines are in PLAN.md section 11. Current phase: **Phase 2, scripts and fact-check** (Phase 1 closed 2026-11-16; the Phase 2 plan waits for owner approval). Phase 0 (admin: Google Cloud project, YouTube audit, Meta and TikTok apps, Cloudflare) runs in parallel and is done by the owner.
 
 ## 4. Functional requirements and acceptance criteria
 
@@ -65,6 +65,42 @@ Goal: a hand-written script JSON becomes a good 65 s MP4, inside GitHub Actions.
 - R7.4 Main stays green while tasks are unbuilt: a task's tests run only once it is listed in `.harness/status.yaml` or is the current `LOOM_TASK`.
 - R7.5 CI's `make check` also runs the docs check, bandit, semgrep, gitleaks, pip-audit and actionlint, with no high-severity findings.
 - R7.6 Phase-end QA Lead, CSO and Auditor reviews are done, `docs/threat-model.md` exists, and the owner has approved the audit report.
+
+### Phase 2: scripts and fact-check
+
+Goal: Workflow A opens a real pull request of 7 fact-checked scripts, with flags readable on the GitHub mobile app (PLAN.md section 11). Kept minimal: no RSS ingest, no vacation-mode count, no fallback provider, no hook stats. The defaults below follow the owner decisions D1 to D8 proposed in `.harness/handoffs/architect-p2-plan.md`; a different answer changes the matching criterion before p2-contracts runs.
+
+**R8. Sources.** Facts come from hand-curated files in `sources/`, one solved mystery per file.
+- R8.1 Every `sources/*.yaml` validates as a source file: a topic and at least one fact, each fact with a unique integer id, its text and an https url.
+- R8.2 At least 14 sources are seeded, each following the PLAN.md section 4 content rules. Manual: the owner reviews the facts in the seeding PR.
+
+**R9. Exact fact-check.** PLAN.md section 5, exact layer.
+- R9.1 Every number and proper noun in a narration line must appear in the facts linked to that line; anything missing is reported.
+- R9.2 Standard forms agree: `$45M`, `45 million dollars` and `45,000,000` are one number, and so are `2024` and `twenty twenty-four`.
+
+**R10. Script generation.**
+- R10.1 A generated script validates as a Script, its word count lies inside `TIKTOK_WORDS`, and its `source_fact_ids` come only from its own source.
+- R10.2 Source facts reach the model inside a delimited data block that the prompt says is data, never instructions.
+- R10.3 A source is used once: a source with any fact id in a script under `queue/` is not picked again. The queue files are the ledger; there is no `used_facts.json`.
+- R10.4 Invalid model output is retried once, then the script is left out and listed in the PR body.
+
+**R11. Meaning check and flags.**
+- R11.1 One checker call per script returns one verdict per line; a missing or malformed verdict counts as UNSUPPORTED, never as a pass.
+- R11.2 A line that fails either layer is rewritten once and re-checked; if it still fails, the script stays in the batch with a flag naming the line and the reason. The run never stops on a fact-check result.
+- R11.3 A batch never makes more model calls than the writer and checker budgets in `pipeline/constants.py`; when a budget is used up, lines are flagged instead of rewritten.
+
+**R12. Publishable fields** (CSO P1-3, phase review N5).
+- R12.1 A script is rejected if any spoken or published field contains a URL or `www.`, a control, bidi or zero-width character (newlines allowed in the description only), or exceeds the title, description or tag caps.
+- R12.2 The render command exits 2 before the voice step for a script outside `TIKTOK_WORDS`.
+- R12.3 Every JSON file under `queue/` passes R12.1 and the word bounds in CI, so a mobile edit of an approval PR is checked.
+
+**R13. Approval pull request (Workflow A).**
+- R13.1 The PR body lists every flag first, then per script the hook, each line's narration with its fact texts and urls, and the title, description and tags verbatim. It stays under `PR_BODY_MAX_CHARS`; an over-long body fails the run instead of being cut.
+- R13.2 `weekly_scripts.yml` runs on Sunday 06:00 UTC and by hand. The Gemini key is only in the job that calls Gemini, which has a read-only token; only the job that opens the PR has write permissions, and it holds no other secret.
+- R13.3 Every file in `.github/workflows/` passes the safety rules, and any job-level write permission or secret must be on an explicit per-job allowlist (CSO P1-6).
+- R13.4 CSO P1-1 is decided and recorded in section 7 before the Gemini key is added to the repo.
+- R13.5 Manual: the owner runs Workflow A; a PR with 7 scripts opens and its flags read well on the GitHub mobile app.
+- R13.6 Phase-end QA Lead, CSO and Auditor reviews are done, `docs/threat-model.md` covers Phase 2, and the owner has approved the audit report.
 
 ### Later phases
 
@@ -117,6 +153,11 @@ Confirmed by the owner:
 - 2026-11-16: Golden render frames cover the whole video: 1 to 60 s every 10 s (below the 62 s QA minimum, so they fit every passing video) plus one frame 0.5 s before the end, through one helper shared by the heavy test and render.yml (task p1-golden-65s). They are frames for visual review, not reference images: nothing is committed or pixel-compared, because ffmpeg, libass and x264 come unpinned from apt and CPU torch is not bit-exact, so a diff would be flaky.
 - 2026-11-15: Niche is "Solved Internet & Everyday Mysteries", with the content rules in PLAN.md section 4 (sourced resolutions only, no private individuals, no graphic violence). Proposed by Claude, pending owner OK: the rules themselves.
 
+Research for the Phase 2 plan, 2026-11-16 (Architect; facts, not decisions):
+- GitHub, docs.github.com "Deployments and environments" (Actions reference): "If you are using GitHub Free, environment secrets are only available in public repositories"; deployment branch and tag rules in private repositories need GitHub Pro or Team; required reviewers and wait timers are public-repo only on Free, Pro and Team. So CSO P1-1 option (b), environment secrets with a `main`-only rule, is not available in this private repo at $0. The rulesets page names only Team and Enterprise for private repositories.
+- GitHub, docs.github.com "GITHUB_TOKEN": pushes made with `GITHUB_TOKEN` start no new workflow runs, and `pull_request` runs on a PR it opens wait for a user with write access to approve them. So Workflow A must validate scripts before it opens the PR; CI runs only on the owner's own edit commits.
+- Gemini, aistudio.google.com/docs (pricing, rate limits, structured output): REST endpoint `https://generativelanguage.googleapis.com/v1beta/interactions`, key in the `x-goog-api-key` header, JSON output through `response_format` (`mime_type: application/json` plus a JSON Schema). `minLength` and `maxLength` in that schema are ignored, so field caps are checked in code. `gemini-2.5-flash` and `gemini-2.5-pro` are marked deprecated, routing to other models on 2026-12-01. The rate-limit page lists free figures for one model only and points to the AI Studio dashboard for real values, so the writer and checker model ids and their daily limits come from the owner's dashboard (open question below). Free-tier content may be used to improve Google's products.
+
 Assumed by Claude (owner can overrule):
 - 2026-11-15: The hook learns the current task from the `LOOM_TASK` environment variable set at launch, not from a file the agent could edit.
 - 2026-11-15: Phase 1 background is a solid colour. Visual templates wait for Phase 3.
@@ -134,6 +175,6 @@ Assumed by Claude (owner can overrule):
 ## 8. Open questions
 
 - **[Decision needed]** Average view duration target for 65 s videos (PLAN.md section 12), to be set by the owner after the first 30 days of data.
-- **[Decision needed]** Phase 2: Workflow A writes `used_facts.json` on a PR branch while Workflow B writes it on main, so a week-old PR will conflict. Derive used facts from queue files instead? Also: drop `queue/pending/` and `on_merge_approve.yml`, since merge already is approval?
+- **[Decision needed]** Phase 2 owner decisions D1 to D8 (secrets handling for CSO P1-1, approval path, ledger, sources, Gemini models and budget, published-field policy, harness stage, deferrals), each with a proposed default, are listed in `.harness/handoffs/architect-p2-plan.md`. They replace the earlier `used_facts.json` and `queue/pending/` question (proposed: derive used facts from queue files, drop `queue/pending/` and `on_merge_approve.yml`).
 - To verify in Phase 4: one test upload confirms an unaudited YouTube project's uploads and `publishAt` schedules go public (official docs say yes since 2 Nov 2026, but no example covers an unaudited project).
 - To verify in Phase 2: Gemini free-tier limits for the chosen models in the owner's AI Studio dashboard (published figures come from third parties).
