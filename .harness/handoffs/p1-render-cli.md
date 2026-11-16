@@ -13,7 +13,7 @@ partial, awaiting CI. The 11 non-heavy tests in `tests/test_render_one.py` pass.
   - Compose gets `fontsdir=Path(FONTS_DIR)` (`assets/fonts`), as the earlier reviews asked. Compose's log goes to `out_dir/logs/compose.log`.
 
 ## Decisions made
-- The exit-2 handler catches `ValidationError`, `OSError`, `VoiceError`, `AlignError` and `ComposeError` only, not bare `Exception`. Any other exception is a bug and shows its traceback. The docstring promise "never lets an exception escape" is then true for known failures but not for bugs; flagging this for the reviewer.
+- Round 1 (Gate 2) fix: `main` now catches `Exception` at the CLI boundary, prints `traceback.format_exc()` to stderr and returns 2. Before, an unlisted exception (non-UTF-8 script, `ValueError` from `build_ass`) escaped and Python exited 1, which reads as a QA failure. The specific handlers were dropped, since the traceback already names the error type and message; the now unused error imports went with them.
 - `FONTS_DIR` is relative, so the CLI must run from the repo root (the Actions workflow and the heavy test both do).
 - No owner decision was changed.
 
@@ -33,7 +33,9 @@ Push, let CI run the heavy test. If green, Gate 2 review, then `p1-actions-workf
 - `workflow.md`: p1-render-cli to done only after the CI heavy test passes.
 - `architecture.md` / `spec.md`: the CLI is `python -m pipeline.render_one <script.json> <out_dir> [--cache-dir DIR]`, with exit codes 0 (QA passed), 1 (QA failed), 2 (invalid script or step error), default cache dir `.cache/models`, and it passes `FONTS_DIR` as compose's `fontsdir`. Applied at close-out.
 - `lessons.md`: none.
+- Regression test for the Architect (`tests/test_render_one.py` is locked, so not added here): write a script file with non-UTF-8 bytes (e.g. `b"\xff\xfe\x00"`), call `main([str(script), str(out_dir)])`, assert it returns 2 (it raised `UnicodeDecodeError` and exited 1 before the fix).
 
 ## Evidence
 - `tests/test_render_one.py` via the `tests` shim, `-m "not heavy"`: 11 passed, 1 deselected.
+- Round 1 re-run: 11 passed, 1 deselected (heavy); ruff clean; `mypy --strict pipeline/`: no issues in 11 files.
 - `ruff check pipeline/render_one.py`: clean. `mypy --strict pipeline/`: no issues in 11 files.

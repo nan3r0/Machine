@@ -10,17 +10,13 @@ both voice and alignment; the Actions workflow caches it between runs.
 
 import argparse
 import sys
+import traceback
 from pathlib import Path
-
-from pydantic import ValidationError
 
 from pipeline.constants import FONTS_DIR
 from pipeline.render import captions_ass, compose, qa
-from pipeline.render.compose import ComposeError
 from pipeline.schema import QAReport, Script
 from pipeline.voice import align, kokoro
-from pipeline.voice.align import AlignError
-from pipeline.voice.kokoro import VoiceError
 
 DEFAULT_CACHE_DIR = Path(".cache/models")
 
@@ -59,10 +55,10 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     try:
         report = render(args.script, args.out_dir, args.cache_dir)
-    # Boundary of the CLI: every step wraps its own failures, but a missing file or a bad
-    # script is not one of theirs. The message is printed, never dropped.
-    except (ValidationError, OSError, VoiceError, AlignError, ComposeError) as err:
-        print(f"render failed: {err}", file=sys.stderr)
+    # The only real boundary of the CLI. Exit 1 must mean a real QA failure, so any other
+    # exception (bad script encoding, a step bug) exits 2 with the full traceback printed.
+    except Exception:
+        print(f"render failed:\n{traceback.format_exc()}", file=sys.stderr)
         return 2
     for failure in report.failures:
         print(f"QA failed: {failure.check}: {failure.reason}")
