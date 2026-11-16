@@ -28,17 +28,19 @@ done (Test Author, locked files only). Branch `docs/p2-entry-ci-tests`, committe
 - actionlint, bandit, semgrep not run locally (CI only).
 
 ## Next step
-Orchestrator pushes, preferably as `task/p2-entry-ci` so CI sets LOOM_TASK, runs the scope check and the acceptance test; or merges as a docs/contracts PR and adds p2-entry-ci to status.yaml right after. Then p2-contracts can start (after owner decisions D2 to D6).
+Orchestrator pushes, preferably as `task/p2-entry-ci` so CI sets LOOM_TASK, runs the scope check and the acceptance test; or merges as a docs/contracts PR and adds p2-entry-ci to status.yaml right after. Then p2-contracts can start (after owner decisions D2 to D6). Its `tests/test_weekly_workflow.py` must call `rules.assert_safe(wf, "weekly_scripts.yml")` (or rely on `directory_problems()`); without the name no allowlist applies and the write job and the secret fail.
 
 ## Docs
 - `workflow.md`: Phase 1 rows rewritten (done here). Phase 2 status row for p2-entry-ci to "done" at close-out.
 - `.harness/status.yaml`: add p2-entry-ci at close-out.
 - `docs/threat-model.md` section 4.3 and section 8 table: P1-6 closed by p2-entry-ci (CSO-owned file; apply at close-out or in p2-cso).
 - `.harness/handoffs/p1-phase-review.md` N9: fixed by p2-entry-ci (note only).
+- `lessons.md` entry (close-out, outside paths_allowed): "Python heredoc rewrite mangled regex backslashes". What happened: a Bash heredoc feeding a Python rewrite of `tests/workflow_rules.py` turned `\b` into a backspace and `\n` into a real newline; a sed repair then dropped the backslash again. Root cause: two layers of escaping (shell, Python string) between the intended text and the file. Fix: repaired with the Edit tool. Rule going forward: edit source files with Edit or Write only, never through a shell or Python rewrite. Test added: none, process rule (ruff and pytest caught it at once).
 
 ## Evidence
 - Red first: the new test file failed 32 of 32 before the helpers existed; docs check tests failed 25 of 34 before the fix (incl. the regex regression test).
-- Each rule shown failing by mutation (rule disabled in-process, test file run): workflow perms 3 fail, pull_request_target 1, job perms 5, pin 2, job-level uses 1, `${{` in run 1, secret in run 1, checkout 5, secrets 10, token 4, workflow-level scan 2, `.yaml` glob 1, empty dir 1, case-insensitive match 1.
+- A bare `permissions:` (null) on a job first passed; the null-permissions case failed, then the rule was fixed to compare against `contents: read` for non-allowlisted jobs.
+- Each rule shown failing by mutation (rule disabled in-process, test file run): workflow perms 3 fail, pull_request_target 1, job perms 6, pin 2, job-level uses 1, `${{` in run 1, secret in run 1, checkout 5, secrets 10, token 4, workflow-level scan 2, `.yaml` glob 1, empty dir 1, case-insensitive match 1.
 - `ruff check .`: clean. `mypy --strict pipeline/`: no issues (14 files).
-- `pytest -q`: 332 passed, 107 skipped. `LOOM_TASK=p2-entry-ci pytest -q`: 364 passed, 75 skipped.
+- `pytest -q`: 332 passed, 108 skipped. `LOOM_TASK=p2-entry-ci pytest -q`: 365 passed, 75 skipped.
 - `python tests/docs_check.py`: docs check passed. `pytest .harness/tests`: 69 passed.

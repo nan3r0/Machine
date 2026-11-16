@@ -70,7 +70,7 @@ def job_problems(name: str, job_id: str, job: dict[str, Any]) -> list[str]:
     where, key = f"{name} {job_id}", (name, job_id)
     found = []
     permissions = job.get("permissions", READ_ONLY)
-    if permissions not in (READ_ONLY, WRITE_JOBS.get(key)):
+    if permissions not in (READ_ONLY, WRITE_JOBS.get(key, READ_ONLY)):
         found.append(f"{where}: permissions {permissions} are not allowlisted for this job")
     job_steps = job.get("steps", [])
     for uses in [job.get("uses")] + [step.get("uses") for step in job_steps]:
