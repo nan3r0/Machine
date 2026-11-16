@@ -96,4 +96,4 @@ Locked by p1-contracts. Every task's acceptance test is `test_acceptance` in its
 | Owner manual acceptance | done 2026-11-16: 69.6 s video from run 43873059742 approved (voice pacing and tone) | Owner |
 | QA lead, CSO, Auditor, phase review | not started | |
 | p1-qa-tests | done 2026-11-16: PRs #47 and #48 merged; real FFmpeg fixtures from CI run 43917100099; CI green with LOOM_TASK (run 43918370324) | |
-| p1-constants-timeout | not started; locked tests and constants.py changes on branch docs/p1-constants-timeout-contracts | |
+| p1-constants-timeout | done 2026-11-16: PR #50 (contracts) and #51 merged; CI green incl. heavy tests; Gate 2 and security review approved | |
