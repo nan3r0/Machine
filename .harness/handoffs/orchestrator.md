@@ -22,12 +22,13 @@ You are the Stage 0 orchestrator (HARNESS.md section 10, Stage 0). Model: Sonnet
 - One watcher per task; no polling loops in your own turns.
 - One Gate 2 pass per task; chase only blocking findings.
 
-## State (2026-11-16, end of third orchestrator session)
-- Phase-end reviews 11 to 13 done and merged (CSO PR #42, QA lead and Auditor handoffs PR #45; both roles are read-only, so the orchestrator wrote their handoffs). CSO proposed P1-1 to P1-6; P1-1 must be decided before any repo secret is added. Auditor: no Phase 1 blockers; A1 to A3 block the first public publish.
-- Owner decision (2026-11-16): fix only the high-risk items. From the QA lead that means the nine P1 tests (1 to 9 in `.harness/handoffs/p1-qa-lead.md`); P2 and P3 (10 to 16) are skipped. Next orchestrator: have the Architect write task `p1-qa-tests` (locked tests for items 1 to 9, Test Author role), then run it. Confirm with the owner whether "high risk only" also means CSO P1-1 to P1-3 (High) and Auditor A1 and A2 (medium) go into Phase 4 pre-go-live tasks, and that the owner approves the audit report.
-- Reports job fixed in three PRs (#41 mutmut `also_copy`, #43 mutmut skips heavy tests, #44 each report its own step and the upload runs unless cancelled). Run 43903542144 produced `phase-reports`; the job stays red on the accepted pip-audit findings, which is expected.
-- Next: `p1-qa-tests` (above); close-out docs from the Docs sections of p1-cso, p1-audit and p1-qa-lead (lessons and decisions yourself, Scribe for status.yaml, workflow.md, CLAUDE.md); then task 14 phase review. `out/reports/` in the main checkout holds the run 43903542144 reports (artifact expires after 14 days).
-- Many stale worktrees under `.claude/worktrees/` from merged branches; clean up with `git worktree remove` when convenient.
+## State (2026-11-16, end of fourth orchestrator session)
+- p1-qa-tests done: PRs #47 (contracts) and #48 (real FFmpeg fixtures, handoff) merged. Scope was QA lead items 1 to 13 plus 16 (owner rule: high risk means anything that could break the pipeline logic; 14 and 15 skipped). Opus advisor reviewed the scope. Close-out docs are on branch `docs/p1-qa-tests-closeout` (lessons, architecture section 7, status.yaml, workflow.md, CLAUDE.md status, spec.md fixes); the owner merges it.
+- CSO P1-1, P1-3 and P1-6 move to Phase 2 entry (Workflow A needs the first repo secret, the approval PR and write permissions). CSO P1-2, P1-4, P1-5 and Auditor A1 to A3 stay in Phase 4 pre-go-live. Owner still has to check whether free private repos allow environment secrets with branch rules, and approve the Auditor report.
+- Next, in order: Architect fixes constants.py (`SPEECH_WPM` 150 to 144, `TIKTOK_WORDS` to about (149, 216), move the private numbers from compose.py and qa.py into constants.py); implementer task adds `timeout=` to `compose._run_ffmpeg` with a regression test; golden render test to the 65 s sample; then task 14 phase review. Optional owner-run reports job to confirm mutant kills.
+- Gate 2 non-blocking test notes on p1-qa-tests are logged in its handoff, not chased.
+- To-do artifact: https://claude.ai/artifact/SWmEoSUtr7XwZ5v3o9pPFQ
+- Stale worktrees under `.claude/worktrees/` still need cleanup.
 
 ## State (2026-11-16, end of second orchestrator session)
 - Phase 1 code complete and owner manual acceptance done: run 43873059742 produced a 69.6 s video (QA passed, no silence), the owner approved the voice, pacing and tone. Decisions in force: every video about 65 s on every platform (62 to 90 s QA range), `VOICE_SPEED` 0.9, tone rules in PLAN.md section 4. Measured speech rate is about 144 wpm (167 words in 69.5 s), `SPEECH_WPM` is still 150 in constants.py: have the Architect set it to 144 when next touching constants.py. Owner still has to set the 65 s average view duration target (PLAN.md section 12 placeholder, after 30 days of data).
