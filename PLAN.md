@@ -171,14 +171,11 @@ Evergreen, and every "solved" claim can be checked against a source, which suits
 
 ### Duration targets
 
-Every video, on every platform, uses the 65 s format (owner decision, 2026-11-16).
+Every video, on every platform, runs over a minute (owner rule, 2026-11-16). 65 s is a target, not a requirement; QA accepts 62 to 90 s.
 
 | Format | Length | Words (~144 wpm at 0.9x voice speed) | Structure |
 |---|---|---|---|
 | 65 s (default, all platforms) | Target ~65 s; accepted 62–90 s | Target ~156; accepted 149–216 | 2–3 s hook → escalating facts → **mandatory** "curiosity reset" at ~25–30 s → loop ending |
-| Retention (kept, not used by default) | 25–45 s | 70–112 | 2–3 s hook → escalating facts → loop ending |
-
-The Retention format stays defined in code and tests, but scripts are not written for it unless the owner switches back.
 
 ### Tone (owner decision, 2026-11-16)
 

@@ -10,7 +10,7 @@ from pydantic import ValidationError
 from pipeline import constants
 from pipeline.schema import QAFailure, QAReport, Script, WordTiming
 
-SAMPLE = Path(__file__).resolve().parent.parent / "queue" / "approved" / "sample-40s.json"
+SAMPLE = Path(__file__).resolve().parent.parent / "queue" / "approved" / "sample-65s.json"
 
 
 def sample_dict() -> dict[str, Any]:
@@ -27,9 +27,9 @@ def error_fields(exc: ValidationError) -> set[str]:
 
 
 def test_acceptance() -> None:
-    """R1.1 and R1.2: the sample validates and fits the retention format; a bad field is named."""
+    """R1.1 and R1.2: the sample validates and fits the 65 s format; a bad field is named."""
     script = Script.model_validate_json(SAMPLE.read_text(encoding="utf-8"))
-    low, high = constants.RETENTION_WORDS
+    low, high = constants.TIKTOK_WORDS
     assert low <= len(script.narration_words()) <= high
     assert script.id == SAMPLE.stem, "queue files are named <id>.json"
 
@@ -38,15 +38,6 @@ def test_acceptance() -> None:
     with pytest.raises(ValidationError) as exc:
         validate(data)
     assert "scenes.0.source_fact_ids.0" in error_fields(exc.value)
-
-
-def test_default_sample_fits_the_65s_format() -> None:
-    """The default sample (PLAN.md section 4, owner decision 2026-11-16) fits the 65 s format."""
-    path = SAMPLE.with_name("sample-65s.json")
-    script = Script.model_validate_json(path.read_text(encoding="utf-8"))
-    assert script.id == path.stem
-    low, high = constants.TIKTOK_WORDS
-    assert low <= len(script.narration_words()) <= high
 
 
 @pytest.mark.parametrize("field", ["id", "topic", "template", "hook", "scenes", "loop_line", "title",

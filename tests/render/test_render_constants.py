@@ -182,9 +182,9 @@ def test_qa_tool_error_tail_length_comes_from_constants(media: SimpleNamespace,
 
 
 def fps_failed(fps: float) -> bool:
-    stats = VideoStats(duration_s=30.0, voice_duration_s=30.0, width=constants.WIDTH,
+    stats = VideoStats(duration_s=65.0, voice_duration_s=65.0, width=constants.WIDTH,
                        height=constants.HEIGHT, fps=fps, file_bytes=5_000_000, longest_silence_s=0.5)
-    script = [f"w{i}" for i in range(constants.RETENTION_WORDS[0])]
+    script = [f"w{i}" for i in range(constants.TIKTOK_WORDS[0])]
     report = qa.evaluate(stats, [], script)
     return "fps" in {failure.check for failure in report.failures}
 

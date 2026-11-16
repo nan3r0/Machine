@@ -18,7 +18,7 @@ from tests import media
 from tests.wavs import write_wav
 
 ROOT = Path(__file__).resolve().parent.parent
-SAMPLE = ROOT / "queue" / "approved" / "sample-40s.json"
+SAMPLE = ROOT / "queue" / "approved" / "sample-65s.json"
 SCRIPT = Script.model_validate_json(SAMPLE.read_text(encoding="utf-8"))
 PASS = QAReport(passed=True, failures=[], measured={"duration_s": 40.0})
 FAIL = QAReport(passed=False, failures=[QAFailure(check="silence", reason="2.4 s silence > 1.5 s")],
@@ -106,7 +106,7 @@ def test_acceptance(tmp_path: Path) -> None:
     final = out / "final.mp4"
     video = media.stream(media.probe(final), "video")
     assert (video["width"], video["height"]) == (constants.WIDTH, constants.HEIGHT)
-    low, high = constants.RETENTION_SECONDS
+    low, high = constants.TIKTOK_SECONDS
     assert low <= media.duration(final) <= high
     drift = abs(media.duration(final) - media.duration(out / "voice.wav"))
     assert drift <= constants.DURATION_MATCH_TOLERANCE_S

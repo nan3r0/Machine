@@ -41,12 +41,9 @@ SPEECH_WPM = 144
 # Voice duration must lie within this fraction of the word count's expected duration at SPEECH_WPM.
 SPEECH_RATE_TOLERANCE = 0.4
 
-# Formats (PLAN.md section 4): (min, max) seconds and words.
+# Format (PLAN.md section 4): every video is over a minute. (min, max) seconds and words.
 # TIKTOK_WORDS is TIKTOK_SECONDS at SPEECH_WPM, rounded inwards: 62 s * 144 / 60 = 148.8 -> 149,
-# 90 s * 144 / 60 = 216.0 -> 216. RETENTION_WORDS predates the 144 wpm measurement and is not
-# derived (at 144 wpm, 25-45 s is 60-108 words); its max is also the QA word-count switch.
-RETENTION_SECONDS = (25.0, 45.0)
-RETENTION_WORDS = (70, 112)
+# 90 s * 144 / 60 = 216.0 -> 216.
 TIKTOK_SECONDS = (62.0, 90.0)  # PLAN.md allows 61 s, but QA requires at least 62 s
 TIKTOK_WORDS = (149, 216)
 

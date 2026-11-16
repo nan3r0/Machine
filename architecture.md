@@ -97,6 +97,5 @@ All task tests are written and locked by p1-contracts before implementation.
 - torch makes the install heavy. Without caching, a run may exceed the 15-minute target.
 - `compose._run_ffmpeg` has no `timeout=` (qa has one), so a hung FFmpeg is bounded only by the job limit. Fixed by task p1-constants-timeout once it merges.
 - The compose, qa, Kokoro and align heavy-only paths now have fast fake-based tests (p1-qa-tests). The ffprobe, silencedetect and loudnorm fakes use real FFmpeg output in `tests/fixtures/ffmpeg/`; the heavy guard `tests/render/test_ffmpeg_fixtures.py` flags drift when FFmpeg changes.
-- `RETENTION_WORDS` (70, 112) still assumes 150 wpm. At the measured 144 wpm, 112 words runs about 47 s, over the Retention format's 45 s, and 112 is also the QA word-count switch. The format is not used by default; the owner decides whether to re-derive it (60 to 108).
 - FFmpeg's `subtitles=` filter path escaping differs between Windows and Linux.
 - Outcome records are logged by hand in Stage 0, so they can be missed.
