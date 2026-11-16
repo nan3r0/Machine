@@ -9,7 +9,16 @@ temperature is given. Response: `{"status": "completed", "steps": [{"type": "mod
 "content": [{"type": "text", "text": "..."}]}], ...}`.
 """
 
+import json
+import os
+import time
+import urllib.error
+import urllib.request
 from typing import Any
+
+from pipeline import constants
+
+_EXCERPT_CHARS = 200
 
 
 class GeminiError(Exception):
@@ -35,4 +44,82 @@ def generate_json(
     The returned text is the text parts of the model_output steps joined in order. The output is
     untrusted: it is only parsed here, and callers validate it.
     """
-    raise NotImplementedError
+    key = os.environ.get("GEMINI_API_KEY", "").strip()
+    if not key:
+        raise GeminiError("GEMINI_API_KEY is not set")
+    payload: dict[str, Any] = {
+        "model": model,
+        "input": prompt,
+        "response_format": {"type": "text", "mime_type": "application/json", "schema": schema},
+    }
+    if temperature is not None:
+        payload["generation_config"] = {"temperature": temperature}
+    request = urllib.request.Request(
+        constants.GEMINI_ENDPOINT,
+        data=json.dumps(payload).encode("utf-8"),
+        headers={
+            "Content-Type": "application/json",
+            "x-goog-api-key": key,
+            "Api-Revision": constants.GEMINI_API_REVISION,
+        },
+        method="POST",
+    )
+    raw = _send_with_one_retry(request, model, key)
+    return _parse_answer(raw)
+
+
+def _send_with_one_retry(request: urllib.request.Request, model: str, key: str) -> bytes:
+    for attempt in (1, 2):
+        try:
+            with urllib.request.urlopen(request, timeout=constants.GEMINI_TIMEOUT_S) as response:
+                body: bytes = response.read()
+                return body
+        except urllib.error.HTTPError as error:
+            retryable = error.code == 429 or error.code >= 500
+            if not retryable or attempt == 2:
+                raise GeminiError(_http_message(error, model, key)) from None
+        except TimeoutError:
+            if attempt == 2:
+                raise GeminiError("Gemini request timed out twice") from None
+        except urllib.error.URLError as error:
+            if not isinstance(error.reason, TimeoutError):
+                raise GeminiError(f"Gemini request failed: {type(error.reason).__name__}") from None
+            if attempt == 2:
+                raise GeminiError("Gemini request timed out twice") from None
+        time.sleep(constants.GEMINI_RETRY_WAIT_S)
+    raise AssertionError("unreachable")
+
+
+def _http_message(error: urllib.error.HTTPError, model: str, key: str) -> str:
+    # Redact before cutting, so a key split by the cut cannot survive as a prefix.
+    excerpt = error.read().decode("utf-8", errors="replace").replace(key, "[redacted]")
+    message = f"Gemini HTTP {error.code}"
+    if error.code == 404:
+        message += f" (model {model} not found, it may have been retired)"
+    return f"{message}: {excerpt[:_EXCERPT_CHARS]}"
+
+
+def _parse_answer(raw: bytes) -> dict[str, Any]:
+    try:
+        interaction = json.loads(raw)
+    except ValueError:
+        raise GeminiError("Gemini response is not JSON") from None
+    if not isinstance(interaction, dict) or interaction.get("status") != "completed":
+        status = interaction.get("status") if isinstance(interaction, dict) else None
+        raise GeminiError(f"Gemini interaction not completed (status {status!r})")
+    texts = [
+        part["text"]
+        for step in interaction.get("steps", [])
+        if isinstance(step, dict) and step.get("type") == "model_output"
+        for part in step.get("content", [])
+        if isinstance(part, dict) and part.get("type") == "text" and isinstance(part.get("text"), str)
+    ]
+    if not texts:
+        raise GeminiError("Gemini returned no text")
+    try:
+        answer = json.loads("".join(texts))
+    except ValueError:
+        raise GeminiError("Gemini text is not valid JSON") from None
+    if not isinstance(answer, dict):
+        raise GeminiError("Gemini text is not a JSON object")
+    return answer

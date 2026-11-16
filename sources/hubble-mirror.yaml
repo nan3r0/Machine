@@ -1,0 +1,26 @@
+topic: "Why the Hubble Space Telescope sent blurry pictures"
+facts:
+  - id: 1401
+    text: "Hubble was launched on the Space Shuttle mission STS-31 in 1990."
+    url: "https://en.wikipedia.org/wiki/Hubble_Space_Telescope"
+  - id: 1402
+    text: "Shortly after launch, the images showed a serious problem with the optical system."
+    url: "https://en.wikipedia.org/wiki/Hubble_Space_Telescope"
+  - id: 1403
+    text: "Stars spread over more than one arcsecond instead of a circle 0.1 arcseconds across."
+    url: "https://en.wikipedia.org/wiki/Hubble_Space_Telescope"
+  - id: 1404
+    text: "The main mirror had been ground to the wrong shape, causing spherical aberration."
+    url: "https://en.wikipedia.org/wiki/Hubble_Space_Telescope"
+  - id: 1405
+    text: "The edge of the mirror was too flat by about 2,200 nanometers."
+    url: "https://en.wikipedia.org/wiki/Hubble_Space_Telescope"
+  - id: 1406
+    text: "A commission headed by Lew Allen found that a test instrument called the null corrector had been incorrectly assembled."
+    url: "https://en.wikipedia.org/wiki/Hubble_Space_Telescope"
+  - id: 1407
+    text: "The commission placed the main blame on Perkin-Elmer, the company that built the mirror."
+    url: "https://en.wikipedia.org/wiki/Hubble_Space_Telescope"
+  - id: 1408
+    text: "In 1993, Space Shuttle mission STS-61 added corrective optics that worked like spectacles for the telescope."
+    url: "https://en.wikipedia.org/wiki/Hubble_Space_Telescope"

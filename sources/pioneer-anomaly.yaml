@@ -1,0 +1,23 @@
+topic: "The Pioneer anomaly"
+facts:
+  - id: 901
+    text: "The Pioneer 10 and Pioneer 11 spacecraft drifted from their predicted paths as they flew out of the solar system."
+    url: "https://en.wikipedia.org/wiki/Pioneer_anomaly"
+  - id: 902
+    text: "The probes felt an extremely small extra acceleration towards the Sun of about 8.74 x 10^-10 meters per second squared."
+    url: "https://en.wikipedia.org/wiki/Pioneer_anomaly"
+  - id: 903
+    text: "The anomaly was first noticed as early as 1980 but not seriously investigated until 1994."
+    url: "https://en.wikipedia.org/wiki/Pioneer_anomaly"
+  - id: 904
+    text: "Some proposed new physics, such as changes to our understanding of gravity, to explain it."
+    url: "https://en.wikipedia.org/wiki/Pioneer_anomaly"
+  - id: 905
+    text: "Turyshev and colleagues published a paper in Physical Review Letters that explained the anomaly."
+    url: "https://en.wikipedia.org/wiki/Pioneer_anomaly"
+  - id: 906
+    text: "The cause was thermal recoil: heat radiated unevenly by the spacecraft itself gave a tiny push."
+    url: "https://en.wikipedia.org/wiki/Pioneer_anomaly"
+  - id: 907
+    text: "Once the thermal recoil force is properly accounted for, no anomalous acceleration remains."
+    url: "https://en.wikipedia.org/wiki/Pioneer_anomaly"
