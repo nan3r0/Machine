@@ -57,3 +57,4 @@ none
 - `LOOM_TASK=p2-seed-sources .venv/Scripts/python.exe -m pytest -q --tb=short tests/test_sources_files.py tests/test_queue_scripts.py`: 7 passed, 2 skipped (test_queue_scripts skips until p2-validate is done).
 - `.venv/Scripts/python.exe -m pytest -q`: 426 passed, 312 skipped.
 - `.venv/Scripts/python.exe tests/docs_check.py`: docs check passed.
+- Gate 2 round 1 fix: bloop fact 6 spells out NOAA's Pacific Marine Environmental Laboratory (149 chars). `LOOM_TASK=p2-seed-sources .venv/Scripts/python.exe -m pytest -q --tb=short tests/test_sources_files.py`: 7 passed.
