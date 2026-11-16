@@ -85,7 +85,8 @@ def extract_frames(video: Path, prefix: str, times: tuple[float, ...]) -> list[P
 def extract_golden_frames(video: Path) -> list[Path]:
     """The golden-render frames: GOLDEN_FRAME_TIMES_S plus one GOLDEN_END_OFFSET_S before the end.
 
-    The end is the video stream's own length, since the container can run slightly longer.
+    The offset is well above the audio/video length difference compose's -shortest leaves, so the
+    end frame never lands past the last video frame.
     """
-    end = float(stream(probe(video), "video")["duration"]) - constants.GOLDEN_END_OFFSET_S
+    end = duration(video) - constants.GOLDEN_END_OFFSET_S
     return extract_frames(video, "golden", (*constants.GOLDEN_FRAME_TIMES_S, end))
