@@ -6,6 +6,7 @@ tested just inside and just outside, since the exact limit is at the mercy of fl
 
 import dataclasses
 import json
+import re
 import subprocess
 from pathlib import Path
 from types import SimpleNamespace
@@ -22,6 +23,18 @@ FIXTURES = Path(__file__).resolve().parent.parent / "fixtures" / "ffmpeg"
 SILENCE_LOG = (FIXTURES / "silencedetect.log").read_text(encoding="utf-8")
 PROBE_VIDEO = (FIXTURES / "ffprobe_video.json").read_text(encoding="utf-8")
 PROBE_VOICE = (FIXTURES / "ffprobe_voice.json").read_text(encoding="utf-8")
+# Expected values read from the fixtures here, independently of qa.py, so a swap to a fresh capture
+# needs no edits below.
+VIDEO_INFO = json.loads(PROBE_VIDEO)
+STREAM = VIDEO_INFO["streams"][0]
+VIDEO_S = float(VIDEO_INFO["format"]["duration"])
+VOICE_S_PROBED = float(json.loads(PROBE_VOICE)["format"]["duration"])
+RUNS = [float(x) for x in re.findall(r"silence_duration: ([\d.]+)", SILENCE_LOG)]
+LONGEST_RUN = max(RUNS)
+
+
+def probe_video_with(**stream: str) -> str:
+    return json.dumps({**VIDEO_INFO, "streams": [{**STREAM, **stream}]})
 
 RETENTION_MAX_WORDS = constants.RETENTION_WORDS[1]
 TIKTOK_MIN_WORDS = RETENTION_MAX_WORDS + 1
@@ -175,8 +188,9 @@ def tools(monkeypatch: pytest.MonkeyPatch, files: SimpleNamespace) -> FakeTools:
 
 def test_measure_reads_probe_and_silence_output(files: SimpleNamespace, tools: FakeTools) -> None:
     result = qa.measure(files.video, files.voice)
-    assert result == VideoStats(duration_s=69.6, voice_duration_s=69.525, width=1080, height=1920,
-                                fps=30.0, file_bytes=1234, longest_silence_s=2.1)
+    assert result == VideoStats(duration_s=VIDEO_S, voice_duration_s=VOICE_S_PROBED,
+                                width=STREAM["width"], height=STREAM["height"], fps=float(constants.FPS),
+                                file_bytes=1234, longest_silence_s=LONGEST_RUN)
     silence_args = next(args for args, _ in tools.calls if args[0] == "ffmpeg")
     assert silence_args[silence_args.index("-af") + 1] == (
         f"silencedetect=noise={constants.SILENCE_NOISE_DB}dB:d={constants.MAX_SILENCE_S}")
@@ -187,21 +201,29 @@ def test_measure_reads_probe_and_silence_output(files: SimpleNamespace, tools: F
 
 
 def test_silence_still_open_at_the_end_counts_to_the_end(files: SimpleNamespace, tools: FakeTools) -> None:
+    open_run = LONGEST_RUN + 1.0
     start_line = next(line for line in SILENCE_LOG.splitlines() if "silence_start" in line)
-    tools.silence_log = SILENCE_LOG + start_line.replace("12.4021", "65.0") + "\n"
-    assert qa.measure(files.video, files.voice).longest_silence_s == pytest.approx(69.6 - 65.0)
+    late_start = re.sub(r"silence_start: [\d.]+", f"silence_start: {VIDEO_S - open_run}", start_line)
+    assert late_start != start_line
+    tools.silence_log = SILENCE_LOG + late_start + "\n"
+    assert qa.measure(files.video, files.voice).longest_silence_s == pytest.approx(open_run)
+
+
+def test_silence_fixture_has_the_longest_run_first() -> None:
+    """Otherwise taking the last run instead of the longest would go unnoticed."""
+    assert len(RUNS) >= 2 and RUNS[0] == LONGEST_RUN > min(RUNS)
 
 
 @pytest.mark.parametrize(("rate", "fps"), [("30000/1001", 30000 / 1001), ("30", 30.0), ("25/1", 25.0)])
 def test_frame_rate_forms(files: SimpleNamespace, tools: FakeTools, rate: str, fps: float) -> None:
-    tools.probe_video = PROBE_VIDEO.replace('"30/1"', json.dumps(rate))
+    tools.probe_video = probe_video_with(r_frame_rate=rate)
     assert qa.measure(files.video, files.voice).fps == pytest.approx(fps)
 
 
 @pytest.mark.parametrize("change", [
-    {"probe_video": PROBE_VIDEO.replace('"30/1"', '"0/0"')},
+    {"probe_video": probe_video_with(r_frame_rate="0/0")},
     {"probe_video": "Invalid data found when processing input"},
-    {"probe_video": PROBE_VIDEO.replace('"duration"', '"length"')},
+    {"probe_video": json.dumps({**VIDEO_INFO, "format": {}})},
     {"error": subprocess.TimeoutExpired(["ffprobe"], 300)},
     {"error": FileNotFoundError("ffprobe not found")},
 ])

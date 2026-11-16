@@ -24,14 +24,22 @@ notes: |
     run 43873059742 (the owner-approved 65 s video), copied unchanged. No real ffprobe or
     silencedetect output existed in any CI log or artifact (run 43903542144 phase-reports holds only
     reports; QA never logs tool output), so silencedetect.log, ffprobe_video.json and
-    ffprobe_voice.json follow FFmpeg's print format with numbers from that run's qa.json. The heavy
-    guard tests/render/test_ffmpeg_fixtures.py runs the real tools in CI and fails, printing the real
-    output, if their shape differs; then replace the fixture with that output.
+    ffprobe_voice.json are stand-ins in FFmpeg's print format. They MUST be replaced with real
+    output before this task goes into done, even if the guard passes. The heavy guard
+    tests/render/test_ffmpeg_fixtures.py runs qa.measure on a CI-made video with two silences (the
+    longer first) and writes the real tool output to out/frames/ffmpeg-capture/ (the `frames`
+    artifact) on every run; it also fails if the stand-ins' shape differs. Copy the three captured
+    files over the fixtures unchanged. test_qa_exact.py reads its expected numbers from the
+    fixtures with its own JSON and regex parsing, so the swap needs no test edits.
   - mutmut does not run locally (Windows, heavy deps). Mutants were confirmed from source by applying
     representative mutations by hand and watching the new tests fail (handoff Evidence). The next CI
     reports run (workflow_dispatch) confirms the kill counts.
-  CI: the new files skip unless this task is in .harness/status.yaml done or is LOOM_TASK. Run them on
-  a task/p1-qa-tests branch (CI sets LOOM_TASK) or add the id to done when the PR merges.
+  Route: the new files skip unless this task is in .harness/status.yaml done or is LOOM_TASK. The
+  scope check needs this YAML on main before a task branch can run, so: (1) merge the Architect's
+  docs/p1-qa-tests-contracts PR (the new files skip harmlessly on main); (2) a task/p1-qa-tests
+  branch then runs in CI with LOOM_TASK set, downloads the `frames` artifact, swaps in the captured
+  fixtures (inside paths_allowed) and pushes again until CI is green with the real captures;
+  (3) Gate 2, merge, and the owner adds p1-qa-tests to done.
 paths_allowed:
   - tests/render/test_captions_exact.py
   - tests/render/test_captions_ass.py
