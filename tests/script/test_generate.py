@@ -122,19 +122,13 @@ def test_builds_the_script_fields_itself(monkeypatch: pytest.MonkeyPatch) -> Non
     {"hook": "Listen closely."},
     {**answer(), "scenes": "not a list"},
 ], ids=["too few words", "url", "other source's fact", "no fact", "bad template", "missing keys", "bad type"])
-def test_bad_answer_retried_once(bad: dict[str, Any], monkeypatch: pytest.MonkeyPatch) -> None:
+def test_bad_answer_raises_after_one_call(bad: dict[str, Any], monkeypatch: pytest.MonkeyPatch) -> None:
+    """The batch owns the retry (R10.4), so it can count every writer call against its budget."""
     fake = install(monkeypatch, bad, answer())
-    script = generate.write_script(SOURCE, "the-bloop", PUBLISH)
-    assert len(fake.calls) == 2
-    assert len(script.scenes) == 7
-
-
-def test_second_bad_answer_raises(monkeypatch: pytest.MonkeyPatch) -> None:
-    bad = answer(title="see www.evil.example")
-    fake = install(monkeypatch, *([bad] * (constants.SCRIPT_ATTEMPTS + 1)))
     with pytest.raises(GenerateError):
         generate.write_script(SOURCE, "the-bloop", PUBLISH)
-    assert len(fake.calls) == constants.SCRIPT_ATTEMPTS
+    assert len(fake.calls) == 1
+    assert len(generate.write_script(SOURCE, "the-bloop", PUBLISH).scenes) == 7
 
 
 def test_gemini_error_propagates(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -220,9 +214,11 @@ def test_unused_sources_with_empty_queue(tmp_path: Path) -> None:
 
 
 def test_acceptance(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
-    """A valid script from one source with facts in a delimited block, one retry on a bad answer,
-    and a used source never picked again."""
+    """A valid script from one source with facts in a delimited block, a bad answer raising after
+    one call, and a used source never picked again."""
     fake = install(monkeypatch, answer(scenes=answer()["scenes"][:2]), answer())
+    with pytest.raises(GenerateError):
+        generate.write_script(SOURCE, "the-bloop", PUBLISH)
     script = generate.write_script(SOURCE, "the-bloop", PUBLISH)
     assert len(fake.calls) == 2
     assert {i for s in script.scenes for i in s.source_fact_ids} <= {f.id for f in SOURCE.facts}

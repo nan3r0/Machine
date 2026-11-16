@@ -113,6 +113,6 @@ CHECKER_TEMPERATURE = 0.0
 # 7 scripts, each one first try plus one retry or line rewrite. Must sit inside the free daily limits.
 WRITER_MAX_CALLS_PER_BATCH = 14
 CHECKER_MAX_CALLS_PER_BATCH = 14
-SCRIPT_ATTEMPTS = 2  # writer calls write_script may make: first try plus one retry
+SCRIPT_ATTEMPTS = 2  # write_script calls the batch makes per script: first try plus one retry
 GEMINI_TIMEOUT_S = 120
 GEMINI_RETRY_WAIT_S = 10  # wait before the single retry after HTTP 429, a 5xx or a timeout

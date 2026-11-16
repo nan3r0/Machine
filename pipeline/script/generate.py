@@ -28,8 +28,9 @@ class GenerateError(Exception):
 
 
 def write_script(source: SourceFile, script_id: str, publish_after: date) -> Script:
-    """A new script about `source`, from at most `constants.SCRIPT_ATTEMPTS` calls to
-    `gemini.generate_json(constants.WRITER_MODEL, prompt, schema)`.
+    """A new script about `source`, from exactly one call to
+    `gemini.generate_json(constants.WRITER_MODEL, prompt, schema)`. The batch owns the retry, so it
+    can count every writer call against its budget.
 
     The prompt carries PLAN.md section 4: the tone rules (suspense, short sentences, a beat before
     each reveal, eerie never graphic), the 65 s format (`constants.TARGET_WORDS` words, accepted
@@ -40,8 +41,8 @@ def write_script(source: SourceFile, script_id: str, publish_after: date) -> Scr
     Fills `id` (script_id), `topic` (source.topic), `platforms` (all three), `publish_after` and each
     scene's `visual` ({"type": template, "data": {}}) itself. The answer is accepted only when it
     builds a Script, `validate.problems` is empty, and every scene cites at least one fact id, all of
-    them ids of `source`. Otherwise the whole script is asked for again, once; a second bad answer
-    raises GenerateError. GeminiError propagates.
+    them ids of `source`; otherwise GenerateError. Keys the answer should not hold (id, topic, ...)
+    are ignored. GeminiError propagates.
     """
     raise NotImplementedError
 

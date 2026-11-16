@@ -105,14 +105,21 @@ BAD_CHARS = {
     "bell (Cc)": "\x07", "tab (Cc)": "\t", "delete (Cc)": "\x7f", "C1 control (Cc)": "\x85",
     "zero-width space (Cf)": "​", "zero-width joiner (Cf)": "‍", "byte order mark (Cf)": "﻿",
     "right-to-left override (Cf)": "‮", "left-to-right isolate (Cf)": "⁦",
-    "private use (Co)": "", "lone surrogate (Cs)": "\ud800",
-}
+    "private use (Co)": "",
+}  # A lone surrogate (Cs) is rejected by Script itself in non-blank fields, so it is not listed.
 
 
 @pytest.mark.parametrize("field", FIELDS)
 @pytest.mark.parametrize("char", BAD_CHARS.values(), ids=BAD_CHARS.keys())
 def test_control_bidi_and_invisible_characters_rejected(field: str, char: str) -> None:
     one_problem_naming(field if field != "tags" else "tag", **with_text(field, f"odd{char}text"))
+
+
+@pytest.mark.parametrize(("field", "value"), [("description", "odd\ud800text"), ("tags", ["odd\ud800"]),
+                                              ("on_screen_text", "odd\ud800")])
+def test_lone_surrogate_rejected_where_script_allows_it(field: str, value: Any) -> None:
+    overrides = with_text("on_screen_text", "\ud800") if field == "on_screen_text" else {field: value}
+    one_problem_naming(field if field != "tags" else "tag", **overrides)
 
 
 @pytest.mark.parametrize("field", [f for f in FIELDS if f != "description"])

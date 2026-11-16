@@ -116,6 +116,13 @@ def run(dirs: Dirs) -> int:
     return batch.run(dirs.sources, dirs.queue, dirs.out, RUN_DATE)
 
 
+def flagged(body: str, reason: str) -> list[str]:
+    """For each place `reason` shows in the flags, the last script id named in the 200 characters
+    before it (the flag's own header, whatever its layout)."""
+    return [re.findall(r"case-\d\d", body[max(0, m.start() - 200):m.start()])[-1]
+            for m in re.finditer(re.escape(reason), body)]
+
+
 def use_up(dirs: Dirs, folder: str, n: int) -> None:
     """Put a script citing one fact of source n into queue/<folder>/."""
     (dirs.queue / folder).mkdir(parents=True, exist_ok=True)
@@ -213,7 +220,7 @@ def test_line_still_failing_is_flagged_not_dropped(tmp_path: Path, monkeypatch: 
     assert reason in body
     first_script = min(body.index(s.hook) for s in dirs.written().values())
     assert body.index(reason) < first_script
-    assert slug(2) in next(line for line in body.splitlines() if reason in line)
+    assert flagged(body, reason) == [slug(2)]
 
 
 def test_gemini_error_leaves_one_script_out(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -227,8 +234,7 @@ def test_gemini_error_leaves_one_script_out(tmp_path: Path, monkeypatch: pytest.
     fake.write = write
     assert run(dirs) == 0
     assert sorted(dirs.written()) == [slug(1), slug(3)]
-    left_out = [line for line in dirs.body().splitlines() if slug(2) in line]
-    assert any("404" in line for line in left_out)
+    assert flagged(dirs.body(), "HTTP 404") == [slug(2)]
 
 
 def test_invalid_twice_leaves_the_script_out(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -264,8 +270,7 @@ def test_retries_use_the_writer_budget_so_lines_are_flagged(tmp_path: Path,
     within_budget(fake)
     assert len(dirs.written()) == 7
     assert [c[2] for c in fake.calls].count("rewrite") == 0
-    flagged = [line for line in dirs.body().splitlines() if "checker says unsupported 0" in line]
-    assert {name for name in fake.sources if any(name in line for line in flagged)} == set(fake.sources)
+    assert sorted(flagged(dirs.body(), "checker says unsupported 0")) == sorted(fake.sources)
 
 
 def test_every_line_failing_stays_within_budget(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -381,6 +386,57 @@ def test_published_fields_verbatim_in_a_fence_that_cannot_be_closed_early() -> N
         assert scene_.narration in body
     for fact in src.facts[:7]:
         assert fact.text in body and fact.url in body
+
+
+def outside_code(body: str) -> str:
+    """What GitHub renders as Markdown: `body` without fenced blocks (opened at line start, closed by
+    a line of the same character at least as long) and without inline code spans, which count only
+    when they close on the same line. Simplified on purpose: anything it cannot see as code stays
+    visible, so the test fails safe."""
+    kept, fence = [], ""
+    for line in body.split("\n"):
+        if fence:
+            closing = re.match(r"^ {0,3}(`{3,}|~{3,})\s*$", line)
+            if closing and closing.group(1)[0] == fence[0] and len(closing.group(1)) >= len(fence):
+                fence = ""
+            continue
+        opening = re.match(r"^ {0,3}(`{3,}|~{3,})", line)
+        if opening and not (opening.group(1)[0] == "`" and "`" in line[opening.end():]):
+            fence = opening.group(1)
+            continue
+        kept.append(re.sub(r"(?<!`)(`+)(?!`)(.+?)(?<!`)\1(?!`)", "", line))
+    return "\n".join(kept)
+
+
+EVIL = "it ``` was ```` not\n</details> [x](http://evil.example) ![i](http://evil.example/i.png) @someone <!-- hide"
+
+
+def test_model_text_cannot_escape_its_code_span() -> None:
+    """Security review of p2-batch: reasons, hook, narration, loop line, title, description and tags
+    are model output. In the body they sit inside code, so no link, image, HTML, comment or @mention
+    renders and nothing after them is swallowed."""
+    src = source(1)
+    data = writer_answer(src)
+    script = Script.model_validate({
+        **data, "id": slug(1), "topic": src.topic, "platforms": ["youtube"], "publish_after": MONDAY,
+        "hook": "Listen @someone [x](evil).", "loop_line": "Gone </details> @someone.",
+        "title": "@someone [x](evil) `tick`", "description": "@someone\n</details>\n````", "tags": ["@someone"],
+        "scenes": [scene(f"{s['narration']} @someone [x](evil) ``", s["source_fact_ids"]) for s in data["scenes"]]})
+    flag = Flag(script_id=slug(1), scene=2, reason=EVIL)
+    gone = Flag(script_id=slug(2), scene=None, reason=EVIL)
+    body = batch.pr_body([(script, src)], [flag], [gone], exhausted=False)
+    visible = outside_code(body)
+    for token in ("</details>", "[x](", "![i]", "@someone", "<!--", "evil.example"):
+        assert token not in visible, token
+    for fact in src.facts[:7]:
+        assert fact.url in visible, "owner-reviewed fact urls stay plain, clickable text after the code"
+
+
+def test_outside_code_sees_through_a_short_fence() -> None:
+    """The detector itself: a fence shorter than a backtick run in the text is closed early."""
+    assert "@someone" in outside_code("```\nnot the end\n```\n@someone\n```")
+    assert "@someone" in outside_code("`a` @someone `b`")
+    assert "@someone" not in outside_code("````\n```\n@someone\n````")
 
 
 def test_flags_and_left_out_come_first() -> None:
