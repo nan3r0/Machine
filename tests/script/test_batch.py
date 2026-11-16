@@ -408,7 +408,8 @@ def outside_code(body: str) -> str:
     return "\n".join(kept)
 
 
-EVIL = "it ``` was ```` not\n</details> [x](http://evil.example) ![i](http://evil.example/i.png) @someone <!-- hide"
+EVIL = ("it ``` was ```` not\n</details> [x](http://evil.example) ![i](http://evil.example/i.png) "
+        "@someone <!-- hide")
 
 
 def test_model_text_cannot_escape_its_code_span() -> None:
@@ -420,8 +421,10 @@ def test_model_text_cannot_escape_its_code_span() -> None:
     script = Script.model_validate({
         **data, "id": slug(1), "topic": src.topic, "platforms": ["youtube"], "publish_after": MONDAY,
         "hook": "Listen @someone [x](evil).", "loop_line": "Gone </details> @someone.",
-        "title": "@someone [x](evil) `tick`", "description": "@someone\n</details>\n````", "tags": ["@someone"],
-        "scenes": [scene(f"{s['narration']} @someone [x](evil) ``", s["source_fact_ids"]) for s in data["scenes"]]})
+        "title": "@someone [x](evil) `tick`", "description": "@someone\n</details>\n````",
+        "tags": ["@someone"],
+        "scenes": [scene(f"{s['narration']} @someone [x](evil) ``", s["source_fact_ids"])
+                   for s in data["scenes"]]})
     flag = Flag(script_id=slug(1), scene=2, reason=EVIL)
     gone = Flag(script_id=slug(2), scene=None, reason=EVIL)
     body = batch.pr_body([(script, src)], [flag], [gone], exhausted=False)

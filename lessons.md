@@ -248,3 +248,11 @@ How it was caught: the owner's 65 s acceptance render (167 words in 69.5 s, run 
 Fix: `SPEECH_WPM` 144 and `TIKTOK_WORDS` (149, 216), with the arithmetic in the comment (branch docs/p1-constants-timeout-contracts). The Retention format, whose word bounds had the same flaw, was removed (owner rule: every video over a minute).
 Rule going forward: after any change to the voice or its speed, re-measure the speech rate from a real render and re-derive every word bound from it in the same change.
 Test added: none; these are constants, and the 65 s sample's fit is already checked by `tests/test_schema.py::test_acceptance`.
+
+### 2026-11-16: A shell and Python rewrite mangled regex backslashes
+What happened: in p2-entry-ci a Bash heredoc feeding a Python rewrite of `tests/workflow_rules.py` turned `\b` into a backspace and `\n` into a real newline; a sed repair then dropped the backslash again.
+Why it happened (root cause, not symptom): two layers of escaping (the shell, then the Python string) sat between the intended text and the file.
+How it was caught: ruff and pytest failed at once.
+Fix: repaired with the Edit tool.
+Rule going forward: edit source files with the Edit or Write tools only, never through a shell heredoc, sed or a Python rewrite script.
+Test added: none, a process rule.

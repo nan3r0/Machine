@@ -3,7 +3,9 @@ title: Gemini client - one JSON-mode call, key from env, never logged
 depends_on: [p2-contracts]
 role: implementer
 notes: |
-  pipeline/script/gemini.py `generate_json(model, prompt, schema) -> dict` over the standard
+  The stub docstring is the contract (request and response shape, Api-Revision header, optional
+  temperature in generation_config, HTTP 404 naming the model with no retry).
+  pipeline/script/gemini.py `generate_json(model, prompt, schema, temperature=None) -> dict` over the standard
   library (urllib.request, json): no SDK, no new dependency (spec.md section 7). Endpoint, API
   revision header and the `response_format` JSON-schema shape are in constants.py and PRD.md
   section 7 (source and date). The API key comes only from the GEMINI_API_KEY environment variable,

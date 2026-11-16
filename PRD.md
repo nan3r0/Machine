@@ -71,7 +71,7 @@ Goal: a hand-written script JSON becomes a good 65 s MP4, inside GitHub Actions.
 Goal: Workflow A opens a real pull request of 7 fact-checked scripts, with flags readable on the GitHub mobile app (PLAN.md section 11). Kept minimal: no RSS ingest, no vacation-mode count, no fallback provider, no hook stats. The defaults below follow the owner decisions D1 to D8 proposed in `.harness/handoffs/architect-p2-plan.md`; a different answer changes the matching criterion before p2-contracts runs.
 
 **R8. Sources.** Facts come from hand-curated files in `sources/`, one solved mystery per file.
-- R8.1 Every `sources/*.yaml` validates as a source file: a topic and at least one fact, each fact with a unique integer id, its text and an https url.
+- R8.1 Every `sources/*.yaml` validates as a source file: a topic and at least one fact, each fact with a unique integer id, its text and an https url. No two sources share a topic once case and punctuation are ignored, and every fact id a script in `queue/` cites resolves to one source file.
 - R8.2 At least 14 sources are seeded, each following the PLAN.md section 4 content rules. Manual: the owner reviews the facts in the seeding PR.
 
 **R9. Exact fact-check.** PLAN.md section 5, exact layer.
@@ -81,21 +81,22 @@ Goal: Workflow A opens a real pull request of 7 fact-checked scripts, with flags
 **R10. Script generation.**
 - R10.1 A generated script validates as a Script, its word count lies inside `TIKTOK_WORDS`, and its `source_fact_ids` come only from its own source.
 - R10.2 Source facts reach the model inside a delimited data block that the prompt says is data, never instructions.
-- R10.3 A source is used once: a source with any fact id in a script under `queue/` is not picked again. The queue files are the ledger; there is no `used_facts.json`.
+- R10.3 A source is used once: a source with any fact id in a script under `queue/` (`approved/` or `published/`) is not picked again. The queue files are the ledger; there is no `used_facts.json`.
 - R10.4 Invalid model output is retried once, then the script is left out and listed in the PR body.
+- R10.5 With fewer than 7 unused sources the batch writes what it can and the PR body says "N of 7: sources exhausted". With none, it opens no PR and the run fails visibly.
 
 **R11. Meaning check and flags.**
-- R11.1 One checker call per script returns one verdict per line; a missing or malformed verdict counts as UNSUPPORTED, never as a pass.
+- R11.1 One checker call per script, at temperature 0, returns one verdict per line; a missing or malformed verdict counts as UNSUPPORTED, never as a pass. A SUPPORTED or PARTIAL verdict must name a fact id linked to that line; one that names none counts as UNSUPPORTED.
 - R11.2 A line that fails either layer is rewritten once and re-checked; if it still fails, the script stays in the batch with a flag naming the line and the reason. The run never stops on a fact-check result.
 - R11.3 A batch never makes more model calls than the writer and checker budgets in `pipeline/constants.py`; when a budget is used up, lines are flagged instead of rewritten.
 
 **R12. Publishable fields** (CSO P1-3, phase review N5).
-- R12.1 A script is rejected if any spoken or published field contains a URL or `www.`, a control, bidi or zero-width character (newlines allowed in the description only), or exceeds the title, description or tag caps.
+- R12.1 A script is rejected if any spoken or published field contains a URL or `www.`, `<` or `>`, a control, bidi or zero-width character (newlines allowed in the description only), or exceeds the title, description, tag, scene-count or narration-length caps.
 - R12.2 The render command exits 2 before the voice step for a script outside `TIKTOK_WORDS`.
 - R12.3 Every JSON file under `queue/` passes R12.1 and the word bounds in CI, so a mobile edit of an approval PR is checked.
 
 **R13. Approval pull request (Workflow A).**
-- R13.1 The PR body lists every flag first, then per script the hook, each line's narration with its fact texts and urls, and the title, description and tags verbatim. It stays under `PR_BODY_MAX_CHARS`; an over-long body fails the run instead of being cut.
+- R13.1 The PR body lists every flag first, then per script the hook, each line's narration with its fact texts and urls, and the title, description and tags verbatim. It stays under `PR_BODY_MAX_CHARS`; an over-long body fails the run instead of being cut. Every model-derived string (flag reasons, hook, narration, title, description, tags) sits inside a code block or span that its text cannot close, so no link, image, HTML or @mention from the model renders.
 - R13.2 `weekly_scripts.yml` runs on Sunday 06:00 UTC and by hand. The Gemini key is only in the job that calls Gemini, which has a read-only token; only the job that opens the PR has write permissions, and it holds no other secret.
 - R13.3 Every file in `.github/workflows/` passes the safety rules, and any job-level write permission or secret must be on an explicit per-job allowlist (CSO P1-6).
 - R13.4 CSO P1-1 is decided and recorded in section 7 before the Gemini key is added to the repo.
@@ -153,10 +154,21 @@ Confirmed by the owner:
 - 2026-11-16: Golden render frames cover the whole video: 1 to 60 s every 10 s (below the 62 s QA minimum, so they fit every passing video) plus one frame 0.5 s before the end, through one helper shared by the heavy test and render.yml (task p1-golden-65s). They are frames for visual review, not reference images: nothing is committed or pixel-compared, because ffmpeg, libass and x264 come unpinned from apt and CPU torch is not bit-exact, so a diff would be flaky.
 - 2026-11-15: Niche is "Solved Internet & Everyday Mysteries", with the content rules in PLAN.md section 4 (sourced resolutions only, no private individuals, no graphic violence). Proposed by Claude, pending owner OK: the rules themselves.
 
+- 2026-11-16: Phase 2 owner decisions (defaults from `.harness/handoffs/architect-p2-plan.md`):
+  - D2: Workflow A writes into `queue/approved/` on its PR branch; merging is approval. No `queue/pending/`, no `on_merge_approve.yml`.
+  - D3: The queue files are the ledger (approved and published). No `data/used_facts.json`. `queue/published/` is append-only.
+  - D4: Hand-curated `sources/` only. NotebookLM or a Gemini notebook may be used by hand to help refill sources; no API and no task for it.
+  - D5: Writer `gemini-3.8-flash`, checker `gemini-3.5-flash-lite` (different models; no `gemini-2.5-*` and no preview model). Ids live only in `pipeline/constants.py`. The checker runs at temperature 0 and every verdict names its supporting fact id. At most 14 writer and 14 checker calls per batch.
+  - D6: No URLs in any published field; title 100 characters, description 1000, at most 10 tags of 30 characters and 500 in total. The 65 s sample keeps its NOAA credit by name only.
+  - D7: Phase 2 runs at Stage 0; Loom is built later.
+  - D8: Deferred: vacation-mode count, fallback text provider, `hook_stats.json` input, a `script/prompts/` folder.
+  - D1 (CSO P1-1, where the Gemini key lives) is still open. No secret is added and the live run of Workflow A waits.
+
 Research for the Phase 2 plan, 2026-11-16 (Architect; facts, not decisions):
 - GitHub, docs.github.com "Deployments and environments" (Actions reference): "If you are using GitHub Free, environment secrets are only available in public repositories"; deployment branch and tag rules in private repositories need GitHub Pro or Team; required reviewers and wait timers are public-repo only on Free, Pro and Team. So CSO P1-1 option (b), environment secrets with a `main`-only rule, is not available in this private repo at $0. The rulesets page names only Team and Enterprise for private repositories.
 - GitHub, docs.github.com "GITHUB_TOKEN": pushes made with `GITHUB_TOKEN` start no new workflow runs, and `pull_request` runs on a PR it opens wait for a user with write access to approve them. So Workflow A must validate scripts before it opens the PR; CI runs only on the owner's own edit commits.
 - Gemini, aistudio.google.com/docs (pricing, rate limits, structured output): REST endpoint `https://generativelanguage.googleapis.com/v1beta/interactions`, key in the `x-goog-api-key` header, JSON output through `response_format` (`mime_type: application/json` plus a JSON Schema). `minLength` and `maxLength` in that schema are ignored, so field caps are checked in code. `gemini-2.5-flash` and `gemini-2.5-pro` are marked deprecated, routing to other models on 2026-12-01. The rate-limit page lists free figures for one model only and points to the AI Studio dashboard for real values, so the writer and checker model ids and their daily limits come from the owner's dashboard (open question below). Free-tier content may be used to improve Google's products.
+- Gemini Interactions API, aistudio.google.com/api-reference/interactions-api and docs/structured-output, read 2026-11-16 for p2-contracts: `response_format` is a top-level request field (`{"type": "text", "mime_type": "application/json", "schema": {...}}`); the structured-output curl examples send an `Api-Revision: 2026-05-20` header, which the reference page does not mention. The response holds `status` (`completed` when done) and `steps[]`; the model's text is in the `model_output` step's `content[]` parts of type `text`. Temperature is named only in the overview ("`generation_config` ... including `thinking_level`, `temperature`"); the reference's `GenerationConfig` block does not list it, so `generation_config.temperature` is unconfirmed until the first live call. No HTTP error body is documented.
 
 Assumed by Claude (owner can overrule):
 - 2026-11-15: The hook learns the current task from the `LOOM_TASK` environment variable set at launch, not from a file the agent could edit.
@@ -175,6 +187,7 @@ Assumed by Claude (owner can overrule):
 ## 8. Open questions
 
 - **[Decision needed]** Average view duration target for 65 s videos (PLAN.md section 12), to be set by the owner after the first 30 days of data.
-- **[Decision needed]** Phase 2 owner decisions D1 to D8 (secrets handling for CSO P1-1, approval path, ledger, sources, Gemini models and budget, published-field policy, harness stage, deferrals), each with a proposed default, are listed in `.harness/handoffs/architect-p2-plan.md`. They replace the earlier `used_facts.json` and `queue/pending/` question (proposed: derive used facts from queue files, drop `queue/pending/` and `on_merge_approve.yml`).
+- **[Decision needed]** Phase 2 owner decision D1 (where the Gemini key lives, CSO P1-1), options in `.harness/handoffs/architect-p2-plan.md`. D2 to D8 are decided (section 7).
+- **[Decision needed before Phase 4]** How `sources/` is refilled: 14 seeded sources last two weekly batches.
 - To verify in Phase 4: one test upload confirms an unaudited YouTube project's uploads and `publishAt` schedules go public (official docs say yes since 2 Nov 2026, but no example covers an unaudited project).
 - To verify in Phase 2: Gemini free-tier limits for the chosen models in the owner's AI Studio dashboard (published figures come from third parties).

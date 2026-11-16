@@ -5,8 +5,9 @@ role: implementer
 notes: |
   pipeline/script/validate.py `problems(script)`: one readable message per problem, empty when the
   script may be published. Word count of narration_words() inside constants.TIKTOK_WORDS; no URL
-  or `www.` in any published or spoken field; no control, bidi or zero-width characters (newline
-  allowed in description only); title, description and tag caps from constants.py. Messages name
+  or `www.` in any published or spoken field; no `<` or `>`; no control, bidi or zero-width
+  characters (newline allowed in description only); title, description and tag caps, SCENES_MAX and
+  NARRATION_MAX_CHARS from constants.py. The stub docstring is the contract. Messages name
   the field and fit one line on a phone (they go into the PR body).
   pipeline/render_one.py: call validate.problems after Script validation and before the voice
   step; any problem prints the messages and exits 2 without calling kokoro (a 45 minute render of

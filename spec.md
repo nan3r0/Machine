@@ -23,7 +23,7 @@ tests/                    # mirrors pipeline/, plus tests/fixtures/
 .harness/  .claude/       # build harness, see HARNESS.md section 11
 ```
 
-Phase 2 adds (planned; stubs come from p2-contracts, except `factcheck/` which the plan branch already stubs):
+Phase 2 adds (stubs with docstring contracts from p2-contracts; `factcheck/normalise.py` and `exact.py` done):
 
 ```
 pipeline/factcheck/normalise.py, exact.py   # exact layer: numbers and proper nouns
@@ -48,11 +48,11 @@ Narration text for voice and alignment is `hook`, then each scene's `narration`,
 
 **QAReport**: `passed` (bool), `failures[]` of `{check, reason}`, `measured` (dict of the values checked).
 
-**Source file** (Phase 2, `sources/<slug>.yaml`): `topic`, `facts[]` of `{id, text, url}`. Fact ids are integers unique across all source files, urls are https. A script's `source_fact_ids` come from one source file. A source is "used" once any of its fact ids appears in a script under `queue/`; the queue files are the ledger (no `data/used_facts.json`).
+**Source file** (Phase 2, `sources/<slug>.yaml`, `SourceFile` in `schema.py`): `topic`, `facts[]` of `{id, text, url}`. Fact ids are integers unique across all source files, urls are https. Topics are unique ignoring case and punctuation. The slug is a lowercase hyphenated name and becomes the script id. A script's `source_fact_ids` come from one source file. A source is "used" once any of its fact ids appears in a script under `queue/` (approved or published); the queue files are the ledger (owner decision D3, no `data/used_facts.json`). The Phase 1 sample cites facts 1 to 9, which the Bloop source holds; seeded sources use blocks of 100 from 101.
 
-**Flag**: `script_id`, `scene` (index, or none for the whole script), `reason`. Flags go into the PR body, never into the script file. **LineVerdict**: `index`, `verdict` (`SUPPORTED | UNSUPPORTED | PARTIAL`), `reason`.
+**Flag**: `script_id`, `scene` (index, or none for the whole script), `reason`. Flags go into the PR body, never into the script file. **LineVerdict**: `index`, `verdict` (`SUPPORTED | UNSUPPORTED | PARTIAL`), `reason`, `fact_ids`; SUPPORTED and PARTIAL must name at least one fact id.
 
-Scripts move between `queue/approved/` and `queue/published/` as plain files. Workflow A writes new scripts straight into `queue/approved/` on its PR branch, so merging the PR is the approval (proposed owner decision D2; no `queue/pending/`, no `on_merge_approve.yml`). A schema change bumps a `schema_version` field and needs a contract change approved by the Architect.
+Scripts move between `queue/approved/` and `queue/published/` as plain files. `queue/published/` is append-only: a published script is never edited or deleted, so its sources stay used. Workflow A writes new scripts straight into `queue/approved/` on its PR branch, so merging the PR is the approval (owner decision D2; no `queue/pending/`, no `on_merge_approve.yml`). A schema change bumps a `schema_version` field and needs a contract change approved by the Architect.
 
 ## 4. Rules and numbers
 
@@ -73,15 +73,17 @@ All of these live in `pipeline/constants.py` and nowhere else.
 | FFmpeg render | Audio 48 kHz, true peak -1 dBTP, 600 s timeout per FFmpeg call, last 20 stderr lines in errors | Player support, loudnorm linear mode, run 43873059742 |
 | QA tools | fps tolerance 0.01, 300 s timeout per ffprobe or silencedetect call, last 5 stderr lines in errors | |
 
-Phase 2 numbers (proposed; p2-contracts writes them into `constants.py` after owner decisions D5 and D6):
+Phase 2 numbers (owner decisions D5 and D6):
 
 | Rule | Value | Source |
 |---|---|---|
 | Scripts per batch | 7 | PLAN.md section 11 |
-| Writer and checker models | Ids from the owner's AI Studio dashboard; never a `gemini-2.5-*` model (deprecated 2026-12-01) | PRD.md section 7 |
-| Model calls per batch | At most 14 writer and 14 checker calls (7 scripts plus one retry or rewrite each); must sit inside the free daily limits | PLAN.md section 3 |
-| Published fields | Title up to 100 characters (YouTube's limit), description up to 1000, at most 10 tags of up to 30 characters, 500 in total; no URLs anywhere | CSO P1-3 |
-| PR body | Up to 60000 characters (GitHub caps a body at 65536) | R13.1 |
+| Word target | 156 (65 s at 144 wpm) inside the accepted 149 to 216 | PLAN.md section 4 |
+| Writer and checker models | Writer `gemini-3.8-flash`, checker `gemini-3.5-flash-lite` at temperature 0; never a `gemini-2.5-*` or preview model. Model ids retire: someone checks the Gemini deprecations page every few months | D5, PRD.md section 7 |
+| Model calls per batch | At most 14 writer and 14 checker calls (7 scripts plus one retry or rewrite each), counted as made; must sit inside the free daily limits. 120 s timeout per call; one retry after 10 s on HTTP 429, a 5xx or a timeout; HTTP 404 (retired model) fails at once | PLAN.md section 3 |
+| Published fields | Title up to 100 characters (YouTube's limit), description up to 1000, at most 10 tags of up to 30 characters, 500 in total; no URLs, `<` or `>` anywhere | CSO P1-3, D6 |
+| Script and source size | At most 10 scenes and 1500 characters of narration; at most 10 facts per source, fact text up to 160 characters and url up to 100; reasons clipped to 120 | Keeps the PR body under its cap |
+| PR body | Up to 60000 characters (GitHub caps a body at 65536); 7 scripts at every cap come to about 48500 plus layout | R13.1 |
 
 Never allowed: a render that continues after voice failure, an empty or silent wav, a caption word that differs from the script word.
 
@@ -89,6 +91,8 @@ Never allowed: a render that continues after voice failure, an empty or silent w
 
 - Secrets only in GitHub Actions encrypted secrets. Phase 1 needs none. Phase 2 needs one, `GEMINI_API_KEY`, added only after the owner decides CSO P1-1 (D1). It is read from the environment at call time, sent only in the `x-goog-api-key` header, and never logged or put in an exception. Only the `generate` job of `weekly_scripts.yml` gets it; that job has a read-only token. Restrict the key in Google Cloud to the Generative Language API.
 - Text from sources and from the model is untrusted: source facts go into prompts as delimited data, model output is parsed and validated before use, and branch names, PR titles and commit messages never come from model output.
+- In the approval PR body every model-derived string (flag and left-out reasons, hook, narration, loop line, title, description, tags) sits inside a fenced code block or a same-line code span whose fence is longer than any backtick run in the text. No link, image, HTML tag or comment, and no @mention (GitHub notifies on a bare @name), can come from the model. Only fact texts and urls (owner-reviewed), script ids and fixed labels are plain Markdown.
+- The Gemini client fails loudly: HTTP 404 (usually a retired model id) and a second 429 raise at once; there is never more than one retry.
 - Subprocess calls (FFmpeg, ffprobe) take an argument list. `shell=True` is never used.
 - Third-party GitHub Actions are pinned to a full commit SHA.
 - Python dependencies are pinned to exact versions.

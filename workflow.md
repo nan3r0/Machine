@@ -74,17 +74,19 @@ Locked by p1-contracts. Every task's acceptance test is `test_acceptance` in its
 | R7.6 | Handoffs of p1-qa-lead, p1-cso, p1-audit; owner approves |
 | QA lead gaps (p1-qa-tests) | `tests/render/test_captions_exact.py`, `tests/render/test_compose_exact.py`, `tests/render/test_qa_exact.py`, `tests/render/test_ffmpeg_fixtures.py` (heavy fixture guard), `tests/voice/test_kokoro_audio.py`, `tests/voice/test_align_model.py`, `tests/test_render_one_files.py` |
 | Numbers in constants.py, compose FFmpeg timeout (p1-constants-timeout) | `tests/render/test_render_constants.py` |
-| R8.1 | tests/test_sources_files.py (p2-contracts writes it) |
+| Phase 2 shapes (Fact, SourceFile, Flag, LineVerdict) | `tests/test_schema_sources.py` |
+| R8.1 | `tests/test_sources_files.py` |
 | R8.2 | Manual, owner, in the p2-seed-sources PR |
 | R9.1, R9.2 | `tests/factcheck/test_exact.py` |
-| R10.1 to R10.4 | tests/script/test_generate.py (p2-contracts writes it) |
-| R11.1 | tests/factcheck/test_semantic.py (p2-contracts writes it) |
-| R11.2, R11.3, R13.1 | tests/script/test_batch.py (p2-contracts writes it) |
-| R12.1 | tests/script/test_validate.py (p2-contracts writes it) |
-| R12.2 | tests/test_render_one_validate.py (p2-contracts writes it) |
-| R12.3 | tests/test_queue_scripts.py (p2-contracts writes it) |
-| R13.2 | tests/test_weekly_workflow.py (p2-contracts writes it) |
-| R13.3 | tests/test_workflow_safety.py (p2-entry-ci writes it) |
+| R10.1 to R10.3 | `tests/script/test_generate.py` |
+| R10.3 to R10.5 | `tests/script/test_batch.py` |
+| R11.1 | `tests/factcheck/test_semantic.py` |
+| R11.2, R11.3, R13.1 | `tests/script/test_batch.py` |
+| R12.1 | `tests/script/test_validate.py` |
+| R12.2 | `tests/test_render_one_validate.py` |
+| R12.3 | `tests/test_queue_scripts.py` |
+| R13.2 | `tests/test_weekly_workflow.py` |
+| R13.3 | `tests/test_workflow_safety.py` |
 | R13.4 | PRD.md section 7 entry for owner decision D1 |
 | R13.5 | Manual, owner, on the first Workflow A PR |
 | R13.6 | Handoffs of p2-qa-lead, p2-cso, p2-audit; owner approves |
@@ -120,7 +122,7 @@ Phase 2 rows without backticks name test files that do not exist yet; the task t
 
 ## Phase 2 module order
 
-Planned 2026-11-16 by the Architect (`.harness/handoffs/architect-p2-plan.md`); waits for owner approval of the plan and decisions D1 to D8. Still Stage 0 unless the owner chooses otherwise (D7). Task files: `.harness/tasks/phase2/00_*.yaml` to `13_*.yaml`, run in file-name order where dependencies allow.
+Planned 2026-11-16 by the Architect (`.harness/handoffs/architect-p2-plan.md`). Owner decisions D2 to D8 taken with the defaults (PRD.md section 7); D1 is open, so the live run of Workflow A waits. Stage 0 (D7). Task files: `.harness/tasks/phase2/00_*.yaml` to `13_*.yaml`, run in file-name order where dependencies allow.
 
 ```
 p2-entry-ci, p2-factcheck-exact            (no owner decision needed; can start at once)
@@ -139,9 +141,9 @@ Specialist reviews: security for p2-validate, p2-gemini, p2-batch and p2-weekly-
 
 | Task | Status | Review |
 |---|---|---|
-| p2-entry-ci | not started | |
-| p2-factcheck-exact | not started; contracts and locked tests on the plan branch | |
-| p2-contracts | not started; waits for owner decisions D2 to D6 | |
+| p2-entry-ci | done, merged 2026-11-16 (PR #60) | Gate 2 approved; non-blocking notes in architecture.md section 7 |
+| p2-factcheck-exact | done, merged 2026-11-16 (PR #59) | Gate 2 approved |
+| p2-contracts | contracts and locked tests on branch `docs/p2-contracts`, awaiting owner review | |
 | p2-validate | not started | |
 | p2-gemini | not started | |
 | p2-seed-sources | not started | |
