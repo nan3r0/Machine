@@ -82,6 +82,8 @@ All task tests are written and locked by p1-contracts before implementation.
 
 ## 7. Known weak points
 
+Threat model and open security items: `docs/threat-model.md`.
+
 - The lock hook only watches Edit, Write, MultiEdit and NotebookEdit. A Bash command can still write a file. The control that holds is CI's scope check on `task/<id>` branches (diff against `paths_allowed`, `locks.yaml` and the admin files), added by p1-contracts. Until then it is a manual Gate 1 check.
 - The hook matches globs with `fnmatch`, where `*` also crosses `/`. Patterns are slightly more permissive than they look.
 - The hook blocks Windows aliasing forms (UNC and device paths in any slash mix, 8.3 names, trailing dots or spaces, `:` streams) and resolves symlinks and junctions. A legitimate file name containing `~` is blocked too; rename it.
