@@ -208,3 +208,11 @@ How it was caught: implementers hit it in p1-captions-ass, p1-qa and p1-actions-
 Fix: none in the repo yet; task venvs are created with the repo requirements only, and sessions use a runner that puts the repo first on sys.path.
 Rule going forward: if a task needs the shim, say so in the handoff Evidence; an owner decision on a permanent fix (for example a `pythonpath` entry in pytest config) is still open.
 Test added: none.
+
+### 2026-11-16: The mutation run tree lacked files the tests read
+What happened: the first phase-end `reports` run (CI run 43877583446) failed in `mutmut run`: `tests/test_ci_workflow.py::test_ci_is_safe` raised FileNotFoundError for `mutants/.github/workflows/ci.yml`.
+Why it happened (root cause, not symptom): mutmut runs the suite inside a copy of the repo (`mutants/`) holding only the mutated source, `tests/`, `pyproject.toml` and `[tool.mutmut] also_copy`. `also_copy` listed only `queue/`, `.harness/` and `assets/`, but the tests also read `.github/`, `.claude/hooks/`, the Makefile, the requirements files and the docs that `tests/docs_check.py` checks. The reports job runs only on manual dispatch, so nothing exercised the list before phase end.
+How it was caught: the owner's manual dispatch of the reports job.
+Fix: `also_copy` now lists every repo-root path the suite reads at test time, found by grepping `tests/` for `ROOT /` reads, `cwd=ROOT` and the files `tests/docs_check.py` opens.
+Rule going forward: a test that reads a new repo-root file or folder adds it to `[tool.mutmut] also_copy` in the same change. A nested file goes in as its folder, since mutmut does not create parent folders for single files.
+Test added: none. A test mirroring the list would be a second hand-kept copy of it and could not see reads inside subprocesses; the reports run is the real check.
