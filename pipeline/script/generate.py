@@ -100,7 +100,7 @@ def write_script(source: SourceFile, script_id: str, publish_after: date) -> Scr
     prompt = "\n\n".join([
         "Write a short video script about the topic below.",
         _TONE_RULES, _FORMAT_RULES, _CONTENT_RULES, _DATA_RULE,
-        f"Topic: {source.topic}", _data_block(source.facts),
+        f"Topic: {_clean(source.topic)}", _data_block(source.facts),
     ])
     answer = gemini.generate_json(constants.WRITER_MODEL, prompt, _WRITER_SCHEMA)
     try:
@@ -136,8 +136,8 @@ def rewrite_line(script: Script, index: int, source: SourceFile, reason: str) ->
     prompt = "\n\n".join([
         "Rewrite one narration line of a short video script.",
         _TONE_RULES, _CONTENT_RULES, _DATA_RULE,
-        f"The line failed a fact check. Reason: {reason}",
-        f"Old line: {scene.narration}",
+        f"The line failed a fact check. Reason: {_clean(reason)}",
+        f"Old line: {_clean(scene.narration)}",
         "Write a replacement line of similar length that the facts below support.",
         _data_block(linked),
     ])
@@ -152,8 +152,17 @@ def rewrite_line(script: Script, index: int, source: SourceFile, reason: str) ->
 
 def _data_block(facts: list[Fact]) -> str:
     """Facts one per line between the delimiters; delimiter text inside a fact is dropped."""
-    lines = [f"{fact.id}: {fact.text.replace(DATA_START, '').replace(DATA_END, '')}" for fact in facts]
+    lines = [f"{fact.id}:{_clean(fact.text)}" for fact in facts]
     return "\n".join([DATA_START, *lines, DATA_END])
+
+
+def _clean(text: str) -> str:
+    """`text` without delimiters; repeats so a nested delimiter cannot rebuild itself."""
+    previous = None
+    while previous != text:
+        previous = text
+        text = text.replace(DATA_START, "").replace(DATA_END, "")
+    return text
 
 
 def _checked(script: Script) -> Script:
