@@ -264,3 +264,19 @@ How it was caught: the owner read `/context` and asked.
 Fix: orchestrator.md now has a numbered step in the Token rules that applies when the hook is absent: check `/context` at every task close-out and before launching each task, and rotate at 50% by writing the State block, opening the docs PR and telling the owner to start a fresh session.
 Rule going forward: a control that exists only in one launch path is not a control for every session. The orchestrator checks its own context size at each close-out and launch, hook or no hook, and rotates at 50%, not when asked.
 Test added: none. This is a process rule; the Token rules step in `.harness/handoffs/orchestrator.md` is the check.
+
+### 2026-11-17: Single-pass delimiter stripping let a nested delimiter rebuild itself
+What happened: p2-generate removed the data-block delimiters from fact text with one `str.replace` pass. A fact holding `</source_fa</source_facts>cts>` came out as `</source_facts>`, so the prompt held two end markers and the text after the first sat outside the data block.
+Why it happened (root cause, not symptom): removing a substring can join its neighbours into a new copy of the same substring. One pass only removes the copies present before it starts. The locked test only tried a plain, non-nested delimiter.
+How it was caught: Gate 2 review, round 1.
+Fix: `_clean` in `pipeline/script/generate.py` repeats the replace until the text stops changing, and every untrusted string that goes into a prompt (fact text, topic, rewrite reason, old narration) goes through it.
+Rule going forward: any filter that deletes a token from untrusted text runs until stable, or escapes the characters the token is made of. Test the nested case, not just the plain one.
+Test added: none yet; tests are locked. The Architect owes a regression test for the nested case.
+
+### 2026-11-17: A task venv was launched without its requirements installed
+What happened: the p2-generate worktree had a `.venv` holding only base packages (no pydantic). The orchestrator's Gate 1 run of mypy and pytest failed on imports, and was rerun with another worktree's venv.
+Why it happened (root cause, not symptom): the worktree and venv were created in an earlier session that stopped before `pip install`, and the next session checked only that `.venv/Scripts/python.exe` existed.
+How it was caught: Gate 1 in the orchestrator, after the task finished.
+Fix: none in code. The orchestrator checks `python -c "import pydantic"` in the task venv before launching, and installs `requirements.txt` and `requirements-dev.txt` if it fails.
+Rule going forward: check that a venv imports the project's dependencies, not that its interpreter exists.
+Test added: none. Process rule in `.harness/handoffs/orchestrator.md`, How to run a task, step 1.

@@ -6,7 +6,7 @@ Read this first in any session started without `LOOM_TASK`. Then read only the H
 You are the Stage 0 orchestrator (HARNESS.md section 10, Stage 0). Model: Sonnet. You launch task sessions, verify their work, run reviews, push, open PRs and log outcomes. The owner only approves the contracts PR and merges PRs. Never edit `.claude/` admin files (owner only, `LOOM_ADMIN=1`).
 
 ## How to run a task
-1. Worktree per task branch `task/<id>` under `.claude/worktrees/`. Python: `.venv/Scripts/python.exe` in that worktree (create with `python -m venv .venv`, install `requirements.txt` and `requirements-dev.txt` only).
+1. Worktree per task branch `task/<id>` under `.claude/worktrees/`. Python: `.venv/Scripts/python.exe` in that worktree (create with `python -m venv .venv`, install `requirements.txt` and `requirements-dev.txt` only). Before launching, check `.venv/Scripts/python.exe -c "import pydantic"`; an existing venv may be empty.
 2. Launch (window closes itself when the session ends):
    `cmd /c start "Loom task: <id>" powershell.exe -ExecutionPolicy Bypass -File .harness\scripts\open_task_window.ps1 -Task <id> -Model <from .harness/config.yaml> -WorkDir <worktree> -Message "<brief>"`
    Brief: role, "Follow CLAUDE.md", read the task YAML and handoff, Bash one plain command per call, commit but do not push, finish the handoff including Docs.
@@ -22,6 +22,12 @@ You are the Stage 0 orchestrator (HARNESS.md section 10, Stage 0). Model: Sonnet
 - If the hook is not guarding you (you were not started with `-Task orchestrator`), you must rotate yourself: run `/context` at every task close-out and before launching each task, and at 50% write the State block, open the docs PR and tell the owner to start a fresh session. Do not wait to be asked.
 - One watcher per task; no polling loops in your own turns.
 - One Gate 2 pass per task; chase only blocking findings.
+
+## State (2026-11-17, end of seventh orchestrator session)
+- p2-generate merged (PR #67). Close-out on `docs/p2-closeout-2`: status.yaml, workflow.md row, CLAUDE.md status, PLAN.md D3 ledger wording (lines 39, 74, 220, 299), two lessons entries. Next: task 07 p2-semantic, then 08 p2-batch, 09 p2-weekly-workflow.
+- p2-semantic brief: its scene facts also go in a delimited data block; point the implementer at `_clean` in `pipeline/script/generate.py` and the 2026-11-17 delimiter lesson (strip until stable).
+- Follow-ups for the Architect: locked regression test for the nested delimiter case in `tests/script/test_generate.py`. Non-blocking p2-generate notes: extra keys inside a scene object are rejected (docstring says ignored only at top level); `rewrite_line` raises `IndexError` on a bad index, so p2-batch must bound-check verdict indexes.
+- Stale worktrees under `.claude/worktrees/` (about 46) still need cleanup; many have merged branches.
 
 ## State (2026-11-16, end of sixth orchestrator session)
 - p2-contracts merged (PR #62); added to status.yaml `done` on branch `docs/p2-closeout-1` (this branch).

@@ -36,7 +36,7 @@ flowchart TD
         direction TB
 
         subgraph W1[Workflow A · Weekly script batch · Sun 06:00 UTC]
-            ING[Ingest sources<br/>sources/*.md + RSS / arXiv / news APIs] --> LED[(data/used_facts.json<br/>fact ledger)]
+            ING[Ingest sources<br/>sources/*.md + RSS / arXiv / news APIs] --> LED[(queue/ scripts<br/>used-fact ledger)]
             LED --> GEN[Gemini API · JSON mode<br/>generate N scripts]
             HOOK[(data/hook_stats.json)] --> GEN
             GEN --> FC1[Exact check in code<br/>numbers · dates · names]
@@ -71,7 +71,7 @@ flowchart TD
             TT[TikTok inbox draft<br/>max 1/day · handles 5-pending cap]
         end
 
-        PUB --> DONE[Commit: move to queue/published/<br/>update used_facts.json]
+        PUB --> DONE[Commit: move to queue/published/]
 
         subgraph W3[Workflow C · Daily analytics · 20:00 UTC]
             AN[YouTube Analytics API<br/>engaged views · retention · avg % viewed] --> HOOK
@@ -217,7 +217,7 @@ Two layers, each with a clear job:
 
 ### Workflow A — Weekly script batch (Sunday)
 1. Ingest: new RSS/API items + any `sources/*.md` you added.
-2. Choose unused facts from `data/used_facts.json`, steering away from recently covered topics.
+2. Choose unused sources: a source is used once any of its fact ids appears in a script under `queue/` (decision D3), steering away from recently covered topics.
 3. Gemini (JSON mode) generates **N scripts** in the 65 s format of section 4 (N = videos per week; up to 28 for "vacation mode" via `workflow_dispatch` input):
    ```json
    {
@@ -296,7 +296,7 @@ shorts-pipeline/                  # private GitHub repo
 │   ├── analytics/                # youtube_analytics.py
 │   └── alerts.py
 ├── queue/{pending,approved,published}/
-├── data/{used_facts.json, hook_stats.json}
+├── data/hook_stats.json
 ├── sources/                      # optional hand-curated fact files
 ├── assets/{fonts,sfx,music}/     # royalty-free only, licence log included
 └── requirements.txt
