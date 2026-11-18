@@ -4,7 +4,7 @@
 CSO P2-1, P2-2, P2-4 and P2-6 on Workflow A: hashed install in the key job, new-scripts-only PR, a keyless validate job, no overlapping runs.
 
 ## Status
-partial, awaiting CI. The 10 open-pr shell tests skip on Windows, so they have not run. Branch `task/p2-weekly-hardening`, committed, not pushed.
+done. The open-pr shell tests skip on Windows. CI run 44382617178 ran them (one over-strict assertion failed, fixed in PR #80) and run 44387658729 passed (763 passed). Merged as PR #82.
 
 ## What changed (and why)
 - `requirements-generate.txt` (new): every direct pin from requirements.txt plus the six transitive packages, each with a sha256 line. Built from `pip download` with the three manylinux tags, hashed, then checked with `pip download --require-hashes --no-deps` into an empty folder (passed).
@@ -47,7 +47,7 @@ Push and let CI run: it must be green, including the 10 shell tests, before this
 
 ## Review round 1 fix (implementer)
 
-Status: partial, awaiting CI. The 16 shell tests skip on Windows, so they have not run.
+Status: done. The 16 shell tests skip on Windows; CI run 44387658729 passed them.
 
 - Both findings fixed in `.github/workflows/weekly_scripts.yml`:
   - validate and open-pr download the artifact to `${{ runner.temp }}/artifact`, never over the checkout.

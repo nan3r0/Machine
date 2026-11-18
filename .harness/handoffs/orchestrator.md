@@ -24,14 +24,14 @@ You are the Stage 0 orchestrator (HARNESS.md section 10, Stage 0). Model: Sonnet
 - One watcher per task; no polling loops in your own turns.
 - One Gate 2 pass per task; chase only blocking findings.
 
-## State (2026-11-18, eleventh orchestrator session)
-- All four hardening tasks merged: p2-cso (PR #75), p2-validate-urls (PR #81), p2-weekly-hardening (PR #82), p2-gemini-redirects (PR #83). Close-out on `docs/p2-closeout-6`: status.yaml, workflow.md rows, CLAUDE.md status, the handoff Docs items (threat model, PRD R12.1, architecture, spec), this block, outcome log.
-- D1 decided option (c): `GEMINI_API_KEY` is a repo secret, in an AI Studio project with no billing, restricted to the Generative Language API.
-- weekly-scripts is still DISABLED. The owner runs `gh workflow enable weekly-scripts`, then one manual workflow_dispatch, and watches the logs. The first run proves the hashed install on the runner.
-- p2-qa-lead and p2-audit are running as read-only agents, with reports from CI run 44360049860 in `out/reports/`. The orchestrator saves their handoffs.
-- Next: p2-phase-review (task 13), then the owner approves the Auditor report.
-- Open owner items: repo setting "Allow GitHub Actions to create and approve pull requests"; confirm both Gemini models allow at least 14 calls a day (spec.md section 4 says each model's daily limit must cover 28 HTTP requests); sign off `docs/threat-model.md`; YouTube Google Cloud setup.
-- Not edited (outside this close-out's list): line 60 (the urllib redirect note in the 2026-11-16 block) is closed by p2-gemini-redirects.
+## State (2026-11-18, end of eleventh orchestrator session)
+- Phase 2 tasks all done: hardening tasks merged (p2-cso #75, p2-validate-urls #81, p2-weekly-hardening #82, p2-gemini-redirects #83) and the phase-end reports are in `.harness/handoffs/` (p2-qa-lead, p2-audit, p2-phase-review). Close-out is PR #84 (`docs/p2-closeout-6`); merge it first.
+- D1 decided option (c): `GEMINI_API_KEY` is a repo secret (AI Studio project, no billing, key restricted to the Gemini API). `weekly-scripts` is still DISABLED: the owner runs `gh workflow enable weekly-scripts`, then one manual workflow_dispatch, and watches the logs (R13.5). The first run also proves the hashed install.
+- Owner items: approve the Auditor report (R13.6) and decide F1 cadence (7 vs 3 to 4 a week), F2 source credit, F3 three sources; confirm F4 to F6; sign off the threat model; the repo setting for Actions-created PRs; both Gemini models allow at least 14 calls a day; YouTube Google Cloud setup (Phase 0); decide the QA lead's rank 1 contract change (non-ASCII digits).
+- Next for the orchestrator after #84 merges: ask the Architect to turn phase review N1 to N5 and the QA lead's ranked tests into tasks (N1 hook and loop line unchecked and N2 non-ASCII digits need contract changes, N3 shared prompt-data module, N5 GeminiError for odd response shapes); re-run the CI reports job after they land. Then Phase 4 planning (publishing), with the posting slot 14:00 UTC reviewed after 30 days.
+- Process notes: a pushed task branch is updated by merging origin/main, never rebase plus force-push (denied, and forbidden). Locked tests for a review round go on a `docs/*` branch first. Use `gh run watch <id> --exit-status`, not `wait_ci.sh`, for a run id. Launch windows with the helper pattern in `.harness/handoffs/orchestrator.md` step 2 (a small .ps1 taking -Task). Reviews and Architect work ran as read-only agents, which cannot run shell or write handoffs: the orchestrator saves their reports.
+- To-do artifact refreshed: https://claude.ai/artifact/SWmEoSUtr7XwZ5v3o9pPFQ (static status, republish when tasks change).
+- Stale worktrees under `.claude/worktrees/` (now about 60) still need cleanup.
 
 ## State (2026-11-18, end of tenth orchestrator session)
 - p2-weekly-workflow merged (PR #73), one attempt, Gate 2 and security review approved with no blocking findings, CI green. Close-out on `docs/p2-closeout-5`: outcome logged, status.yaml, workflow.md row, CLAUDE.md status, PLAN.md wording (scripts land in `queue/approved/`, D2; no `workflow_dispatch` count input, D8). Next: phase-end tasks 10 p2-qa-lead, 11 p2-cso, 12 p2-audit (max 2 at once), then 13 p2-phase-review. The QA lead and Auditor need the CI `workflow_dispatch` reports job output in `out/reports/` first.

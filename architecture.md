@@ -24,7 +24,7 @@ flowchart LR
 
 Everything runs in one GitHub Actions job (`.github/workflows/render.yml`), started by hand. `pipeline/render_one.py` wires the steps; each step is a module with no knowledge of the others. Before the voice step it runs `script.validate.problems` and exits 2 with the messages if the script is not publishable, so a bad script never costs a render. The golden frames (every 10 s from 1 s to 60 s plus one 0.5 s before the end) come from `tests/media.py::extract_golden_frames`, used by both render.yml and the heavy test; they are for visual review, not pixel comparison.
 
-## 1a. Workflow A (Phase 2, planned)
+## 1a. Workflow A (Phase 2)
 
 ```mermaid
 flowchart LR
@@ -136,6 +136,8 @@ Threat model and open security items: `docs/threat-model.md`.
 - Phase 2: the URL check fails closed on legitimate text. The bare-domain rule rejects file names ("report.pdf"), "Amazon.com" and "Node.js". Unassigned code points (Cn) are rejected too, so an emoji newer than the runtime's Unicode tables is refused with the "control or invisible character" message (Python 3.11 locally is Unicode 14.0, 3.12 in CI is 15.0). Such a script is regenerated or edited, never published with a link.
 - Phase 2: the exact check reads proper nouns from capital letters, so a name at the start of a sentence is not checked, and number words below ten are ignored. Both miss rather than false-flag; the meaning check and the owner's review cover the rest.
 - Phase 2: the scripts PR opened with `GITHUB_TOKEN` starts no CI run; the batch validates before opening it, and the owner's edit commits do run CI.
+- Phase 2: only scene narration is fact-checked. The hook and loop line are spoken but neither layer sees them, and title and description are not checked, so a made-up number there gets no flag. The owner reads the PR, but this needs a contract change before Phase 4 (phase review N1).
+- Phase 2: the exact layer reads only ASCII digits (`normalise.py`), so full-width and Arabic-Indic digits skip it. Spelled ordinals ("fifteenth") and a lone zero to nine ("seven seconds") are never checked by the exact layer; only the meaning layer catches them (phase review N2, QA lead).
 - Phase 2: sources run out. 14 seeded sources last two weekly batches; after that the batch writes fewer scripts ("N of 7: sources exhausted") and then fails with no PR. A refill plan (another research session, or the owner, optionally helped by NotebookLM by hand) is needed before Phase 4 goes live.
 - Phase 2: Gemini model ids retire (for example `gemini-3.1-flash-lite` on 2027-05-07). A retired id gives HTTP 404 and the batch fails loudly, but someone should check the Gemini deprecations page every few months and update `constants.py`. `generation_config.temperature` is documented only in the overview, so the first live run confirms it.
 - Phase 2: the batch reserves the worst case for scripts still to come (`SCRIPT_ATTEMPTS` writer calls and one checker call each), so early rewrites are more conservative than the totals need. The caps count logical calls; with the client's one retry a call can be two HTTP requests, so real requests can reach twice the cap.

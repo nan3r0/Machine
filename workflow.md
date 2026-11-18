@@ -159,7 +159,7 @@ Specialist reviews: security for p2-validate, p2-gemini, p2-batch, p2-weekly-wor
 | p2-qa-lead | done | proposed tests await owner decision |
 | p2-cso | done, merged 2026-11-18 (PR #75); threat model version 2 | Owner sign-off pending (threat model, before first public publish) |
 | p2-audit | done | report awaits owner approval |
-| p2-phase-review | not started | |
+| p2-phase-review | done | Phase 2 code can close; owner gates R13.5 and R13.6 remain |
 | p2-validate-urls | done, merged 2026-11-18 (PR #81); closes CSO P2-3 | See the handoff for review rounds |
 | p2-gemini-redirects | done, merged 2026-11-18 (PR #83); closes CSO P2-5 | See the handoff |
 | p2-weekly-hardening | done, merged 2026-11-18 (PR #82); closes CSO P2-1, P2-2, P2-4, P2-6 | Gate 2 approved; security review round 1 fixed (see handoff). Workflow A stays disabled until the owner's first manual run |
