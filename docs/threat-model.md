@@ -1,139 +1,176 @@
 # Threat Model
 
-Version 1, 2026-11-16. Covers the pipeline as built at the end of Phase 1, plus seeded threats for Phases 2 to 4. Method: STRIDE per trust boundary (HARNESS.md section 6b).
+Version 2, 2026-11-18. Covers the pipeline as built at the end of Phase 2 (Phase 1 render plus Workflow A: Gemini scripts, fact-check, approval PR), plus seeded threats for Phases 3 and 4. Method: STRIDE per trust boundary (HARNESS.md section 6b). Version 1 (2026-11-16, end of Phase 1) is in git history.
 
 **Owner sign-off: pending.** Required before the first public publish (Phase 4).
 
 Status values used below:
 - **Mitigated**: a control exists in the repo today (file:line given).
-- **Gap P1-n**: a real risk with no control yet; a proposed task in `.harness/handoffs/p1-cso.md`.
+- **Gap P1-n**: found at the end of Phase 1; details in `.harness/handoffs/p1-cso.md`.
+- **Gap P2-n**: found at the end of Phase 2; a proposed task in `.harness/handoffs/p2-cso.md`.
 - **Accepted**: a known risk the owner carries on purpose.
 - **Seeded (Phase n)**: does not exist yet; the phase that adds the feature must handle it.
 
-## 1. What Phase 1 is
+## 1. What the pipeline is at the end of Phase 2
 
-One manually started GitHub Actions job (`.github/workflows/render.yml`) reads a script JSON from the repo, synthesises a voice with Kokoro, aligns the script words with stable-ts, burns captions in with FFmpeg and uploads the MP4 as an artifact kept 3 days. CI (`.github/workflows/ci.yml`) runs on every push and pull request. Both workflows have a read-only `GITHUB_TOKEN` and use no secrets. `gh secret list` on the private repo returned nothing on 2026-11-16.
+Three workflows. `ci.yml` runs on every push and pull request. `render.yml` is started by hand, reads one script JSON from the repo and uploads a rendered MP4 as an artifact. `weekly_scripts.yml` (Workflow A) runs on Sundays at 06:00 UTC and by hand, in two jobs:
+- `generate` holds the one repo secret, `GEMINI_API_KEY`, with a read-only token. It reads the hand-curated `sources/*.yaml`, asks Gemini for up to 7 scripts, fact-checks them, writes them to `queue/approved/` and writes the PR body. Both go into an artifact.
+- `open-pr` has `contents: write` and `pull-requests: write` and no secret. It downloads the artifact, commits the scripts to a `scripts/<day>` branch and opens the approval PR. Merging that PR is the owner's approval (decision D2).
 
-Nothing is published, nothing is ingested from the internet, and no API key exists yet. Phase 1's real attack surface is the build itself: dependencies and model weights pulled into the runner, the script JSON fed into FFmpeg, and the agent sessions that write the code.
+Nothing is published yet and nothing is fetched from the open internet: the sources are YAML files the owner reviews in a PR. The secret is allowlisted but, as of this version, **not yet added**. The owner adds it only after D1 is decided and P1-4 is closed (orchestrator state, 2026-11-18). `gh secret list` was not re-run for this version.
 
 ## 2. Assets
 
-| Asset | Why it matters | Exists in Phase 1? |
+| Asset | Why it matters | State at end of Phase 2 |
 |---|---|---|
-| Approval integrity | Workflow B will treat "file is in `queue/approved/`" as "the owner approved it". Anyone who can put a file there can publish under the owner's channels | Folder exists, nothing reads it automatically yet |
+| Approval integrity | Workflow B will treat "file is in `queue/approved/` on `main`" as "the owner approved it". Anyone who can put a file there can publish under the owner's channels | Workflow A writes there through a PR. Nothing publishes yet |
+| The approval PR (body and diff) | The owner approves on what the PR shows, often on a phone. If it shows less than what lands, approval means nothing | Exists (`pipeline/script/batch.py:196-230`) |
+| `GEMINI_API_KEY` | Quota theft. Cost only if the key's Google project ever gets a billing account | Allowlisted for `generate`, not yet added |
 | Publishing tokens (YouTube OAuth refresh token, Instagram long-lived token, TikTok token) | Can post, edit or delete videos on the owner's channels | No (Phase 4) |
-| API keys (Gemini, Cloudflare, Pexels, Pixabay) and the fine-grained PAT for the IG token refresh | Quota theft; the PAT can overwrite every repo secret | No (Phases 2 to 4) |
+| Other API keys (Cloudflare, Pexels, Pixabay) and the fine-grained PAT for the IG token refresh | Quota theft; the PAT can overwrite every repo secret | No (Phases 3 and 4) |
+| Hand-curated sources (`sources/*.yaml`) | The only input the writer sees. A bad fact becomes a published claim | 15 files, owner-reviewed (PR #65) |
 | The channels and their standing | A ban or strike ends the project | No |
 | `main` branch | Every scheduled workflow runs main's code with the repo's secrets | Yes |
 | Actions minutes (about 2,000 per month, no payment method) | When they run out, every workflow stops until the month resets | Yes |
+| Gemini free daily quota | When it runs out, the weekly batch leaves scripts out or opens no PR | From the first live run |
 | Pinned model weights (Kokoro `.pth`, voice `.pt`, whisper `small.en`) | Loaded through pickle, so a swapped file is code execution on the runner | Yes |
 
-No payment method exists on any account (PLAN.md section 3), so a stolen key can exhaust a free quota but cannot create a bill.
+No payment method exists on any account (PLAN.md section 3), so a stolen key can exhaust a free quota but cannot create a bill. That holds for the Gemini key only while its Google project has no billing account (see 4.6).
 
 ## 3. Trust boundaries
 
-1. **The owner.** Writes or edits scripts, reviews and merges every PR, holds every account.
-2. **Claude Code agent sessions** on the owner's PC. They run with the owner's git and `gh` credentials, so they can push branches and, technically, push to `main` or merge PRs. lessons.md records several cases of sessions writing or pushing where they should not have; none was malicious, but each shows the boundary is soft.
+1. **The owner.** Writes or edits sources, reviews and merges every PR, holds every account.
+2. **Claude Code agent sessions** on the owner's PC. They run with the owner's git and `gh` credentials, so they can push branches, dispatch workflows and, technically, push to `main` or merge PRs. lessons.md records several cases of sessions writing or pushing where they should not have; none was malicious, but each shows the boundary is soft.
 3. **GitHub Actions runners.** Execute whatever workflow file is on the pushed or dispatched ref.
 4. **Upstream code and data sources.** PyPI, the PyTorch CPU index, Hugging Face (Kokoro), the whisper model URL, the Ubuntu apt mirror, GitHub release downloads (gitleaks, actionlint, the spaCy model).
-5. **Script JSON.** Owner-written in Phase 1. From Phase 2 it is Gemini-written from ingested internet text, so it becomes attacker-influenced.
-6. **External APIs** (Phase 2 onward): Gemini, Cloudflare Workers AI, Pexels, Pixabay, YouTube, Instagram, TikTok, alert channels.
+5. **Source files into the writer.** Hand-curated in Phase 2. Fact text is copied from web pages, so it is attacker-influenced in principle, but every file passes owner review.
+6. **Model output (Gemini) into scripts and the PR body.** Untrusted: everything Gemini returns is data that must be validated, never executed or rendered as markup.
+7. **The `generate` to `open-pr` artifact.** The only thing that crosses from the job with the key to the job with the write token.
+8. **External APIs**: Gemini now; Cloudflare Workers AI, Pexels, Pixabay, YouTube, Instagram, TikTok and alert channels later.
 
-## 4. STRIDE by boundary (Phase 1 as built)
+## 4. STRIDE by boundary (as built)
 
-### 4.1 Script JSON into the render (boundary 5)
+### 4.1 Script JSON into the render (boundary 6, rendered side)
 
 | STRIDE | Threat and scenario | Likelihood / impact | Status |
 |---|---|---|---|
-| Tampering / EoP | Command injection: a script word or title containing shell metacharacters reaches a shell | Low / high | **Mitigated.** FFmpeg and ffprobe run from argument lists, never a shell (`pipeline/render/compose.py:120`, `pipeline/render/qa.py:104`). |
-| Tampering | Filtergraph injection through the captions path (`,`, `;`, `[`, `'`, `:` in a path) | Low / medium | **Mitigated.** `pipeline/render/compose.py:37-40` escapes for the option parser and quotes for the filtergraph. Paths are built by the pipeline, not taken from the script. |
-| Tampering | ASS injection: script text containing `{\...}` override tags, or a newline that starts a new `Dialogue:` event | Medium (Phase 2) / low (visual only) | **Mitigated.** `pipeline/render/captions_ass.py:34` escapes `\`, `{` and `}`. The stronger control is `pipeline/schema.py:57`: narration text is whitespace-collapsed, so no newline can reach the `.ass` file. |
-| Tampering | Path traversal once `id` becomes a file name (queue moves in Phase 4) | Low / medium | **Mitigated.** `pipeline/schema.py:42` restricts `id` to `[a-z0-9-]`. |
-| Information disclosure | The `script` dispatch input is any path on the runner; a non-JSON file's content can appear in the pydantic error in the job log | Low / low (no secrets on disk, `persist-credentials: false`, only repo writers can dispatch) | **Accepted** for Phase 1. Workflow B picks scripts itself and has no free-form path input. |
-| Denial of service | A very long script makes Kokoro and FFmpeg run until the 45 minute timeout, burning minutes | Low now, medium in Phase 2 / low | **Gap P1-5** (minutes budget) covers the cost side; the word-count bounds are only checked by QA after rendering. Seeded for Phase 2 below. |
+| Tampering / EoP | Command injection: a script word or title containing shell metacharacters reaches a shell | Low / high | **Mitigated.** FFmpeg and ffprobe run from argument lists, never a shell (`pipeline/render/compose.py:124`, `pipeline/render/qa.py:94`). |
+| Tampering | Filtergraph injection through the captions path (`,`, `;`, `[`, `'`, `:` in a path) | Low / medium | **Mitigated.** `pipeline/render/compose.py:34-35` escapes for the option parser and quotes for the filtergraph. Paths are built by the pipeline, not taken from the script. |
+| Tampering | ASS injection: script text containing `{\...}` override tags, or a newline that starts a new `Dialogue:` event | Medium / low (visual only) | **Mitigated.** `pipeline/render/captions_ass.py:34` escapes `\`, `{` and `}`; narration text is whitespace-collapsed (`pipeline/schema.py:57`); control characters are rejected before the voice step (`pipeline/script/validate.py:43-47`, called at `pipeline/render_one.py:37-40`). |
+| Tampering | Path traversal through `id` (the source slug becomes the script id and the file name) | Low / medium | **Mitigated.** `pipeline/schema.py:42` restricts `id` to `[a-z0-9-]`; a source file with another name fails Script validation and is left out of the batch. |
+| Denial of service | A very long Gemini script makes Kokoro and FFmpeg run until the 45 minute timeout | Medium / low | **Mitigated.** Word count, character and scene caps are checked before any step runs (`pipeline/script/validate.py:51-74`, `pipeline/render_one.py:37-40`), and the writer's answer is rejected on the same checks (`pipeline/script/generate.py:168-172`). Closes the Phase 2 seed. |
+| Information disclosure | The `script` dispatch input is any path on the runner; a non-JSON file's content can appear in the pydantic error in the job log | Low / low | **Accepted.** No secret is on disk in `render.yml`, `persist-credentials: false`, and only repo writers can dispatch. |
 
 ### 4.2 Upstream code and weights into the runner (boundary 4)
 
 | STRIDE | Threat and scenario | Likelihood / impact | Status |
 |---|---|---|---|
-| Tampering / EoP | A poisoned Kokoro checkpoint (pickle) runs code when loaded, either from a compromised upstream repo or a poisoned Actions cache | Low / high | **Mitigated.** Files are fetched at a pinned revision and their sha256 is checked on every run, cached or not, before kokoro or torch loads them (`pipeline/voice/kokoro.py:76-87`, `pipeline/constants.py:21-27`). |
-| Tampering / EoP | A poisoned whisper `small.en` checkpoint | Low / high | **Mitigated by upstream behaviour only.** openai-whisper checks its own sha256 on download and on load (`pipeline/constants.py:34`). Nothing in this repo verifies it. Acceptable while `openai-whisper` is pinned. |
-| Tampering / EoP | Dependency confusion between the PyTorch index and PyPI | Low / high | **Mitigated.** torch and torchaudio install alone with `--no-deps` from the CPU index, everything else from PyPI only (`tests/workflow_rules.py:121-131`). |
-| Tampering / EoP | A malicious new release of a transitive dependency (stable-ts, kokoro, misaki, transformers and spaCy pull dozens of unpinned packages) runs at install time | Low / high (code execution on the runner; from Phase 4 the runner holds publishing tokens) | **Gap P1-4.** Only top-level packages are pinned and nothing is hash-checked. The spaCy model wheel is the one hash-pinned exception (`requirements-heavy.txt`). pip-audit catches known CVEs, not fresh malicious releases. |
-| Tampering | Compromised third-party Action | Low / high | **Mitigated.** Every `uses:` is pinned to a full commit SHA (`tests/workflow_rules.py:76-78`). gitleaks and actionlint are sha256-checked (`.github/workflows/ci.yml:90-91`). |
-| Tampering | Compromised apt package (ffmpeg, espeak-ng) | Very low / high | **Accepted.** Ubuntu's signed mirror; versions are not pinned. |
+| Tampering / EoP | A poisoned Kokoro checkpoint (pickle) runs code when loaded | Low / high | **Mitigated.** Pinned revision and sha256 checked on every run before load (`pipeline/voice/kokoro.py:76-87`, `pipeline/constants.py:21-27`). |
+| Tampering / EoP | A poisoned whisper `small.en` checkpoint | Low / high | **Mitigated by upstream behaviour only.** openai-whisper checks its own sha256; nothing in this repo does. Acceptable while `openai-whisper` is pinned. |
+| Tampering / EoP | Dependency confusion between the PyTorch index and PyPI | Low / high | **Mitigated.** torch and torchaudio install alone with `--no-deps` from the CPU index (`tests/workflow_rules.py:121-130`). |
+| Tampering / EoP | **A malicious new release of a transitive dependency now runs in the job that holds the Gemini key and writes the approval PR.** `generate` installs `requirements.txt` (`.github/workflows/weekly_scripts.yml:28-29`): four pinned top-level packages, their dependencies (pydantic-core, typing-extensions, annotated-types and others) unpinned and not hash-checked. A bad release reads `GEMINI_API_KEY` and, worse, rewrites both the scripts and `pr_body.md`, so the PR body says one thing and the files say another | Low / high | **Gap P1-4**, now blocking the key. The light half is small and needs no new tool (proposed task P2-1); the heavy lock still needs an owner-approved tool. Until then the PR diff, not the PR body, is the authoritative review. |
+| Tampering | Compromised third-party Action | Low / high | **Mitigated.** Every `uses:` is pinned to a full commit SHA (`tests/workflow_rules.py:76-78`), including `actions/download-artifact` v8.0.2 at `9000827c...` (`.github/workflows/weekly_scripts.yml:60`, checked against the tag at review of p2-weekly-workflow). gitleaks and actionlint are sha256-checked (`.github/workflows/ci.yml:90-91`). |
+| Tampering | Compromised apt package (ffmpeg, espeak-ng) | Very low / high | **Accepted.** Ubuntu's signed mirror; versions not pinned. Not installed in the job with the key. |
 
 ### 4.3 Actions runners and workflows (boundary 3)
 
 | STRIDE | Threat and scenario | Likelihood / impact | Status |
 |---|---|---|---|
-| EoP | A step writes to the repo or opens PRs with the job token | Low / high | **Mitigated.** `permissions: contents: read` and `persist-credentials: false` in every workflow except allowlisted write jobs (`tests/workflow_rules.py:72-74`, `83-86`, `97-98`, `tests/test_ci_workflow.py:47`). |
-| Tampering | Expression injection: a branch name or dispatch input interpolated into a `run:` script | Low / high | **Mitigated.** No `${{ }}` inside `run:` (`tests/workflow_rules.py:80-81`); the script input goes through `env` (`.github/workflows/render.yml:48-50`); the task id from the branch name is regex-checked before it is written to `GITHUB_ENV` (`.github/workflows/ci.yml:63`). |
-| Information disclosure / EoP | `pull_request_target` runs untrusted PR code with secrets | Low / high | **Mitigated.** Forbidden by `tests/workflow_rules.py:99-100`. |
-| EoP | **Any pushed branch can add or edit a workflow, and repo secrets are available to workflows on every branch.** When Phase 4 adds tokens, an agent-written branch (or a workflow edit hidden in a large diff) could print or send them out on push, before anyone reviews the PR | Medium / critical | **Gap P1-1.** Nothing today, because there are no secrets yet. Must be decided before the first secret is added. |
-| Tampering | The safety rules only cover workflow files the tests name. A new workflow added in Phase 2 escapes them, and `assert_safe` hardcodes `contents: read`, which Workflow A (opens PRs) must break | Medium / high | **Closed (P1-6), p2-entry-ci, PR #60.** Every file in `.github/workflows/` is checked (`tests/workflow_rules.py:108-112`, `tests/test_workflow_safety.py`); job write permissions and secrets only through the per-job allowlists `WRITE_JOBS` and `SECRET_JOBS` (`tests/workflow_rules.py:32-38`). Non-blocking review notes in architecture.md section 7. |
-| Denial of service | `ci.yml` runs the full heavy job (up to 45 minutes) on every push and every pull request event, with no `concurrency` group. An agent fix loop pushing repeatedly, or push plus PR events for the same commit, drains the monthly minutes. When they run out, scheduled publishing stops | Medium / medium | **Gap P1-5.** |
-| Information disclosure | The `render` and `frames` artifacts expose script content | Low / low (private repo, 3 days, content is meant to be public) | **Accepted.** |
+| EoP | A step writes to the repo or opens PRs with the job token | Low / high | **Mitigated.** Workflow-level `contents: read` (`tests/workflow_rules.py:97-98`); job write permissions only through the per-job allowlist `WRITE_JOBS` (`tests/workflow_rules.py:32-34`, `72-74`), today only `weekly_scripts.yml` `open-pr`; checkouts keep no credentials outside that job (`tests/workflow_rules.py:83-86`). P1-6 checked against the code: holds. |
+| EoP / Information disclosure | A secret reaches a job that can write, so one compromised step has both | Low / high | **Mitigated.** Secrets only through `SECRET_JOBS` (`tests/workflow_rules.py:35-37`, `58-66`, `87-88`); no job is in both lists (`tests/test_workflow_safety.py:159-161`); the key sits in exactly one step's env (`.github/workflows/weekly_scripts.yml:31-34`, `tests/test_weekly_workflow.py:54-59`); `open-pr` holds no secret and runs no pipeline code (`tests/test_weekly_workflow.py:69-81`). |
+| Tampering | Expression injection: a branch name or dispatch input interpolated into a `run:` script | Low / high | **Mitigated.** No `${{ }}` inside `run:` (`tests/workflow_rules.py:79-81`); values go through `env`; the task id from the branch name is regex-checked (`.github/workflows/ci.yml:63`). The `open-pr` branch name and PR title come from `date`, not from model output (`.github/workflows/weekly_scripts.yml:69-70`). |
+| Information disclosure / EoP | `pull_request_target` runs untrusted PR code with secrets | Low / high | **Mitigated.** Forbidden (`tests/workflow_rules.py:99-100`). |
+| EoP | **Any pushed or dispatched branch can run its own copy of a workflow with repo secrets.** Concrete path today: an agent-written branch edits `weekly_scripts.yml` or `pipeline/script/` and dispatches `weekly-scripts` on that branch (`.github/workflows/weekly_scripts.yml:6`), or adds a new workflow that echoes `secrets.GEMINI_API_KEY` to an outside host. It runs on push or dispatch, before review. The `SECRET_JOBS` test fails in CI on the same push, which is detection after the fact, not prevention | Medium / medium now (Gemini quota), critical in Phase 4 (publishing tokens) | **Gap P1-1. Owner decision D1 is open** (`.harness/handoffs/architect-p2-plan.md`, options a to c). Not decided in this version. If the owner picks (c) for the Gemini key, these are its conditions, not a decision: the key lives in an AI Studio project with no billing account, separate from the YouTube Cloud project; it is restricted to the Generative Language API; it is rotated on any doubt; and (a) or (b) is decided before any Phase 4 token is added. |
+| Denial of service | `ci.yml` runs the full heavy job (up to 45 minutes) on every push and every pull request event, with no `concurrency` group | Medium / medium | **Gap P1-5.** Unchanged. |
+| Information disclosure | The `render`, `frames` and `weekly-scripts` artifacts expose script content | Low / low (private repo, 3 days, content is meant to be public) | **Accepted.** |
 
 ### 4.4 Agent sessions and `main` (boundary 2)
 
 | STRIDE | Threat and scenario | Likelihood / impact | Status |
 |---|---|---|---|
-| EoP / Tampering | An agent session pushes straight to `main`, or merges its own PR, skipping Gate 2 and the owner's review. The private repo on the free plan has no branch protection | Medium / high | **Gap P1-2.** Today the only control is the owner noticing. architecture.md section 7 lists the lock hook's own limits; they are not repeated here. |
-| Tampering (approval bypass) | From Phase 4, a file pushed into `queue/approved/` by anything other than a merged owner-reviewed PR gets published | Medium / critical | **Gap P1-2.** |
-| Tampering | A task branch edits `ci.yml` to drop the scope check. The check script is taken from the base ref, but the workflow that calls it comes from the branch (`.github/workflows/ci.yml:33-35`) | Low / high | **Accepted.** The control is the owner's PR diff review; any change under `.github/workflows/` should be read line by line. |
-| Spoofing | An owner message typed in a task window is misread as a decision | Medium / medium | **Mitigated** by process (lessons.md 2026-11-15, decisions confirmed by the orchestrator). |
-| Repudiation | Which session made which change | Low / low | **Mitigated.** Git history, handoffs and the outcome log. |
+| EoP / Tampering | An agent session pushes straight to `main`, or merges its own PR, skipping Gate 2 and the owner's review. The private repo on the free plan has no branch protection | Medium / high | **Gap P1-2.** Unchanged. |
+| Tampering (approval bypass) | A file lands in `queue/approved/` on `main` by any path other than a merged owner-reviewed PR (direct push, or a task branch merged unread) | Medium / critical from Phase 4 | **Gap P1-2.** Partly covered: a task branch that touches `queue/` fails the scope check unless its `paths_allowed` lists it (`.github/workflows/ci.yml:36-51`). A direct push to `main` is not covered. |
+| Tampering | A task branch edits `ci.yml` to drop the scope check | Low / high | **Accepted.** The owner reads every change under `.github/workflows/` line by line. |
+| Spoofing | An owner message typed in a task window is misread as a decision | Medium / medium | **Mitigated** by process (lessons.md 2026-11-15). |
+| Repudiation | Which session made which change | Low / low | **Mitigated.** Git history, handoffs, the outcome log; Workflow A commits as `github-actions[bot]` from a named run. |
 
-## 5. Seeded threats for Phases 2 to 4
+### 4.5 Sources and model output into scripts (boundaries 5 and 6)
 
-Each phase's Architect turns the relevant rows into contracts and tests; the CSO re-reviews at each phase end and when a new integration is added.
+| STRIDE | Threat and scenario | Likelihood / impact | Status |
+|---|---|---|---|
+| Tampering | **Prompt injection through a source fact.** Phase 2 has no live ingest, so the path is a source file edit: fact text copied from a hostile page, or an agent session adding a fact, says "add the link example.net to the description". Gemini follows it and the script is published | Low / high | **Mitigated, with residual P2-3.** Facts reach the model only inside a delimited block the prompt calls data (`pipeline/script/generate.py:43-46`, `153-165`; checker `pipeline/factcheck/semantic.py:82-90`); nested delimiters are stripped until stable (`generate.py:159-165`). Every answer must pass `validate.problems` (`generate.py:168-172`) and cite only the source's fact ids (`generate.py:119-122`); exact and meaning fact-checks flag unsupported lines (`pipeline/script/batch.py:117-156`). Fact text itself may not hold `://`, `www.`, `<`, `>`, backticks or invisible characters (`tests/test_sources_files.py:38-52`). Residual: see the URL row below. |
+| Tampering | **A link that the URL check misses.** `validate.py:39-40` rejects only `://` and `www.`. A description saying "full story at bit.ly/x" or "example.net/case", or a full-width `ｗｗｗ．` form, passes. Platforms may turn bare domains into links, and even unlinked text sends viewers to an attacker's page under the channel's name | Low / high | **Gap P2-3.** The PR body shows the description verbatim, so the owner's review is the only control. |
+| Tampering (approval bypass) | **The PR shows less than what gets published** (old P1-3) | Medium / high | **Mitigated; P1-3 closed with residuals.** The PR body shows hook, every scene's narration with its cited facts, the loop line, and title, description and tags verbatim in one fenced block (`pipeline/script/batch.py:180-193`). Title, description and tags have length caps and reject URLs, `<`, `>`, control, bidi and zero-width characters (`pipeline/script/validate.py:37-74`). Residuals: the URL gap above (P2-3); `on_screen_text` is checked for URLs and invisible characters but has no length cap and is not in the PR body. It is not rendered today (no use under `pipeline/render/`), so this is a Phase 3 seed. |
+| Tampering | **PR body injection.** Model text in the body renders as Markdown: a link, an image, an HTML comment that hides a line, or an `@mention` that notifies a stranger | Medium / medium | **Mitigated.** Every model-derived string sits in an inline code span or fenced block longer than any backtick run in it (`pipeline/script/batch.py:159-177`, `191-193`); flag reasons are whitespace-flattened and clipped (`batch.py:100-102`). Fact text and urls are plain Markdown (`batch.py:189`): **Accepted** while sources stay owner-reviewed and pass `tests/test_sources_files.py:38-52`. Any automatic ingest must code-span fact text too (seed). |
+| Denial of service | An oversized PR body (GitHub caps it at 65,536 characters) | Low / low | **Mitigated, fails closed.** `pr_body` raises at `PR_BODY_MAX_CHARS` (`batch.py:228-229`, `pipeline/constants.py:103`), so the run fails and opens no PR; it never truncates. |
+| Tampering | **The artifact can change already-approved scripts.** The `generate` job's artifact carries all of `queue/approved/` (`weekly_scripts.yml:39-41`) and `open-pr` runs `git add queue/approved/*.json` (`weekly_scripts.yml:74`). A buggy or compromised `generate` job (see P1-4) edits a script the owner approved last week. The change shows only in the PR diff, not the PR body, so a body-only review approves it | Low / high | **Gap P2-2.** |
+| Tampering (approval bypass) | **The approval PR gets no CI before merge.** The PR is pushed and opened with `github.token` (`weekly_scripts.yml:67`, `76-77`), and per GitHub's documentation events made with that token start no new workflow runs. So `tests/test_queue_scripts.py` (every queue file valid) first runs on `main`, after the owner has approved. The PR shows no checks, which on a phone looks like nothing failed | Low / medium | **Gap P2-4.** `generate` already validates each new script (`pipeline/script/generate.py:168-172`); what is missing is a check outside the job that wrote the files, so a compromised `generate` (P1-4) or an altered old script (P2-2) is caught before merge. Verify on the first live run that the PR shows no checks. |
+| Spoofing | A source fact cites a page served over HTTP or a lookalike domain | Low / medium | **Mitigated.** Fact urls must be `https://` (`pipeline/schema.py:104`); sources are a reviewed folder with CI checks (`tests/test_sources_files.py`). Lookalike domains are left to the owner's review. |
+| Tampering | Gemini output tells the checker to pass every line (writer narration is shown to the checker) | Low / medium | **Mitigated.** Narration goes inside the checker's data block (`pipeline/factcheck/semantic.py:82-90`); the exact layer is not a model and cannot be talked round (`batch.py:125-127`); every line is visible in the PR. |
 
-### Phase 2: ingest, Gemini scripts, approval PRs
+### 4.6 Gemini API (boundary 8)
 
-| STRIDE | Threat and scenario | Required control |
-|---|---|---|
-| Tampering | **Prompt injection via ingested content.** An RSS item tells Gemini to add a link or a claim to the script, which is later published | Source text passed as delimited data, never as instructions; the fact-check gate; a URL allowlist for `description`; the owner's PR review (HARNESS.md section 6b) |
-| Tampering (approval bypass) | **The PR shows less than what gets published.** PLAN.md section 7 Workflow A step 5 lists hook, narration, sources and flags in the PR summary, but not `title`, `description` or `tags`. The schema puts no limits on them (`pipeline/schema.py:48-50`): no URL check, no length cap, no filter on control, bidi or zero-width characters. An injected link in the description passes a mobile review | The PR summary shows every field that is published, verbatim; schema or fact-check rejects URLs outside an allowlist, control and invisible characters, and over-long fields. (High; listed as P1-3) |
-| Denial of service | Gemini writes a script far outside the word bounds, which renders for 45 minutes before QA rejects it | Check `narration_words()` against the format bounds before the voice step |
-| EoP | Workflow A needs `contents: write` and `pull-requests: write` | Write permissions per job, only on the job that opens the PR; covered by P1-6 |
-| Information disclosure | The Gemini key printed in a log or an exception | Key read from env only, never logged; HTTP errors logged without headers |
-| Spoofing | A feed served over HTTP, or a lookalike domain added to the source list | HTTPS only; sources listed in a reviewed file |
+| STRIDE | Threat and scenario | Likelihood / impact | Status |
+|---|---|---|---|
+| Information disclosure | The key printed in a log, an exception or a URL | Low / medium | **Mitigated.** Read from env at call time, sent only in the `x-goog-api-key` header (`pipeline/script/gemini.py:47-66`); the response excerpt in an error is redacted before it is cut (`gemini.py:93-99`); the batch logs counts and ids only (`pipeline/script/batch.py:7`, `87`); GitHub masks the secret in logs. |
+| Information disclosure | urllib follows a 3xx and copies every non-content header, the key included, to the redirect target | Very low / medium (needs the Google endpoint to redirect elsewhere; HTTPS) | **Gap P2-5** (low). |
+| Denial of service | **Gemini quota exhaustion.** Budgets count logical calls: 14 writer and 14 checker per batch (`pipeline/constants.py:114-116`, `batch.py:25-36`), but each logical call can be 2 HTTP requests with the one retry (`gemini.py:71-90`), so up to 28 requests per model per run. Anyone with repo write, an agent session included, can dispatch `weekly-scripts` again: each run spends that again, and a second run on the same UTC day spends the quota and then fails at `git push` because the `scripts/<day>` branch exists (`weekly_scripts.yml:69-76`). A stolen key does the same. The Sunday run then gets 429 twice, scripts are left out, and with none written the run fails with no PR (`batch.py:88-89`) | Medium / low (a missed week, no cost) | **Gap P2-6.** Fails closed and is visible as a failed run; nothing alerts the owner yet (Phase 4 alerts). |
+| Elevation of privilege (cost) | The key's Google project later gets a billing account (for example if it is shared with the YouTube Cloud project), so the key moves to a paid tier and a stolen key can bill | Low / high | **Owner action**, part of D1: create the key in its own AI Studio project with no billing, restricted to the Generative Language API. |
+| Spoofing | A retired or wrong model id silently changes behaviour | Low / low | **Mitigated.** 404 names the model and fails loudly (`gemini.py:97-98`). |
+
+### 4.7 The artifact between `generate` and `open-pr` (boundary 7)
+
+| STRIDE | Threat and scenario | Likelihood / impact | Status |
+|---|---|---|---|
+| Tampering / EoP | The write job runs something from the artifact | Low / high | **Mitigated.** `open-pr` only runs `git` and `gh` on the files (`weekly_scripts.yml:65-77`); the upload paths are fixed in the workflow (`weekly_scripts.yml:39-41`); `git add` takes a path-prefixed glob, so a file name cannot become an option. |
+| Tampering | `generate` and `open-pr` check out the repo separately; if they got different commits, the queue `generate` read would not match the branch the PR is cut from | Low / low | **Accepted.** Assumption: `actions/checkout` without `ref` checks out the run's triggering commit in both jobs, so they match. Even if not, the effect (a reused source) shows in the PR. |
+
+## 5. Seeded threats for Phases 3 and 4
+
+The Phase 2 seeds of version 1 are now rows in section 4. Each phase's Architect turns the relevant rows below into contracts and tests; the CSO re-reviews at each phase end and when a new integration is added.
 
 ### Phase 3: visual templates
 
 | STRIDE | Threat and scenario | Required control |
 |---|---|---|
-| Tampering | `on_screen_text` is not whitespace-collapsed like narration, so a newline in it could start a new ASS event, and `drawtext` has its own escaping rules | Collapse whitespace and apply `escape_ass_text` (or drawtext escaping) before it reaches FFmpeg |
-| Tampering / DoS | `visual.data` is `dict[str, Any]` with no limits (`pipeline/schema.py:26`); a huge or odd chart payload crashes or stalls matplotlib | Validate `data` per template in the router, with size caps |
+| Tampering | `on_screen_text` is not whitespace-collapsed like narration, so a newline in it could start a new ASS event, and `drawtext` has its own escaping rules | Collapse whitespace and escape it before it reaches FFmpeg |
+| Tampering (approval bypass) | `on_screen_text` appears on screen but not in the PR body, and has no length cap | Show it in the PR body and cap its length before any template renders it |
+| Tampering / DoS | `visual.data` is `dict[str, Any]` with no limits (`pipeline/schema.py:26`); a huge or odd chart payload crashes or stalls matplotlib | Validate `data` per template, with size caps |
 | Tampering | Pexels or Pixabay returns an unexpected file type or a huge file | Check content type and size before FFmpeg reads it; download over HTTPS from the API's own host only |
-| Information disclosure | Cloudflare or Pexels key in logs | As for Gemini |
+| Information disclosure | Cloudflare or Pexels key in logs | As for Gemini (4.6) |
 | Repudiation | Licence of each asset unknown later | Per-video asset log (PLAN.md section 10) |
 
 ### Phase 4: publishing and token refresh
 
 | STRIDE | Threat and scenario | Required control |
 |---|---|---|
-| Spoofing / EoP | **OAuth token theft.** A stolen refresh token can post or delete on the owner's channels | GitHub Secrets only; minimum scopes (YouTube upload scope, not full account; Instagram content publish only; TikTok `video.upload` only); P1-1 decided before any secret is added; tokens never printed, masked if derived |
+| Spoofing / EoP | **OAuth token theft.** A stolen refresh token can post or delete on the owner's channels | GitHub Secrets only; minimum scopes; P1-1 decided with option (a) or (b) before any token is added; tokens never printed, masked if derived |
 | EoP | The fine-grained PAT used by the IG token refresh can write every repo secret | Single repo, secrets permission only, with an expiry date and an alert before it expires |
-| Information disclosure | Publish responses or tokens end up in the `out/render` artifact or job logs | Publish step writes nothing into `out/`; logs only status codes and platform video IDs |
-| Tampering | A script reaches publishing without passing through a merged PR | Workflow B publishes only scripts that arrived through a merged PR (see P1-2) |
+| Information disclosure | Publish responses or tokens end up in an artifact or job logs | Publish step writes nothing into `out/`; logs only status codes and platform video IDs |
+| Tampering | A script reaches publishing without passing through a merged PR, or a merged one was never validated (P2-4) | Workflow B publishes only scripts that arrived through a merged PR (P1-2) and runs `validate.problems` on each before publishing |
+| Tampering | Automatic ingest (RSS) is added | Fact text gets the same code-span treatment in the PR body as model output, and the same URL and character checks as sources |
 | Repudiation | Later, nobody can tell which approved version was published | The publish commit records the script's git blob SHA next to the platform video IDs |
-| Denial of service | Rate limits and the TikTok pending cap, or a revoked token, stop publishing silently | Alerts on every failure (PLAN.md section 10); OAuth consent screen in production so tokens do not expire after 7 days |
+| Denial of service | Rate limits, the TikTok pending cap, a revoked token, or a failed weekly batch stop publishing silently | Alerts on every failure (PLAN.md section 10); OAuth consent screen in production so tokens do not expire after 7 days |
 | Spoofing | Unofficial upload methods get the account banned | Official APIs only (HARNESS.md section 6b) |
 | Spoofing | Alert webhook URL leaked lets anyone post fake alerts | Webhook URL kept in Secrets; alerts never ask the owner to log in through a link |
 
 ## 6. Open gaps, ranked
 
-Details, failure scenarios and fix hints are in `.harness/handoffs/p1-cso.md`.
+Details for P1-n are in `.harness/handoffs/p1-cso.md`, for P2-n in `.harness/handoffs/p2-cso.md`.
 
-P1-1 conflicts with PLAN.md section 11, Phase 0 ("All keys stored in GitHub Secrets"). Until P1-1 is decided, no key goes into the repo's secrets.
+Order before the first live Workflow A run: the owner decides D1, P1-4 is closed for the packages the key job installs (P2-1), then `GEMINI_API_KEY` is added. This narrows the earlier "P1-4 closed before the key" to its light half, because the key reaches only `generate`, which installs only `requirements.txt`; the orchestrator or owner confirms the narrowing.
 
 | ID | Severity | Gap | Must be closed before |
 |---|---|---|---|
-| P1-1 | High | Repo secrets reachable from any pushed branch's workflow | Any secret is added to the repo |
-| P1-2 | High | No branch protection; agent sessions can push to `main` and, later, to `queue/approved/` | Phase 4 publishing |
-| P1-3 | High | PR review does not show every published field; no limits on title, description, tags | Phase 2 Workflow A |
-| P1-4 | Medium | Transitive Python dependencies unpinned and not hash-checked | The first secret is added |
+| P1-1 | High | Repo secrets reachable from any pushed or dispatched branch's workflow. D1 open | Adding `GEMINI_API_KEY` (decision); Phase 4 tokens (option a or b) |
+| P1-2 | High | No branch protection; agent sessions can push to `main` and `queue/approved/` | Phase 4 publishing |
+| P1-3 | High | Closed by p2-validate and p2-batch; residuals tracked as P2-3 and the Phase 3 `on_screen_text` seed | (closed) |
+| P1-4 | Medium, now High for the key job | Transitive Python dependencies unpinned and not hash-checked; `generate` holds the key and writes the PR | Light half (P2-1) before the key is added; heavy half before Phase 4 tokens |
 | P1-5 | Medium | No `concurrency` on CI; minutes can be drained | Phase 4 daily schedule |
-| P1-6 | Medium | Closed 2026-11-16 by p2-entry-ci (PR #60): every workflow file checked, per-job allowlists | (closed) |
+| P1-6 | Medium | Closed 2026-11-16 by p2-entry-ci (PR #60); re-checked against `weekly_scripts.yml` 2026-11-18, holds | (closed) |
+| P2-1 | High | `requirements.txt` and its transitive packages not hash-pinned in the job with the key | Adding `GEMINI_API_KEY` |
+| P2-2 | Medium | `open-pr` commits changes to already-approved scripts, visible only in the PR diff | First live Workflow A run |
+| P2-3 | Medium | URL check misses bare domains and full-width forms | First public publish |
+| P2-4 | Low to medium | The approval PR runs no check outside the job that wrote it before merge | Phase 4 publishing |
+| P2-5 | Low | Gemini key forwarded on an HTTP redirect | Phase 4 |
+| P2-6 | Low | Re-dispatch drains the Gemini quota; budgets count logical calls, not HTTP requests | First live Workflow A run (docs part) |
