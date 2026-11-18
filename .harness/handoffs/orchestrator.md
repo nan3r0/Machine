@@ -24,6 +24,11 @@ You are the Stage 0 orchestrator (HARNESS.md section 10, Stage 0). Model: Sonnet
 - One watcher per task; no polling loops in your own turns.
 - One Gate 2 pass per task; chase only blocking findings.
 
+## State (2026-11-18, end of ninth orchestrator session)
+- p2-batch merged (PR #71), built in one attempt with no blocking review findings. Close-out on `docs/p2-closeout-4`: outcome logged, status.yaml, workflow.md row, CLAUDE.md status, architecture.md weak point on the budget reservation and logical-call caps. Next: task 09 p2-weekly-workflow (security review triggers on `.github/workflows/**`), then phase-end 10 to 13.
+- Non-blocking notes for the phase-end reviews: a left-out script leaves an empty publish day; budgets count logical calls, and one call can be 2 HTTP requests with the retry (spec and threat model should say which the caps mean); fact text renders as plain markdown, safe only while sources stay owner-reviewed; the CSO should add threat-model rows for PR body injection and Gemini quota exhaustion; an oversized PR body aborts the whole batch (fails closed).
+- `log_outcome.py --result` takes `passed`, not `pass`. A background orchestrator session must edit inside a worktree (EnterWorktree), never the shared checkout.
+
 ## State (2026-11-18, end of eighth orchestrator session)
 - p2-semantic merged (PR #69). Close-out on `docs/p2-closeout-3`: status.yaml, workflow.md row, CLAUDE.md status, one lessons entry (launch quoting). Next: task 08 p2-batch, then 09 p2-weekly-workflow, then phase-end 10 to 13.
 - p2-batch brief: bound-check verdict indexes before `rewrite_line` (it raises `IndexError`); `check_script` never raises on a bad verdict, only `GeminiError` propagates and the batch decides; same "Edit and Write only" line.
