@@ -91,7 +91,7 @@ Goal: Workflow A opens a real pull request of 7 fact-checked scripts, with flags
 - R11.3 A batch never makes more model calls than the writer and checker budgets in `pipeline/constants.py`; when a budget is used up, lines are flagged instead of rewritten.
 
 **R12. Publishable fields** (CSO P1-3, phase review N5).
-- R12.1 A script is rejected if any spoken or published field contains a URL or `www.`, `<` or `>`, a control, bidi or zero-width character (newlines allowed in the description only), or exceeds the title, description, tag, scene-count or narration-length caps.
+- R12.1 A script is rejected if any spoken or published field contains a URL, a bare domain (a dot then a TLD of 2 or more letters, such as `example.com`), `www.`, `<` or `>`, a control, bidi or zero-width character, or any format, unassigned, private-use or surrogate character (newlines allowed in the description only), or exceeds the title, description, tag, scene-count or narration-length caps. The URL and angle-bracket checks run on text folded with NFKD and combining marks dropped, so full-width and look-alike forms are caught.
 - R12.2 The render command exits 2 before the voice step for a script outside `TIKTOK_WORDS`.
 - R12.3 Every JSON file under `queue/` passes R12.1 and the word bounds in CI, so a mobile edit of an approval PR is checked.
 

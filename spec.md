@@ -114,8 +114,9 @@ Coverage must not drop. Harness tests run separately: `pytest .harness/tests`.
 
 ## 7. Approved dependencies
 
-Pinned by p1-contracts on 2026-11-15 to the newest stable release at least two weeks old. The pins live in three files so the local install stays light:
+Pinned by p1-contracts on 2026-11-15 to the newest stable release at least two weeks old. The pins live in four files so the local install stays light:
 
+- `requirements-generate.txt` (Workflow A's `generate` job): every direct pin from `requirements.txt` plus six transitive packages, each with a sha256 line, installed with `--require-hashes`. Regenerate it whenever `requirements.txt` changes; the pin test fails until then.
 - `requirements.txt` (runtime, light): `pydantic` 2.14.2, `pyyaml` 6.0.3, `soundfile` 0.14.0, `numpy` 2.4.6 (2.5 needs Python 3.12).
 - `requirements-dev.txt`: `pytest` 9.2.0, `pytest-cov` 7.1.0, `hypothesis` 6.170.15, `ruff` 0.17.5, `mypy` 2.4.1, `types-PyYAML` 6.0.12.20261030, `bandit` 1.9.4, `pip-audit` 2.10.1, `pip-licenses` 5.5.5, and on Linux only `semgrep` 1.183.0 and `mutmut` 3.8.1.
 - `requirements-heavy.txt` (CI and the render workflow only, never local): `torch` and `torchaudio` 2.11.0 CPU builds (torchaudio's last release line, and the two must match), `stable-ts` 2.19.1, `openai-whisper` 20250625, `kokoro` 0.9.4, `misaki[en]` 0.9.4, plus pins for what kokoro leaves loose: `transformers` 5.22.1, `spacy` 3.8.18 and the `en_core_web_sm` 3.8.0 model (misaki would otherwise download it at runtime). torch's own dependencies, taken from the CPU wheel's metadata, are pinned too: `filelock` 4.2.10, `typing-extensions` 4.16.0, `setuptools` 81.0.0 (torch needs below 82), `sympy` 1.14.0 with `mpmath` 1.3.0 (sympy needs below 1.4), `networkx` 3.7, `jinja2` 3.1.6 with `markupsafe` 3.0.4, `fsspec` 2026.9.0. torchaudio declares no dependencies.
