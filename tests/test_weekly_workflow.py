@@ -43,12 +43,15 @@ def test_safe_with_this_files_allowlist() -> None:
 
 def test_two_jobs_split_secret_from_write() -> None:
     wf = workflow()
-    assert set(wf["jobs"]) == {"generate", "open-pr"}
+    # p2-weekly-hardening (CSO P2-4) adds a read-only `validate` job; tests/test_weekly_hardening.py
+    # pins the exact set once that task is done.
+    assert {"generate", "open-pr"} <= set(wf["jobs"]) <= {"generate", "validate", "open-pr"}
     assert wf["permissions"] == {"contents": "read"}
     assert wf["jobs"]["generate"].get("permissions", rules.READ_ONLY) == rules.READ_ONLY
     assert wf["jobs"]["open-pr"]["permissions"] == {"contents": "write", "pull-requests": "write"}
     needs = wf["jobs"]["open-pr"]["needs"]
-    assert needs == "generate" or needs == ["generate"]
+    needs = [needs] if isinstance(needs, str) else needs
+    assert "generate" in needs and set(needs) <= {"generate", "validate"}
 
 
 def test_generate_job() -> None:

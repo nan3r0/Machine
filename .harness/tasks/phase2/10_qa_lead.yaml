@@ -1,6 +1,6 @@
 id: p2-qa-lead
 title: Phase 2 test quality review (mutation testing and coverage gaps)
-depends_on: [p2-weekly-workflow]
+depends_on: [p2-weekly-workflow, p2-validate-urls, p2-gemini-redirects, p2-weekly-hardening]
 role: qa_lead
 notes: |
   HARNESS.md section 6b. The owner first runs the CI workflow_dispatch reports job and downloads

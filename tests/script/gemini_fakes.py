@@ -77,8 +77,9 @@ def http_error(code: int, body: str = '{"error": {"code": 0, "message": "fake"}}
 
 
 class FakeUrlopen:
-    """Replaces urllib.request.urlopen. Each call takes the next outcome: a dict (sent as the JSON
-    body), raw bytes, or an exception to raise. Records every request and timeout."""
+    """Replaces urllib.request.OpenerDirector.open (set on the class, so it is called without the
+    opener). Each call takes the next outcome: a dict (sent as the JSON body), raw bytes, or an
+    exception to raise. Records every request and timeout."""
 
     def __init__(self, *outcomes: Any) -> None:
         self.outcomes = list(outcomes)

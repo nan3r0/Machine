@@ -1,6 +1,6 @@
 """The Gemini client: request shape, key handling, errors and retries (task p2-gemini, spec.md section 5).
 
-urllib.request.urlopen and time.sleep are replaced by fakes; no test touches the network.
+urllib.request.OpenerDirector.open and time.sleep are replaced by fakes; no test touches the network.
 """
 
 import json
@@ -32,7 +32,8 @@ def sleeps(monkeypatch: pytest.MonkeyPatch) -> list[float]:
 
 def install(monkeypatch: pytest.MonkeyPatch, *outcomes: Any) -> FakeUrlopen:
     fake = FakeUrlopen(*outcomes)
-    monkeypatch.setattr(urllib.request, "urlopen", fake)
+    # Patched on the class so the fake catches urlopen and any opener the client builds (CSO P2-5).
+    monkeypatch.setattr(urllib.request.OpenerDirector, "open", fake)
     return fake
 
 

@@ -1,0 +1,62 @@
+id: p2-weekly-hardening
+title: Workflow A hardening - hashed key-job install, new-scripts-only PR, validate job, no overlap (CSO P2-1, P2-2, P2-4, P2-6)
+depends_on: [p2-weekly-workflow]
+role: implementer
+notes: |
+  Hardening before the first live Workflow A run (owner approved CSO P2-1 to P2-6, 2026-11-18).
+  GEMINI_API_KEY is already a repo secret (D1, option c), so until this task merges the Sunday
+  cron runs the key job with an unhashed install. The owner disables the workflow until then.
+  All four findings edit weekly_scripts.yml, so they are one task.
+  - P2-1: new requirements-generate.txt pinning every package requirements.txt resolves to on the
+    runner (ubuntu-latest, x86_64, CPython 3.12), each with --hash=sha256 lines. Build it with
+    `pip download -r requirements.txt -d <tmp> --platform manylinux2014_x86_64 --python-version 3.12
+    --only-binary=:all:` and `pip hash`, take every wheel's hash (pydantic-core, numpy, soundfile,
+    cffi and pyyaml ship per-platform wheels), then prove it with `pip download --require-hashes
+    -r requirements-generate.txt` and the same platform flags into an empty folder. Put a header
+    comment on how to regenerate it. Do not add hashes to requirements.txt (ci.yml installs it in
+    one pip call with unhashed files). The generate job installs only
+    `python -m pip install -q --require-hashes -r requirements-generate.txt`; point setup-python's
+    cache-dependency-path at the new file.
+  - P2-2: open-pr pushes only new scripts. Before staging, fail if any tracked file under
+    queue/approved/ changed or was deleted (git diff --quiet). Stage only untracked files directly
+    in queue/approved/ whose names match ^[a-z0-9]+(-[a-z0-9]+)*\.json$ (the Script id pattern
+    plus .json); fail on any other untracked file there, so nothing is dropped silently. Shell only;
+    no pipeline code in the write job. Read file lists with -z or a NUL-safe loop (lessons.md).
+  - P2-4: a third job `validate`: needs generate, no permissions block (read-only default), no
+    secret, no token, checkout with persist-credentials false, downloads the artifact onto the fresh
+    checkout, installs with --require-hashes -r requirements-generate.txt plus pytest at the
+    requirements-dev.txt pin in a second pip call, runs `python -m pytest -q
+    tests/test_queue_scripts.py`. open-pr needs [generate, validate].
+  - P2-6: workflow-level `concurrency: {group: weekly-scripts, cancel-in-progress: false}`. The
+    optional "fail early if scripts/<day> exists" is skipped (YAGNI; the concurrency group and the
+    failing push already stop a second PR).
+  - pyproject.toml: add requirements-generate.txt to [tool.mutmut] also_copy (the new tests read
+    it; lessons.md 2026-11-16). Branch fix/mutmut-copy-sources also edits that list: rebase on main
+    first if it has merged.
+  Actions pinned by full SHA, values reach run: only through env:, must pass actionlint and the
+  p2-entry-ci rules. The open-pr shell tests skip on Windows: hand off as partial, awaiting CI,
+  until CI is green. Security specialist review runs.
+  Docs for the handoff (applied at close-out): architecture.md section 4 (three jobs, hashed
+  install) and section 7 (P2-2, P2-4 closed); spec.md section 7 (requirements-generate.txt);
+  docs/threat-model.md P1-4 light half and P2-n rows (CSO at phase end).
+paths_allowed:
+  - .github/workflows/weekly_scripts.yml
+  - requirements-generate.txt
+  - pyproject.toml
+tests:
+  - tests/test_weekly_hardening.py
+acceptance: tests/test_weekly_hardening.py::test_acceptance
+manual_acceptance: After merge, the owner re-enables weekly-scripts and dispatches it once; the generate job logs a hash-checked install and the PR holds only new scripts (this is also p2-weekly-workflow's manual acceptance).
+context_files:
+  - PLAN.md#7
+  - .harness/handoffs/p2-cso.md
+  - docs/threat-model.md#6
+  - .github/workflows/weekly_scripts.yml
+  - tests/workflow_rules.py
+  - tests/test_weekly_workflow.py
+  - tests/test_weekly_hardening.py
+  - requirements.txt
+  - requirements-dev.txt
+  - pyproject.toml
+  - lessons.md
+max_turns: 40

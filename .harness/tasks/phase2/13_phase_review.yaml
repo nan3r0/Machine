@@ -1,6 +1,6 @@
 id: p2-phase-review
 title: Phase-end architecture check of Phase 2 as a whole
-depends_on: [p2-qa-lead, p2-cso, p2-audit]
+depends_on: [p2-qa-lead, p2-cso, p2-audit, p2-validate-urls, p2-gemini-redirects, p2-weekly-hardening]
 role: reviewer
 notes: |
   HARNESS.md section 6a. Short pass: interfaces between sources, generate, factcheck and batch fit;
