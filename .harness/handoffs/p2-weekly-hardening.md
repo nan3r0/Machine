@@ -44,3 +44,45 @@ Push and let CI run: it must be green, including the 10 shell tests, before this
 - `pip download --require-hashes -r requirements-generate.txt` with the three platform flags: succeeded.
 - Not run: mypy (no pipeline code changed), actionlint (not installed locally).
 - Venv: `../p2-weekly-workflow/.venv`.
+
+## Review round 1
+
+Gate 2 approved. The security review blocked on two findings in `.github/workflows/weekly_scripts.yml`. The Architect updated `tests/test_weekly_hardening.py` (this task's own test file; `tests/test_weekly_workflow.py` is unchanged, since no done test asserts `path: .`) and the P2-2 and P2-4 notes in the task YAML. The implementer fixes the workflow next.
+
+### Blocking findings
+1. HIGH, open-pr. The artifact is extracted with `path: .` over a checkout that keeps credentials (`persist-credentials: true`, `GH_TOKEN` in env). A compromised generate job can ship `.git/hooks/*`, `.git/config` (`core.fsmonitor`) or any file outside queue/approved, which then runs on `git diff`, `git switch` or `git commit` with the write token.
+2. MEDIUM, validate. The same `path: .` extraction runs before pytest, so a planted root `conftest.py`, `pytest.py`, `pyproject.toml` or an overwritten tests file makes validate pass vacuously.
+
+### Fix direction
+- Both jobs download to `${{ runner.temp }}/artifact` (the test pins exactly that path).
+- One copy step, text-identical in validate (before pytest) and open-pr (before any git command, no `GH_TOKEN` in its env). It walks `$RUNNER_TEMP/artifact/queue/approved` with a NUL-safe loop under `LC_ALL=C` and fails on:
+  - a symlink, directory, FIFO or other non-regular file;
+  - a name not matching `^[a-z0-9]+(-[a-z0-9]+)*\.json$`, subfolders included.
+- An entry already in the checkout is skipped when byte-identical (`cmp -s`) and fails the job when it differs. Generate uploads the whole folder, so the tracked `sample-65s.json` comes back unchanged every run. A literal "refuse any existing file" would fail every run. This check replaces `git diff --quiet`.
+- Copy only new files into `queue/approved/`. Fail with a message when there are none.
+- In open-pr, every git call uses `git -c core.hooksPath=/dev/null`. `gh pr create --body-file` reads `$RUNNER_TEMP/artifact/out/batch/pr_body.md`.
+- validate: drop `cache: pip`, so a poisoned generate cache cannot seed the unhashed pytest install. Hash-pinning pytest is optional. Add an explicit job-level `permissions: contents: read`, and fix the job comment: the job still has a read-only `GITHUB_TOKEN`, so "no token" is wrong.
+- The shell harness gives `RUNNER_TEMP` in env and resolves `${{ runner.temp }}` in step `env:` to it. Any other expression in step env becomes `dummy`.
+
+### Gate 2 notes (non-blocking)
+- What changed says `--no-deps`, but Evidence ran without it. State which one ran.
+- Give every guard an explicit failure `echo`. This includes the old `git diff` guard if any form of it stays.
+- `git ls-files --exclude-standard` drops ignored files silently. Remove it or justify it in the handoff.
+- Set `LC_ALL=C` for the bash regex, so `[a-z]` cannot match non-ASCII letters in other locales (the test now includes `café.json`).
+
+### Test changes
+- New static tests:
+  - `test_artifact_never_lands_on_the_checkout[validate|open-pr]`
+  - `test_validate_job_is_explicitly_read_only_and_uncached`
+  - `test_validate_copies_the_artifact_with_the_open_pr_step`
+  - All three are added to `test_acceptance`.
+- New shell tests:
+  - `test_open_pr_refuses_a_non_regular_file[symlink|directory|fifo]`
+  - `test_open_pr_ignores_files_outside_queue_approved` (planted `.git/hooks`, `.git/config`, `conftest.py`, `pytest.py`, `pyproject.toml`, tests file)
+  - `test_open_pr_runs_no_git_hooks` (hooks planted in the checkout must not run)
+- Changed shell tests:
+  - The artifact fixture now lives in `<tmp>/runner/artifact` and the checkout stays clean.
+  - The success test also checks `--body-file` under the temp folder and that no `out/` reaches the checkout.
+  - The bad-name list gains `café.json` and `.hidden.json`.
+- `test_open_pr_refuses_a_changed_approved_script[delete]` is dropped, and the edit case is renamed `test_open_pr_refuses_an_edited_approved_script`. A file missing from a temp-folder artifact deletes nothing, so there is no deletion to refuse.
+- Against the current workflow, 5 static tests fail on Windows: the two path tests, permissions/cache, the shared copy step and acceptance. The shell tests skip locally, so CI proves them.
