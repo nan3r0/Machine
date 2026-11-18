@@ -15,7 +15,7 @@ done. Committed on `task/p2-validate-urls`, not pushed.
 - Messages are unchanged ("<field>: contains a URL").
 
 ## Decisions made
-- Regex is ASCII-only for labels and TLDs. A domain written in non-ASCII letters (for example Cyrillic) is not caught. Looking up IDNs is out of scope for this task.
+- Regex was ASCII-only at first. The automated security review (MEDIUM) flagged that a Cyrillic or CJK domain slips through, so labels now use Unicode word characters (`[\w-]+`) and the TLD uses Unicode letters (`[^\W\d_]{2,}`). Punycode (`xn--`) forms match as well. Checked by hand on "пример.рф", "例え.日本" and `xn--` names; the locked tests have no non-Latin case, so the Architect may want to add one.
 - No path part in the regex: the domain alone is enough to reject, so the path needs no pattern.
 
 ## Tried and abandoned
@@ -23,7 +23,7 @@ none
 
 ## Known risks
 - False positive: a sentence missing its space after a full stop ("end.Next") reads as a domain and is rejected. The queue scripts pass `tests/test_queue_scripts.py` with the new rule. Seeded source text is not run through `validate`, so I did not check it separately.
-- Non-ASCII domains are not caught (see Decisions).
+- Non-Latin text with a dot directly before 2 or more letters and no space ("слово.Другое") is also rejected as a domain.
 
 ## Next step
 Gate 2 review and the security specialist review (validate.py is a trigger in `.harness/config.yaml`), then merge.

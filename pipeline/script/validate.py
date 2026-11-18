@@ -21,7 +21,8 @@ from pipeline.schema import Script
 
 _BAD_CATEGORIES = {"Cf", "Co", "Cs"}
 # A TLD needs 2+ letters, so "3.5", "U.S." and "a.m." pass; a lone dot in "wait..." has no letters before it.
-_DOMAIN_LIKE = re.compile(r"[a-z0-9-]+\.[a-z]{2,}", re.IGNORECASE)
+# Unicode letters count too, so an internationalised domain ("пример.рф") is caught.
+_DOMAIN_LIKE = re.compile(r"[\w-]+\.[^\W\d_]{2,}")
 
 
 def _fields(script: Script) -> Iterator[tuple[str, str]]:
