@@ -45,6 +45,21 @@ Push and let CI run: it must be green, including the 10 shell tests, before this
 - Not run: mypy (no pipeline code changed), actionlint (not installed locally).
 - Venv: `../p2-weekly-workflow/.venv`.
 
+## Review round 1 fix (implementer)
+
+Status: partial, awaiting CI. The 16 shell tests skip on Windows, so they have not run.
+
+- Both findings fixed in `.github/workflows/weekly_scripts.yml`:
+  - validate and open-pr download the artifact to `${{ runner.temp }}/artifact`, never over the checkout.
+  - Both run one text-identical step, "Copy the new scripts from the artifact", before pytest and before any git command, with no token in its env. It runs under `LC_ALL=C`, walks `$RUNNER_TEMP/artifact/queue/approved` with `find -print0`, and fails on a symlink, directory, FIFO or other non-regular file, on a name not matching `^[a-z0-9]+(-[a-z0-9]+)*\.json$`, on an existing file that differs (`cmp -s`), and when nothing new was copied. Byte-identical existing files are skipped.
+  - open-pr then runs `git add -- queue/approved` (only new files are untracked-or-changed) and `gh pr create --body-file "$RUNNER_TEMP/artifact/out/batch/pr_body.md"`. The old `git diff --quiet` and `git ls-files --exclude-standard` guards are gone.
+  - validate: `cache: pip` removed, explicit `permissions: contents: read`, job comment corrected.
+- Decision: hooks are disabled with `GIT_CONFIG_COUNT=1`, `GIT_CONFIG_KEY_0=core.hooksPath`, `GIT_CONFIG_VALUE_0=/dev/null` in the commit step env instead of `git -c ...` on each call. It is the same effect for every git call, `gh`'s included, and the locked `test_weekly_workflow.py` needs the literal `git push` in the step. Needs git 2.31 or later (ubuntu-latest has it).
+- Gate 2 notes: every guard has an explicit failure `echo`; `LC_ALL=C` is set. The earlier `--no-deps` wording was wrong: the hash proof ran `pip download --require-hashes -r requirements-generate.txt` without `--no-deps` (see Evidence).
+- Not changed: pytest in validate is still an unhashed pin (optional per the task).
+- Docs: unchanged from the list above; architecture.md section 4 should also say the artifact is extracted to the runner temp folder and filtered by the shared copy step.
+- Evidence: `LOOM_TASK=p2-weekly-hardening pytest -q tests/test_weekly_hardening.py tests/test_weekly_workflow.py tests/test_workflow_safety.py`: 48 passed, 16 skipped (shell tests, Windows). actionlint and the shell tests await CI.
+
 ## Review round 1
 
 Gate 2 approved. The security review blocked on two findings in `.github/workflows/weekly_scripts.yml`. The Architect updated `tests/test_weekly_hardening.py` (this task's own test file; `tests/test_weekly_workflow.py` is unchanged, since no done test asserts `path: .`) and the P2-2 and P2-4 notes in the task YAML. The implementer fixes the workflow next.

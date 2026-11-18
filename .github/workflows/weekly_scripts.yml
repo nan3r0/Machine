@@ -47,12 +47,15 @@ jobs:
           if-no-files-found: error
           retention-days: 3
 
-  # Re-checks the model output with the repo's own queue tests. It holds no key and no token, so
-  # injected output cannot reach either one.
+  # Re-checks the model output with the repo's own queue tests. It holds no key, keeps no checkout
+  # credentials and its GITHUB_TOKEN is read-only. The artifact is untrusted, so it never lands on
+  # the checkout: only the filtered copy step brings new script files in.
   validate:
     needs: generate
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -61,13 +64,46 @@ jobs:
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: weekly-scripts
-          path: .
+          path: ${{ runner.temp }}/artifact
+
+      - name: Copy the new scripts from the artifact
+        run: |
+          export LC_ALL=C
+          src="$RUNNER_TEMP/artifact/queue/approved"
+          if [ ! -d "$src" ]; then
+            echo "the artifact has no queue/approved folder"
+            exit 1
+          fi
+          mkdir -p queue/approved
+          copied=0
+          while IFS= read -r -d '' path; do
+            name="${path#"$src"/}"
+            if [ -L "$path" ] || [ ! -f "$path" ]; then
+              echo "not a regular file in the artifact: $name"
+              exit 1
+            fi
+            if [[ ! "$name" =~ ^[a-z0-9]+(-[a-z0-9]+)*\.json$ ]]; then
+              echo "unexpected file name in the artifact: $name"
+              exit 1
+            fi
+            if [ -e "queue/approved/$name" ]; then
+              if ! cmp -s "$path" "queue/approved/$name"; then
+                echo "the artifact changes an approved script: $name"
+                exit 1
+              fi
+            else
+              cp -- "$path" "queue/approved/$name"
+              copied=$((copied + 1))
+            fi
+          done < <(find "$src" -mindepth 1 -print0)
+          if [ "$copied" -eq 0 ]; then
+            echo "no new scripts in the artifact"
+            exit 1
+          fi
 
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: "3.12"
-          cache: pip
-          cache-dependency-path: requirements-generate.txt
 
       - name: Install requirements and pytest
         run: |
@@ -95,32 +131,59 @@ jobs:
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: weekly-scripts
-          path: .
+          path: ${{ runner.temp }}/artifact
 
+      - name: Copy the new scripts from the artifact
+        run: |
+          export LC_ALL=C
+          src="$RUNNER_TEMP/artifact/queue/approved"
+          if [ ! -d "$src" ]; then
+            echo "the artifact has no queue/approved folder"
+            exit 1
+          fi
+          mkdir -p queue/approved
+          copied=0
+          while IFS= read -r -d '' path; do
+            name="${path#"$src"/}"
+            if [ -L "$path" ] || [ ! -f "$path" ]; then
+              echo "not a regular file in the artifact: $name"
+              exit 1
+            fi
+            if [[ ! "$name" =~ ^[a-z0-9]+(-[a-z0-9]+)*\.json$ ]]; then
+              echo "unexpected file name in the artifact: $name"
+              exit 1
+            fi
+            if [ -e "queue/approved/$name" ]; then
+              if ! cmp -s "$path" "queue/approved/$name"; then
+                echo "the artifact changes an approved script: $name"
+                exit 1
+              fi
+            else
+              cp -- "$path" "queue/approved/$name"
+              copied=$((copied + 1))
+            fi
+          done < <(find "$src" -mindepth 1 -print0)
+          if [ "$copied" -eq 0 ]; then
+            echo "no new scripts in the artifact"
+            exit 1
+          fi
+
+      # Only queue/approved is added: byte-identical old scripts are unchanged, so just the new files
+      # stage. The GIT_CONFIG_* variables are `-c core.hooksPath=/dev/null` for every git call in the
+      # step (gh's included), so nothing in the checkout runs with the write token.
       - name: Commit the new scripts and open the PR
         env:
           GH_TOKEN: ${{ github.token }}
+          GIT_CONFIG_COUNT: "1"
+          GIT_CONFIG_KEY_0: core.hooksPath
+          GIT_CONFIG_VALUE_0: /dev/null
         run: |
           day="$(date -u +%Y-%m-%d)"
           branch="scripts/$day"
-          # The artifact may only add files: an edited or deleted approved script fails the job.
-          git diff --quiet -- queue/approved
-          new=()
-          while IFS= read -r -d '' file; do
-            if [[ ! "${file#queue/approved/}" =~ ^[a-z0-9]+(-[a-z0-9]+)*\.json$ ]]; then
-              echo "unexpected file in queue/approved: $file"
-              exit 1
-            fi
-            new+=("$file")
-          done < <(git ls-files --others --exclude-standard -z -- queue/approved)
-          if [ "${#new[@]}" -eq 0 ]; then
-            echo "no new scripts to commit"
-            exit 1
-          fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git switch -c "$branch"
-          git add -- "${new[@]}"
+          git add -- queue/approved
           git commit -m "Add weekly scripts for $day"
           git push origin "$branch"
-          gh pr create --title "Weekly scripts $day" --body-file out/batch/pr_body.md
+          gh pr create --title "Weekly scripts $day" --body-file "$RUNNER_TEMP/artifact/out/batch/pr_body.md"
