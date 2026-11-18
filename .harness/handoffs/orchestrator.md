@@ -24,6 +24,12 @@ You are the Stage 0 orchestrator (HARNESS.md section 10, Stage 0). Model: Sonnet
 - One watcher per task; no polling loops in your own turns.
 - One Gate 2 pass per task; chase only blocking findings.
 
+## State (2026-11-18, end of tenth orchestrator session)
+- p2-weekly-workflow merged (PR #73), one attempt, Gate 2 and security review approved with no blocking findings, CI green. Close-out on `docs/p2-closeout-5`: outcome logged, status.yaml, workflow.md row, CLAUDE.md status, PLAN.md wording (scripts land in `queue/approved/`, D2; no `workflow_dispatch` count input, D8). Next: phase-end tasks 10 p2-qa-lead, 11 p2-cso, 12 p2-audit (max 2 at once), then 13 p2-phase-review. The QA lead and Auditor need the CI `workflow_dispatch` reports job output in `out/reports/` first.
+- Before the manual acceptance run: owner decides D1, threat-model P1-4 is closed, then the `GEMINI_API_KEY` secret is added, and the repo setting "Allow GitHub Actions to create and approve pull requests" is on.
+- Non-blocking notes for the phase-end reviews: `generate` and `open-pr` check out the ref separately, so a merge between them cuts the PR branch from a newer commit; a second run on the same UTC day fails at `git push` (date branch name); the artifact carries all of `queue/approved/`, so a bad `generate` job could alter already-approved scripts, visible only in the PR diff (hardening: fail `open-pr` if a tracked file under `queue/approved/` changed). The CSO should record the `actions/download-artifact` v8.0.2 pin (9000827c, checked against the tag).
+- Low memory on the owner's PC killed one background watcher; run reviews one after another, not in parallel.
+
 ## State (2026-11-18, end of ninth orchestrator session)
 - p2-batch merged (PR #71), built in one attempt with no blocking review findings. Close-out on `docs/p2-closeout-4`: outcome logged, status.yaml, workflow.md row, CLAUDE.md status, architecture.md weak point on the budget reservation and logical-call caps. Next: task 09 p2-weekly-workflow (security review triggers on `.github/workflows/**`), then phase-end 10 to 13.
 - Non-blocking notes for the phase-end reviews: a left-out script leaves an empty publish day; budgets count logical calls, and one call can be 2 HTTP requests with the retry (spec and threat model should say which the caps mean); fact text renders as plain markdown, safe only while sources stay owner-reviewed; the CSO should add threat-model rows for PR body injection and Gemini quota exhaustion; an oversized PR body aborts the whole batch (fails closed).
