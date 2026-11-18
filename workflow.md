@@ -150,7 +150,7 @@ Specialist reviews: security for p2-validate, p2-gemini, p2-batch and p2-weekly-
 | p2-generate | done, merged 2026-11-17 (PR #67) | Gate 2 approved after round 1 (nested delimiter fix) |
 | p2-semantic | done, merged 2026-11-18 (PR #69) | Gate 2 approved round 1; non-blocking notes in the orchestrator handoff |
 | p2-batch | done, merged 2026-11-18 (PR #71) | Gate 2 and security review approved round 1; non-blocking notes in the orchestrator handoff |
-| p2-weekly-workflow | not started; live run waits for D1 | |
+| p2-weekly-workflow | done, merged 2026-11-18 (PR #73); manual acceptance waits for D1 and the repo secret | Gate 2 and security review approved round 1; non-blocking notes in the orchestrator handoff |
 | p2-qa-lead | not started | |
 | p2-cso | not started | |
 | p2-audit | not started | |

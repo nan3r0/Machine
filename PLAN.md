@@ -41,7 +41,7 @@ flowchart TD
             HOOK[(data/hook_stats.json)] --> GEN
             GEN --> FC1[Exact check in code<br/>numbers · dates · names]
             FC1 --> FC2[Meaning check by LLM<br/>does the source support this?]
-            FC2 --> PR[Open pull request<br/>queue/pending/*.json<br/>⚠️ flags in PR description]
+            FC2 --> PR[Open pull request<br/>queue/approved/*.json<br/>⚠️ flags in PR description]
         end
 
         PR --> YOU{{You · GitHub mobile app<br/>edit lines → Merge}}
@@ -218,7 +218,7 @@ Two layers, each with a clear job:
 ### Workflow A — Weekly script batch (Sunday)
 1. Ingest: new RSS/API items + any `sources/*.md` you added.
 2. Choose unused sources: a source is used once any of its fact ids appears in a script under `queue/` (decision D3), steering away from recently covered topics.
-3. Gemini (JSON mode) generates **N scripts** in the 65 s format of section 4 (N = videos per week; up to 28 for "vacation mode" via `workflow_dispatch` input):
+3. Gemini (JSON mode) generates **N scripts** in the 65 s format of section 4 (N = videos per week; up to 28 for "vacation mode" via a `workflow_dispatch` input, deferred by decision D8):
    ```json
    {
      "id": "2026-11-16-ai-chip-war",
@@ -236,7 +236,7 @@ Two layers, each with a clear job:
    }
    ```
 4. Run the two-layer fact-check (§5).
-5. Commit to `queue/pending/` on a branch → **open a PR** with a readable summary: hook, full narration, sources, ⚠️ flags.
+5. Commit to `queue/approved/` on a branch (merging the PR is the approval, decision D2) → **open a PR** with a readable summary: hook, full narration, sources, ⚠️ flags.
 
 ### You — Review (~15 min/week)
 - Read the PR on the GitHub mobile app. Edit any line directly in the JSON, delete scripts you don't like, then **Merge**.
@@ -278,7 +278,7 @@ Two layers, each with a clear job:
 ```
 shorts-pipeline/                  # private GitHub repo
 ├── .github/workflows/
-│   ├── weekly_scripts.yml        # A — schedule + workflow_dispatch(count)
+│   ├── weekly_scripts.yml        # A — schedule + workflow_dispatch (count input deferred, D8)
 │   ├── daily_publish.yml         # B
 │   ├── daily_analytics.yml       # C
 │   ├── on_merge_approve.yml      # moves pending → approved
