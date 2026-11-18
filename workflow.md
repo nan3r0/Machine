@@ -156,7 +156,7 @@ Specialist reviews: security for p2-validate, p2-gemini, p2-batch, p2-weekly-wor
 | p2-semantic | done, merged 2026-11-18 (PR #69) | Gate 2 approved round 1; non-blocking notes in the orchestrator handoff |
 | p2-batch | done, merged 2026-11-18 (PR #71) | Gate 2 and security review approved round 1; non-blocking notes in the orchestrator handoff |
 | p2-weekly-workflow | done, merged 2026-11-18 (PR #73); manual acceptance waits for p2-weekly-hardening (D1 decided, repo secret added) | Gate 2 and security review approved round 1; non-blocking notes in the orchestrator handoff |
-| p2-qa-lead | in progress | read-only review running |
+| p2-qa-lead | done | proposed tests await owner decision |
 | p2-cso | done, merged 2026-11-18 (PR #75); threat model version 2 | Owner sign-off pending (threat model, before first public publish) |
 | p2-audit | done | report awaits owner approval |
 | p2-phase-review | not started | |
