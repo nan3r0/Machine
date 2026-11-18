@@ -29,7 +29,12 @@ none
 Gate 2 review and the security specialist review (validate.py is a trigger in `.harness/config.yaml`), then merge.
 
 ## Docs
-none. The task's `paths_allowed` is only `validate.py`, and its docstring is updated. No other doc states the old two-rule URL check; `architecture.md` and `spec.md` were not changed by this task.
+Edits needed at close-out (outside this task's `paths_allowed`, which is only `validate.py`; its docstring is updated):
+- `docs/threat-model.md:102`: describe the NFKC plus bare-domain check and mark P2-3 closed by p2-validate-urls. Residuals: spelled-out "example dot net" and spaced "example . net".
+- `docs/threat-model.md:173`: move the P2-3 row to closed, the way the P1-3 row at :167 was handled.
+- `.harness/handoffs/orchestrator.md:59`: clear the validate.py bare-domain follow-up note.
+- Optional: widen `PRD.md` R12.1 wording to cover bare domains and look-alike forms.
+- `architecture.md` and `spec.md` were not changed by this task.
 
 ## Evidence
 - Venv: `../p2-weekly-workflow/.venv`.
