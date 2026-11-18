@@ -4,7 +4,7 @@
 CSO P2-3: `validate.problems` must reject bare domains and full-width look-alike URLs, while decimals and abbreviations still pass.
 
 ## Status
-done. Committed on `task/p2-validate-urls`, not pushed.
+partial. Review round 1 has a blocking finding open (see the section below); the implementer fixes `validate.py` next. Committed on `task/p2-validate-urls`, not pushed.
 
 ## What changed (and why)
 - `pipeline/script/validate.py` only:
@@ -34,7 +34,9 @@ Edits needed at close-out (outside this task's `paths_allowed`, which is only `v
 - `docs/threat-model.md:173`: move the P2-3 row to closed, the way the P1-3 row at :167 was handled.
 - `.harness/handoffs/orchestrator.md:59`: clear the validate.py bare-domain follow-up note.
 - Optional: widen `PRD.md` R12.1 wording to cover bare domains and look-alike forms.
-- `architecture.md` and `spec.md` were not changed by this task.
+- `docs/threat-model.md` (P2-3 residuals, from review round 1): also list a bare IPv4 address ("1.2.3.4/x") and a spelled-out "example dot com" as accepted residuals.
+- `architecture.md` section 7 (weak points): the bare-domain rule rejects some legitimate text, such as file names ("report.pdf"), "Amazon.com" and "Node.js". This is a known fail-closed cost: the script is regenerated or edited, never published with a link.
+- `spec.md` was not changed by this task.
 
 ## Evidence
 - Venv: `../p2-weekly-workflow/.venv`.
@@ -43,3 +45,22 @@ Edits needed at close-out (outside this task's `paths_allowed`, which is only `v
 - `ruff check .`: all checks passed (after the last docstring edit).
 - `mypy --strict pipeline/`: no issues in 21 files.
 - `python tests/docs_check.py`: passed.
+
+## Review round 1 (Architect)
+
+### Blocking: invisible marks split a domain (security review)
+`_text_problem("description", s)` returns None for "full story at example.c\u034Fom" (U+034F) and "example\uFE0F.com" (variation selector). The same holds for U+180B to U+180D, U+17B4 and U+17B5, and U+E0100 to U+E01EF. These are category Mn, which NFKC leaves alone and the Cf/Co/Cs check skips, so the domain regex never sees "example.com".
+
+Fix direction for the implementer (`pipeline/script/validate.py` only): in `_normalised`, after NFKC, drop characters of category Mn and Me. That text feeds only the URL and angle-bracket checks, so the raw-text control check is unchanged. NFKC runs first, so a decomposed "cafe\u0301" composes to "café" before marks are dropped and stays a word. Recommended over rejecting default-ignorable code points: that route would reject an emoji with U+FE0F ("U+2764 U+FE0F") in a title and still miss marks that are not default-ignorable, such as "example.q\u0301om".
+
+Locked tests added: `tests/script/test_validate_urls_marks.py`, listed in the task YAML `tests:`. A mark case may be reported as a URL or as an invisible character; the test only needs a problem naming the field. Accented text ("café", "naïve", decomposed forms, "3.5", "U.S.") must still pass. A local check of the Mn/Me-drop route against these cases: all mark cases caught, all accented and ORDINARY cases pass.
+
+Also in that file, as regression guards for the Gate 2 reviewer's request (they pass on current code): non-Latin domains ("пример.рф", "例え.日本") and the dots U+FF0E and U+2024 are rejected as URLs.
+
+### Non-blocking rewords
+- `validate.py:23` comment: "a lone dot in "wait..." has no letters before it" is wrong for "wait…and" after NFKC ("wait...and"). Reword to say no letters follow the first dot.
+- `problems()` docstring: the domain rule says "letters, digits or hyphens"; the regex takes Unicode letters, digits, underscore or hyphens. Say so.
+
+### Evidence (round 1)
+- `.venv/Scripts/python.exe -m pytest tests/script/test_validate_urls_marks.py -q --tb=no`: 63 failed, 70 passed. The 63 are the 9 mark cases times 7 fields; non-Latin, dot look-alike and accented cases all pass.
+- `python tests/scope_check.py task/p2-validate-urls origin/main` fails, as expected: the task role on main is `implementer`, so the new locked test and the task YAML edit are flagged. Commit 2c9cdd6 holds only those two files, so the orchestrator can cherry-pick it onto an architect branch and merge it to main first (the route PR #77 took), then rebase this branch onto main.
