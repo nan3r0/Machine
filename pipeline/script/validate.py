@@ -3,6 +3,7 @@
 Task p2-validate. Pure function, no IO. Numbers come from pipeline/constants.py.
 """
 
+import re
 import unicodedata
 from collections.abc import Iterator
 
@@ -19,6 +20,8 @@ from pipeline.constants import (
 from pipeline.schema import Script
 
 _BAD_CATEGORIES = {"Cf", "Co", "Cs"}
+# A TLD needs 2+ letters, so "3.5", "U.S." and "a.m." pass; a lone dot in "wait..." has no letters before it.
+_DOMAIN_LIKE = re.compile(r"[a-z0-9-]+\.[a-z]{2,}", re.IGNORECASE)
 
 
 def _fields(script: Script) -> Iterator[tuple[str, str]]:
@@ -34,11 +37,18 @@ def _fields(script: Script) -> Iterator[tuple[str, str]]:
     yield "loop_line", script.loop_line
 
 
+def _normalised(text: str) -> str:
+    """NFKC folds full-width forms; it leaves the ideographic full stops alone, and IDNA treats
+    them as dots, so they are mapped by hand."""
+    return unicodedata.normalize("NFKC", text).replace("。", ".").replace("｡", ".")
+
+
 def _text_problem(label: str, text: str) -> str | None:
-    lowered = text.lower()
-    if "://" in lowered or "www." in lowered:
+    folded = _normalised(text)
+    lowered = folded.lower()
+    if "://" in lowered or "www." in lowered or _DOMAIN_LIKE.search(folded):
         return f"{label}: contains a URL"
-    if "<" in text or ">" in text:
+    if "<" in folded or ">" in folded:
         return f"{label}: contains < or >"
     for char in text:
         category = unicodedata.category(char)
@@ -85,11 +95,15 @@ def problems(script: Script) -> list[str]:
     - Title at most `TITLE_MAX_CHARS` characters, description at most `DESCRIPTION_MAX_CHARS`, at
       most `TAGS_MAX` tags, each non-blank and at most `TAG_MAX_CHARS`, `TAGS_TOTAL_MAX_CHARS` summed.
     - Spoken and published fields (title, description, every tag, hook, every scene's narration and
-      on_screen_text, loop_line) contain no URL: no `://` and no `www.` (any case).
-    - The same fields contain no `<` or `>` (YouTube rejects them in titles and descriptions, and in
-      the PR body they could hide text as HTML), no control character (Unicode category Cc, except a
-      newline in the description), and no format, private-use or surrogate character (Cf, Co, Cs:
-      bidi controls and zero-width characters).
+      on_screen_text, loop_line) contain no URL: no `://`, no `www.` and no bare domain (letters,
+      digits or hyphens, a dot, then a TLD of 2 or more letters), any case. Text is NFKC-normalised
+      first, with U+3002 and U+FF61 read as dots, so full-width look-alikes count. Decimals ("3.5")
+      and one-letter abbreviations ("U.S.") are not domains.
+    - The same fields contain no `<` or `>`, full-width forms included (YouTube rejects them in
+      titles and descriptions, and in the PR body they could hide text as HTML), no control
+      character (Unicode category Cc, except a newline in the description), and no format,
+      private-use or surrogate character (Cf, Co, Cs: bidi controls and zero-width characters).
+      The control and invisible check runs on the raw text, so NFKC cannot hide one.
     """
     found = list(_length_problems(script))
     found += [m for label, text in _fields(script) if (m := _text_problem(label, text))]
