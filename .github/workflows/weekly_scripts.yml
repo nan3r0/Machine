@@ -1,0 +1,77 @@
+name: weekly-scripts
+
+on:
+  schedule:
+    - cron: "0 6 * * 0"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  # Holds the Gemini key and has no write access. Model output only ever lands in files that the
+  # open-pr job treats as data.
+  generate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements.txt
+
+      - name: Install light requirements
+        run: python -m pip install -q -r requirements.txt
+
+      - name: Write the weekly batch
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: python -m pipeline.script.batch sources queue out/batch
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: weekly-scripts
+          path: |
+            queue/approved/
+            out/batch/pr_body.md
+          if-no-files-found: error
+          retention-days: 3
+
+  # Has the write token and no other credential. It only commits the artifact's script files and
+  # opens the PR; it never runs pipeline code.
+  open-pr:
+    needs: generate
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      # Keeps credentials: this is the only checkout that pushes.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: true
+
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: weekly-scripts
+          path: .
+
+      - name: Commit the new scripts and open the PR
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          day="$(date -u +%Y-%m-%d)"
+          branch="scripts/$day"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git switch -c "$branch"
+          git add queue/approved/*.json
+          git commit -m "Add weekly scripts for $day"
+          git push origin "$branch"
+          gh pr create --title "Weekly scripts $day" --body-file out/batch/pr_body.md
