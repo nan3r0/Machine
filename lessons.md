@@ -288,3 +288,43 @@ How it was caught: the owner reported no window; the worktree was unchanged.
 Fix: wrap the script path, `-WorkDir` and `-Message` values in literal double quotes inside the argument list.
 Rule going forward: pass every path or sentence to `Start-Process -ArgumentList` with its own embedded quotes, and confirm the window exists before waiting on it.
 Test added: none. Process rule in `.harness/handoffs/orchestrator.md`, How to run a task, step 2.
+
+### 2026-11-18: The weekly workflow extracted a job artifact over a live checkout
+What happened: p2-weekly-hardening first downloaded the `generate` artifact into the workspace of `open-pr` and `validate`, which hold credentials or run tests. The security review blocked it.
+Why it happened (root cause, not symptom): `download-artifact` with `path: .` writes whatever the earlier job uploaded. A compromised `generate` job could plant `.git/hooks`, `.git/config`, `conftest.py` or `pytest.py`, which then run with the write token or make `validate` pass without checking anything. The filters only looked inside `queue/approved`.
+How it was caught: security review, round 1.
+Fix: both jobs download to `runner.temp` and copy only regular files named `queue/approved/<id>.json` into the checkout; git runs with hooks disabled after that.
+Rule going forward: never extract an artifact over a checkout in a job that holds credentials or runs tests. Extract to a temp folder, filter, copy.
+Test added: `tests/test_weekly_hardening.py`, including the shell tests that run in CI.
+
+### 2026-11-18: A Unicode URL check fixed one invisible character at a time, three rounds running
+What happened: p2-validate-urls rejected bare domains. Review round 1 found combining marks (U+034F, U+FE0F) splitting a domain, round 2 found unassigned code points (U+E01F0) and `<` plus U+0338 composing into one character after NFKC.
+Why it happened (root cause, not symptom): each fix named the reported characters, not the class "characters that render as nothing or change what a character is".
+How it was caught: security review, rounds 1 to 3; the Architect closed the class on escalation.
+Fix: reject Cc, Cf, Cn, Co and Cs on the raw text, fold with NFKD, drop Mn and Me, and run the angle-bracket check on raw and folded text.
+Rule going forward: a check on untrusted Unicode text rejects or normalises by category, and its tests run every category, not a list of examples.
+Test added: `tests/script/test_validate_urls_marks.py` and `test_validate_urls_cn.py`.
+
+### 2026-11-18: A locked shell test asserted byte equality of a file the job legitimately edits
+What happened: `test_open_pr_ignores_files_outside_queue_approved` asserted `.git/config` was unchanged after `open-pr`. CI failed because the job sets the commit identity and push tracking in that file.
+Why it happened (root cause, not symptom): the test checked the wrong property. The intent is that a planted config never reaches the checkout.
+How it was caught: CI, the first run on Linux (the shell tests skip on Windows).
+Fix: the test plants a marker in the artifact's `.git/config` and asserts it never arrives and its fsmonitor command never ran.
+Rule going forward: assert the intent (the planted content is absent), not equality of a file the code under test may change.
+Test added: the corrected test in `tests/test_weekly_hardening.py`.
+
+### 2026-11-18: Locked tests written during a review round cannot ride on the task branch
+What happened: three times the Architect's regression tests for a review round failed `tests/scope_check.py` on the task branch.
+Why it happened (root cause, not symptom): the scope check reads the task YAML and `locks.yaml` from main, where the role is implementer, so a new locked test or a YAML edit on the task branch is flagged.
+How it was caught: the Architect and the scope check.
+Fix: locked tests go on a `docs/*` branch, the owner merges it, then the task branch takes main and the implementer starts.
+Rule going forward: budget one extra owner PR per review round that needs a new locked test.
+Test added: none. Process rule.
+
+### 2026-11-18: A pushed task branch cannot be rebased
+What happened: after the locked-test PRs merged, the orchestrator rebased the task branches onto main, which needs a force-push, which is forbidden. The push was denied.
+Why it happened (root cause, not symptom): a rebase rewrites commits that were already pushed.
+How it was caught: the push was blocked.
+Fix: merge `origin/main` into the branch instead; the duplicate test commits merge cleanly.
+Rule going forward: update a pushed task branch with a merge, never a rebase and force-push.
+Test added: none. Process rule.
