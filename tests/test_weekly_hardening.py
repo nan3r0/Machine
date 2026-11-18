@@ -261,13 +261,18 @@ def test_open_pr_refuses_a_non_regular_file(tmp_path: Path, kind: str) -> None:
 @bash_and_git
 def test_open_pr_ignores_files_outside_queue_approved(tmp_path: Path) -> None:
     repo, remote, base = checkout_with_artifact(tmp_path)
-    config = (repo / ".git" / "config").read_text(encoding="utf-8")
     planted = [".git/hooks/pre-commit", ".git/config", "conftest.py", "pytest.py", "pyproject.toml",
                "tests/test_queue_scripts.py", "queue/inbox/x-case.json"]
     for name in planted:
         write(artifact_of(tmp_path) / name)
+    # open-pr may write the checkout's config itself (identity, upstream), so check for the planted
+    # one by its marker and by its fsmonitor command, which git would run on status or add.
+    marker = tmp_path / "fsmonitor-ran"
+    write(artifact_of(tmp_path) / ".git" / "config",
+          f"[core]\n\tfsmonitor = touch '{marker}'\n[alias]\n\tpwned = planted-config\n")
     run_open_pr(tmp_path, repo)
-    assert (repo / ".git" / "config").read_text(encoding="utf-8") == config
+    assert "planted-config" not in (repo / ".git" / "config").read_text(encoding="utf-8")
+    assert not marker.exists(), "git ran the planted config's fsmonitor command"
     for name in planted[2:] + [".git/hooks/pre-commit"]:
         assert not (repo / name).exists(), f"{name} reached the checkout"
     for files in pushed(remote, base).values():
