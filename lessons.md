@@ -280,3 +280,11 @@ How it was caught: Gate 1 in the orchestrator, after the task finished.
 Fix: none in code. The orchestrator checks `python -c "import pydantic"` in the task venv before launching, and installs `requirements.txt` and `requirements-dev.txt` if it fails.
 Rule going forward: check that a venv imports the project's dependencies, not that its interpreter exists.
 Test added: none. Process rule in `.harness/handoffs/orchestrator.md`, How to run a task, step 1.
+
+### 2026-11-18: A task window launched from Git Bash closed at once with no work done
+What happened: the p2-semantic window was started with `Start-Process` and an argument list. It vanished within seconds; the worktree had no commit and no handoff, and the owner saw no window.
+Why it happened (root cause, not symptom): `Start-Process -ArgumentList` joins the array with spaces and does not quote items, so the repo path "Claude Projects" and the multi-word brief were split into separate arguments, and `open_task_window.ps1` failed on its parameters.
+How it was caught: the owner reported no window; the worktree was unchanged.
+Fix: wrap the script path, `-WorkDir` and `-Message` values in literal double quotes inside the argument list.
+Rule going forward: pass every path or sentence to `Start-Process -ArgumentList` with its own embedded quotes, and confirm the window exists before waiting on it.
+Test added: none. Process rule in `.harness/handoffs/orchestrator.md`, How to run a task, step 2.
