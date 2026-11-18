@@ -3,6 +3,7 @@
 Task p2-validate. Pure function, no IO. Numbers come from pipeline/constants.py.
 """
 
+import re
 import unicodedata
 from collections.abc import Iterator
 
@@ -18,7 +19,13 @@ from pipeline.constants import (
 )
 from pipeline.schema import Script
 
-_BAD_CATEGORIES = {"Cf", "Co", "Cs"}
+# Every default-ignorable code point is Cf or Cn (rejected here), Mn (dropped by _normalised) or a
+# Hangul filler (a letter, so it joins a domain rather than splitting it).
+_BAD_CATEGORIES = {"Cf", "Cn", "Co", "Cs"}
+_MARK_CATEGORIES = {"Mn", "Me"}
+# A TLD needs 2+ letters, so "3.5", "U.S." and "a.m." pass; no letters follow the first dot in "wait...".
+# Unicode letters count too, so an internationalised domain ("пример.рф") is caught.
+_DOMAIN_LIKE = re.compile(r"[\w-]+\.[^\W\d_]{2,}")
 
 
 def _fields(script: Script) -> Iterator[tuple[str, str]]:
@@ -34,11 +41,22 @@ def _fields(script: Script) -> Iterator[tuple[str, str]]:
     yield "loop_line", script.loop_line
 
 
+def _normalised(text: str) -> str:
+    """NFKD folds full-width forms; it leaves the ideographic full stops alone, and IDNA treats
+    them as dots, so they are mapped by hand. Marks (Mn, Me) are then dropped so an invisible one,
+    such as a variation selector, cannot split a domain. Decomposing first means an accent leaves
+    its letter behind ("café" reads as "cafe") and "<" + U+0338 reads as "<", where NFC would
+    compose it into U+226E."""
+    folded = unicodedata.normalize("NFKD", text).replace("。", ".").replace("｡", ".")
+    return "".join(char for char in folded if unicodedata.category(char) not in _MARK_CATEGORIES)
+
+
 def _text_problem(label: str, text: str) -> str | None:
-    lowered = text.lower()
-    if "://" in lowered or "www." in lowered:
+    folded = _normalised(text)
+    lowered = folded.lower()
+    if "://" in lowered or "www." in lowered or _DOMAIN_LIKE.search(folded):
         return f"{label}: contains a URL"
-    if "<" in text or ">" in text:
+    if "<" in folded or ">" in folded:
         return f"{label}: contains < or >"
     for char in text:
         category = unicodedata.category(char)
@@ -85,11 +103,17 @@ def problems(script: Script) -> list[str]:
     - Title at most `TITLE_MAX_CHARS` characters, description at most `DESCRIPTION_MAX_CHARS`, at
       most `TAGS_MAX` tags, each non-blank and at most `TAG_MAX_CHARS`, `TAGS_TOTAL_MAX_CHARS` summed.
     - Spoken and published fields (title, description, every tag, hook, every scene's narration and
-      on_screen_text, loop_line) contain no URL: no `://` and no `www.` (any case).
-    - The same fields contain no `<` or `>` (YouTube rejects them in titles and descriptions, and in
-      the PR body they could hide text as HTML), no control character (Unicode category Cc, except a
-      newline in the description), and no format, private-use or surrogate character (Cf, Co, Cs:
-      bidi controls and zero-width characters).
+      on_screen_text, loop_line) contain no URL: no `://`, no `www.` and no bare domain (Unicode
+      letters, digits, underscores or hyphens, a dot, then a TLD of 2 or more letters), any case.
+      Text is NFKD-normalised first, with U+3002 and U+FF61 read as dots, so full-width look-alikes
+      count, and combining marks (Mn, Me) are dropped so an invisible one cannot split a domain.
+      Decimals ("3.5") and one-letter abbreviations ("U.S.") are not domains.
+    - The same fields contain no `<` or `>`, full-width forms and ones followed by a combining mark
+      included (YouTube rejects them in titles and descriptions, and in the PR body they could hide
+      text as HTML), no control character (Unicode category Cc, except a newline in the
+      description), and no format, unassigned, private-use or surrogate character (Cf, Cn, Co, Cs:
+      bidi controls, zero-width characters and reserved default-ignorables). The control and
+      invisible check runs on the raw text, so normalisation cannot hide one.
     """
     found = list(_length_problems(script))
     found += [m for label, text in _fields(script) if (m := _text_problem(label, text))]
