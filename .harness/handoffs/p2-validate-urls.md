@@ -4,7 +4,7 @@
 CSO P2-3: `validate.problems` must reject bare domains and full-width look-alike URLs, while decimals and abbreviations still pass.
 
 ## Status
-partial. Review round 1 has a blocking finding open (see the section below); the implementer fixes `validate.py` next. Committed on `task/p2-validate-urls`, not pushed.
+done, awaiting re-review. Review round 1 fix applied (see the section below): `_normalised` now drops Mn and Me marks after NFKC, and the two rewords are done. Committed on `task/p2-validate-urls`, not pushed.
 
 ## What changed (and why)
 - `pipeline/script/validate.py` only:
@@ -61,6 +61,12 @@ Also in that file, as regression guards for the Gate 2 reviewer's request (they 
 - `validate.py:23` comment: "a lone dot in "wait..." has no letters before it" is wrong for "wait…and" after NFKC ("wait...and"). Reword to say no letters follow the first dot.
 - `problems()` docstring: the domain rule says "letters, digits or hyphens"; the regex takes Unicode letters, digits, underscore or hyphens. Say so.
 
+### Round 1 fix (Implementer)
+- `validate.py`: `_normalised` drops characters of category Mn and Me after NFKC and the dot mapping (new `_MARK_CATEGORIES`). The raw-text control check is unchanged.
+- Comment at the `_DOMAIN_LIKE` constant now says no letters follow the first dot; the `problems()` docstring now lists Unicode letters, digits, underscores or hyphens and mentions the mark drop.
+- Docs: no new close-out edits beyond the list above; the threat-model P2-3 entry should also say combining marks are dropped before the check.
+
 ### Evidence (round 1)
+- After the fix: `LOOM_TASK=p2-validate-urls pytest -q --tb=short`: 1005 passed, 46 skipped (includes `test_validate_urls_marks.py`). `ruff check .` and `mypy --strict pipeline/` clean; `python tests/docs_check.py` run below.
 - `.venv/Scripts/python.exe -m pytest tests/script/test_validate_urls_marks.py -q --tb=no`: 63 failed, 70 passed. The 63 are the 9 mark cases times 7 fields; non-Latin, dot look-alike and accented cases all pass.
 - `python tests/scope_check.py task/p2-validate-urls origin/main` fails, as expected: the task role on main is `implementer`, so the new locked test and the task YAML edit are flagged. Commit 2c9cdd6 holds only those two files, so the orchestrator can cherry-pick it onto an architect branch and merge it to main first (the route PR #77 took), then rebase this branch onto main.
