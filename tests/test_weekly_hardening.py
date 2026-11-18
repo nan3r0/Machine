@@ -21,7 +21,8 @@ from tests.test_weekly_workflow import job_run, job_steps, uses, workflow
 
 ROOT = Path(__file__).resolve().parent.parent
 HASHED = ROOT / "requirements-generate.txt"
-# What pydantic 2.14 and soundfile 0.14 pull in (Requires-Dist). Update when either is bumped.
+# What pydantic 2.14 and soundfile 0.14 pull in on the runner: the full `pip download` resolve of
+# requirements.txt for manylinux x86_64, CPython 3.12, on 2026-11-18. Update when either is bumped.
 TRANSITIVE = {"pydantic-core", "annotated-types", "typing-extensions", "typing-inspection", "cffi",
               "pycparser"}
 REQUIREMENT = re.compile(r"([A-Za-z0-9_.-]+)==(\S+)((?:\s+--hash=sha256:[0-9a-f]{64})+)")
@@ -61,9 +62,11 @@ def test_hashed_requirements_pin_every_package() -> None:
 
 
 def test_key_job_installs_only_hashed_packages() -> None:
-    run = job_run(workflow(), "generate")
-    assert "--require-hashes" in run and "-r requirements-generate.txt" in run
-    assert "requirements.txt" not in run, "the unhashed file never installs where the key is"
+    installs = [line for line in job_run(workflow(), "generate").splitlines() if "pip install" in line]
+    assert installs, "the generate job installs its packages"
+    for line in installs:
+        assert "--require-hashes" in line and "-r requirements-generate.txt" in line, line
+        assert "requirements.txt" not in line, "the unhashed file never installs where the key is"
 
 
 def test_validate_job_rechecks_the_queue_without_credentials() -> None:
@@ -113,6 +116,7 @@ def checkout_with_artifact(tmp_path: Path) -> tuple[Path, Path, str]:
     remote, repo = tmp_path / "remote.git", tmp_path / "repo"
     git(tmp_path, "init", "-q", "--bare", str(remote))
     git(tmp_path, "init", "-q", "-b", "main", str(repo))
+    shutil.copy(ROOT / ".gitignore", repo / ".gitignore")
     write(repo / OLD)
     git(repo, "add", "-A")
     git(repo, "commit", "-q", "-m", "base")

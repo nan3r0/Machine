@@ -94,4 +94,8 @@ done (planning and contracts). Branch `docs/p2-hardening-tasks`, committed, not 
   - p2-validate-urls: 85 failed and 63 passed. Every ordinary-text case passes; every bare domain and look-alike fails.
   - p2-gemini-redirects: 4 failed and 3 passed. 301, 302 and 303 are followed today. 307 and 308 on a POST, and the direct control, pass.
   - p2-weekly-hardening: 5 failed (missing file, unhashed install, two jobs, no concurrency) and 10 skipped (the shell tests on Windows).
+- `TRANSITIVE` was checked against a real `pip download` of requirements.txt (manylinux_2_28, 2_17 and 2014 x86_64, Python 3.12). The download gave exactly 10 wheels: the 4 direct packages plus pydantic-core, annotated-types, typing-extensions, typing-inspection, cffi and pycparser.
+- `--platform manylinux2014_x86_64` alone finds no numpy 2.4.6 wheel, so the task YAML lists all three tags.
+- The generate install test now checks every line that holds `pip install`. That way a second, bare install can't slip in beside the hashed one.
+- The scratch repo copies the real `.gitignore`. p2-weekly-hardening therefore also adds `.gitignore` to mutmut `also_copy`.
 - Venv used: `../p2-weekly-workflow/.venv`.

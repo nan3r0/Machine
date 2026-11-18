@@ -9,13 +9,15 @@ notes: |
   All four findings edit weekly_scripts.yml, so they are one task.
   - P2-1: new requirements-generate.txt pinning every package requirements.txt resolves to on the
     runner (ubuntu-latest, x86_64, CPython 3.12), each with --hash=sha256 lines. Build it with
-    `pip download -r requirements.txt -d <tmp> --platform manylinux2014_x86_64 --python-version 3.12
-    --only-binary=:all:` and `pip hash`, take every wheel's hash (pydantic-core, numpy, soundfile,
+    `pip download -r requirements.txt -d <tmp> --platform manylinux_2_28_x86_64 --platform
+    manylinux_2_17_x86_64 --platform manylinux2014_x86_64 --python-version 3.12 --only-binary=:all:`
+    (manylinux2014 alone finds no numpy 2.4.6 wheel) and `pip hash`, take every wheel's hash (pydantic-core, numpy, soundfile,
     cffi and pyyaml ship per-platform wheels), then prove it with `pip download --require-hashes
     -r requirements-generate.txt` and the same platform flags into an empty folder. Put a header
     comment on how to regenerate it. Do not add hashes to requirements.txt (ci.yml installs it in
-    one pip call with unhashed files). The generate job installs only
-    `python -m pip install -q --require-hashes -r requirements-generate.txt`; point setup-python's
+    one pip call with unhashed files). The generate job's only pip line is
+    `python -m pip install -q --require-hashes -r requirements-generate.txt` (on one line: the test
+    checks every line holding `pip install`); point setup-python's
     cache-dependency-path at the new file.
   - P2-2: open-pr pushes only new scripts. Before staging, fail if any tracked file under
     queue/approved/ changed or was deleted (git diff --quiet). Stage only untracked files directly
@@ -30,8 +32,8 @@ notes: |
   - P2-6: workflow-level `concurrency: {group: weekly-scripts, cancel-in-progress: false}`. The
     optional "fail early if scripts/<day> exists" is skipped (YAGNI; the concurrency group and the
     failing push already stop a second PR).
-  - pyproject.toml: add requirements-generate.txt to [tool.mutmut] also_copy (the new tests read
-    it; lessons.md 2026-11-16). Branch fix/mutmut-copy-sources also edits that list: rebase on main
+  - pyproject.toml: add requirements-generate.txt and .gitignore to [tool.mutmut] also_copy (the
+    new tests read both; lessons.md 2026-11-16). Branch fix/mutmut-copy-sources also edits that list: rebase on main
     first if it has merged.
   Actions pinned by full SHA, values reach run: only through env:, must pass actionlint and the
   p2-entry-ci rules. The open-pr shell tests skip on Windows: hand off as partial, awaiting CI,
