@@ -64,7 +64,8 @@ pytest_add_cli_args = ["-m", "not heavy"]
 # mutmut copies single files without creating parent folders.
 also_copy = [
     "queue/", "sources/", ".harness/", "assets/", ".github/", ".claude/hooks/",
-    "Makefile", "requirements.txt", "requirements-dev.txt", "requirements-heavy.txt",
+    "Makefile", ".gitignore", "requirements.txt", "requirements-dev.txt", "requirements-heavy.txt",
+    "requirements-generate.txt",
     "CLAUDE.md", "README.md", "workflow.md", "lessons.md",
 ]
 
