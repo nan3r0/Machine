@@ -90,6 +90,7 @@ Locked by p1-contracts. Every task's acceptance test is `test_acceptance` in its
 | R13.4 | PRD.md section 7 entry for owner decision D1 |
 | R13.5 | Manual, owner, on the first Workflow A PR |
 | R13.6 | Handoffs of p2-qa-lead, p2-cso, p2-audit; owner approves |
+| R13.7 | `tests/test_weekly_hardening.py` (P2-1, P2-2, P2-4, P2-6), `tests/script/test_validate_urls.py` (P2-3), `tests/script/test_gemini_redirect.py` (P2-5) |
 
 Phase 2 rows without backticks name test files that do not exist yet; the task that writes each file adds the backticks, so the docs check starts checking them.
 
@@ -122,7 +123,7 @@ Phase 2 rows without backticks name test files that do not exist yet; the task t
 
 ## Phase 2 module order
 
-Planned 2026-11-16 by the Architect (`.harness/handoffs/architect-p2-plan.md`). Owner decisions D2 to D8 taken with the defaults (PRD.md section 7); D1 is open, so the live run of Workflow A waits. Stage 0 (D7). Task files: `.harness/tasks/phase2/00_*.yaml` to `13_*.yaml`, run in file-name order where dependencies allow.
+Planned 2026-11-16 by the Architect (`.harness/handoffs/architect-p2-plan.md`). Owner decisions D2 to D8 taken with the defaults (PRD.md section 7); D1 decided 2026-11-18 as option (c), repo secret. Stage 0 (D7). Task files: `.harness/tasks/phase2/00_*.yaml` to `16_*.yaml`, run in dependency order. Tasks 14 to 16 (2026-11-18, `.harness/handoffs/p2-hardening-plan.md`) close CSO P2-1 to P2-6; they touch no common file, so they can run in parallel, and they come before the live run of Workflow A and before the remaining phase-end reviews.
 
 ```
 p2-entry-ci, p2-factcheck-exact            (no owner decision needed; can start at once)
@@ -131,11 +132,15 @@ p2-contracts -> p2-validate, p2-gemini, p2-seed-sources
 p2-validate, p2-gemini -> p2-generate
 p2-gemini -> p2-semantic
 p2-factcheck-exact, p2-generate, p2-semantic -> p2-batch
-p2-batch, p2-seed-sources, p2-entry-ci -> p2-weekly-workflow   (live run needs D1 and the repo secret)
-p2-weekly-workflow -> p2-qa-lead, p2-cso, p2-audit -> p2-phase-review
+p2-batch, p2-seed-sources, p2-entry-ci -> p2-weekly-workflow
+p2-weekly-workflow -> p2-cso
+p2-validate -> p2-validate-urls; p2-gemini -> p2-gemini-redirects; p2-weekly-workflow -> p2-weekly-hardening
+p2-weekly-hardening -> live run of Workflow A   (key is a repo secret; workflow disabled until then)
+p2-validate-urls, p2-gemini-redirects, p2-weekly-hardening -> p2-qa-lead, p2-audit
+p2-qa-lead, p2-cso, p2-audit -> p2-phase-review
 ```
 
-Specialist reviews: security for p2-validate, p2-gemini, p2-batch and p2-weekly-workflow (`specialist_reviews` in `.harness/config.yaml`). No visual QA: Phase 2 changes no render code.
+Specialist reviews: security for p2-validate, p2-gemini, p2-batch, p2-weekly-workflow and the three hardening tasks (`specialist_reviews` in `.harness/config.yaml`). No visual QA: Phase 2 changes no render code.
 
 ### Phase 2 status
 
@@ -150,8 +155,11 @@ Specialist reviews: security for p2-validate, p2-gemini, p2-batch and p2-weekly-
 | p2-generate | done, merged 2026-11-17 (PR #67) | Gate 2 approved after round 1 (nested delimiter fix) |
 | p2-semantic | done, merged 2026-11-18 (PR #69) | Gate 2 approved round 1; non-blocking notes in the orchestrator handoff |
 | p2-batch | done, merged 2026-11-18 (PR #71) | Gate 2 and security review approved round 1; non-blocking notes in the orchestrator handoff |
-| p2-weekly-workflow | done, merged 2026-11-18 (PR #73); manual acceptance waits for D1 and the repo secret | Gate 2 and security review approved round 1; non-blocking notes in the orchestrator handoff |
+| p2-weekly-workflow | done, merged 2026-11-18 (PR #73); manual acceptance waits for p2-weekly-hardening (D1 decided, repo secret added) | Gate 2 and security review approved round 1; non-blocking notes in the orchestrator handoff |
 | p2-qa-lead | not started | |
 | p2-cso | not started | |
 | p2-audit | not started | |
 | p2-phase-review | not started | |
+| p2-validate-urls | not started | |
+| p2-gemini-redirects | not started | |
+| p2-weekly-hardening | not started | |

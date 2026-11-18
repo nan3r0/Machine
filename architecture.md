@@ -106,7 +106,7 @@ Imports only point upward in that table: wiring imports adapters and contracts, 
 | Runner | Structure test plus manual run | Workflow shape; owner judges the artifact |
 | Harness | `.harness/tests/` | Lock hook and outcome logger |
 | Fact-check (Phase 2) | Unit plus hypothesis, with an independent number-to-words oracle | Every standard form of a number agrees |
-| Gemini callers (Phase 2) | Unit with a fake `gemini.generate_json` or a fake `urlopen` | Prompts, retries, budgets, key never logged; no network in tests |
+| Gemini callers (Phase 2) | Unit with a fake `gemini.generate_json` or a fake `OpenerDirector.open`; redirects against two local HTTP servers | Prompts, retries, budgets, key never logged; no network in tests |
 | Workflows | One safety test over every file in `.github/workflows/` (Phase 2) | Pinned actions, no `pull_request_target`, write permissions and secrets only where allowlisted |
 
 Phase 1 task tests were written and locked by p1-contracts before implementation. Phase 2 tests come from the Architect (p2-factcheck-exact, on the plan branch) and p2-contracts.
@@ -131,7 +131,8 @@ Threat model and open security items: `docs/threat-model.md`.
 - The compose, qa, Kokoro and align heavy-only paths now have fast fake-based tests (p1-qa-tests). The ffprobe, silencedetect and loudnorm fakes use real FFmpeg output in `tests/fixtures/ffmpeg/`; the heavy guard `tests/render/test_ffmpeg_fixtures.py` flags drift when FFmpeg changes.
 - FFmpeg's `subtitles=` filter path escaping differs between Windows and Linux.
 - Outcome records are logged by hand in Stage 0, so they can be missed.
-- Phase 2: repo secrets reach a workflow on any pushed branch, and GitHub Free gives private repos no environment secrets or branch rules (CSO P1-1, PRD.md section 7). The Gemini key's damage is capped at its free quota; publishing tokens in Phase 4 need a stronger answer.
+- Phase 2: repo secrets reach a workflow on any pushed branch, and GitHub Free gives private repos no environment secrets or branch rules (CSO P1-1, PRD.md section 7). The Gemini key's damage is capped at its free quota, so D1 took option (c): the key is a repo secret (2026-11-18). Publishing tokens in Phase 4 need a stronger answer.
+- Phase 2: until p2-weekly-hardening merges, the key job installs unhashed packages, `open-pr` commits whatever `queue/approved/` file the artifact holds, and the approval PR gets no check outside the job that wrote it (CSO P2-1, P2-2, P2-4). Workflow A stays disabled until then.
 - Phase 2: the exact check reads proper nouns from capital letters, so a name at the start of a sentence is not checked, and number words below ten are ignored. Both miss rather than false-flag; the meaning check and the owner's review cover the rest.
 - Phase 2: the scripts PR opened with `GITHUB_TOKEN` starts no CI run; the batch validates before opening it, and the owner's edit commits do run CI.
 - Phase 2: sources run out. 14 seeded sources last two weekly batches; after that the batch writes fewer scripts ("N of 7: sources exhausted") and then fails with no PR. A refill plan (another research session, or the owner, optionally helped by NotebookLM by hand) is needed before Phase 4 goes live.

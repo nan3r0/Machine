@@ -102,6 +102,7 @@ Goal: Workflow A opens a real pull request of 7 fact-checked scripts, with flags
 - R13.4 CSO P1-1 is decided and recorded in section 7 before the Gemini key is added to the repo.
 - R13.5 Manual: the owner runs Workflow A; a PR with 7 scripts opens and its flags read well on the GitHub mobile app.
 - R13.6 Phase-end QA Lead, CSO and Auditor reviews are done, `docs/threat-model.md` covers Phase 2, and the owner has approved the audit report.
+- R13.7 CSO P2-1 to P2-6 are closed before the first live run of Workflow A: the key job installs only hash-checked packages, the PR adds only new id-named scripts, a read-only job re-checks the queue before the PR opens, runs never overlap, published fields reject bare domains and look-alike URL forms, and the Gemini client refuses redirects.
 
 ### Later phases
 
@@ -162,7 +163,8 @@ Confirmed by the owner:
   - D6: No URLs in any published field; title 100 characters, description 1000, at most 10 tags of 30 characters and 500 in total. The 65 s sample keeps its NOAA credit by name only.
   - D7: Phase 2 runs at Stage 0; Loom is built later.
   - D8: Deferred: vacation-mode count, fallback text provider, `hook_stats.json` input, a `script/prompts/` folder.
-  - D1 (CSO P1-1, where the Gemini key lives) is still open. No secret is added and the live run of Workflow A waits.
+  - D1 (CSO P1-1, where the Gemini key lives), decided 2026-11-18: option (c). `GEMINI_API_KEY` is a repo secret in this repo, added by the owner on 2026-11-18 from a new AI Studio project with no billing, the key restricted to the Gemini API. Accepted because the key's damage is capped at its free quota; option (a) or (b) is still decided before Phase 4 adds publishing tokens. Condition (CSO P2-1): the key must not reach an unpinned install, so Workflow A does not run, by hand or on its Sunday schedule, until p2-weekly-hardening has merged; the owner disables the workflow until then.
+- 2026-11-18: The owner approved CSO P2-1 to P2-6 (`.harness/handoffs/p2-cso.md`). They become tasks p2-validate-urls, p2-gemini-redirects and p2-weekly-hardening, which run before the first live Workflow A run and before the phase-end reviews (R13.7). Gemini call caps count logical calls; each can make up to 2 HTTP requests (spec.md section 4).
 
 Research for the Phase 2 plan, 2026-11-16 (Architect; facts, not decisions):
 - GitHub, docs.github.com "Deployments and environments" (Actions reference): "If you are using GitHub Free, environment secrets are only available in public repositories"; deployment branch and tag rules in private repositories need GitHub Pro or Team; required reviewers and wait timers are public-repo only on Free, Pro and Team. So CSO P1-1 option (b), environment secrets with a `main`-only rule, is not available in this private repo at $0. The rulesets page names only Team and Enterprise for private repositories.
@@ -187,7 +189,6 @@ Assumed by Claude (owner can overrule):
 ## 8. Open questions
 
 - **[Decision needed]** Average view duration target for 65 s videos (PLAN.md section 12), to be set by the owner after the first 30 days of data.
-- **[Decision needed]** Phase 2 owner decision D1 (where the Gemini key lives, CSO P1-1), options in `.harness/handoffs/architect-p2-plan.md`. D2 to D8 are decided (section 7).
 - **[Decision needed before Phase 4]** How `sources/` is refilled: 14 seeded sources last two weekly batches.
 - To verify in Phase 4: one test upload confirms an unaudited YouTube project's uploads and `publishAt` schedules go public (official docs say yes since 2 Nov 2026, but no example covers an unaudited project).
-- To verify in Phase 2: Gemini free-tier limits for the chosen models in the owner's AI Studio dashboard (published figures come from third parties).
+- To verify in Phase 2: Gemini free-tier limits for the chosen models in the owner's AI Studio dashboard (published figures come from third parties). Each model's free daily limit must cover 28 requests, since a run can make up to 28 HTTP requests per model (CSO P2-6).

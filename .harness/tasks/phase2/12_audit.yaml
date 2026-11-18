@@ -1,6 +1,6 @@
 id: p2-audit
 title: Phase 2 compliance audit (Gemini terms, secret handling, permissions, sources)
-depends_on: [p2-weekly-workflow]
+depends_on: [p2-weekly-workflow, p2-validate-urls, p2-gemini-redirects, p2-weekly-hardening]
 role: auditor
 notes: |
   HARNESS.md section 6b. Read-only report in the handoff for the owner to approve. Phase 2 items:

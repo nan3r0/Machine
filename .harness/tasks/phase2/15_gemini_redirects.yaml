@@ -1,0 +1,32 @@
+id: p2-gemini-redirects
+title: Gemini client refuses HTTP redirects (CSO P2-5)
+depends_on: [p2-gemini]
+role: implementer
+notes: |
+  Hardening before the first live Workflow A run (owner approved CSO P2-1 to P2-6, 2026-11-18).
+  pipeline/script/gemini.py only. urllib's default opener follows a 301, 302 or 303 on a POST and
+  re-sends the x-goog-api-key header to the new host.
+  - Send through an opener built with urllib.request.build_opener and an HTTPRedirectHandler
+    subclass whose redirect_request returns None. urllib then raises HTTPError for the 3xx, which
+    the existing non-retryable path turns into GeminiError("Gemini HTTP <code>: ..."). Call
+    `opener.open(request, timeout=constants.GEMINI_TIMEOUT_S)`; keep everything else as it is.
+  - Read constants.GEMINI_ENDPOINT at call time (the tests point it at a local server).
+  - Update the module and generate_json docstrings: "Sends with urlopen" becomes the opener, and
+    the rules list says any 3xx raises GeminiError at once with no retry.
+  The locked tests in tests/script/test_gemini.py now patch urllib.request.OpenerDirector.open, so
+  they hold for urlopen and for the new opener alike. tests/script/test_gemini_redirect.py uses
+  two real servers on 127.0.0.1, so it fails today and passes once redirects are refused.
+  Security specialist review runs (gemini.py is a trigger in .harness/config.yaml).
+paths_allowed:
+  - pipeline/script/gemini.py
+tests:
+  - tests/script/test_gemini_redirect.py
+acceptance: tests/script/test_gemini_redirect.py::test_acceptance
+context_files:
+  - .harness/handoffs/p2-cso.md
+  - pipeline/script/gemini.py
+  - tests/script/test_gemini.py
+  - tests/script/test_gemini_redirect.py
+  - tests/script/gemini_fakes.py
+  - lessons.md
+max_turns: 25

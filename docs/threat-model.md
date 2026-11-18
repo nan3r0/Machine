@@ -17,7 +17,7 @@ Three workflows. `ci.yml` runs on every push and pull request. `render.yml` is s
 - `generate` holds the one repo secret, `GEMINI_API_KEY`, with a read-only token. It reads the hand-curated `sources/*.yaml`, asks Gemini for up to 7 scripts, fact-checks them, writes them to `queue/approved/` and writes the PR body. Both go into an artifact.
 - `open-pr` has `contents: write` and `pull-requests: write` and no secret. It downloads the artifact, commits the scripts to a `scripts/<day>` branch and opens the approval PR. Merging that PR is the owner's approval (decision D2).
 
-Nothing is published yet and nothing is fetched from the open internet: the sources are YAML files the owner reviews in a PR. The secret is allowlisted but, as of this version, **not yet added**. The owner adds it only after D1 is decided and P1-4 is closed (orchestrator state, 2026-11-18). `gh secret list` was not re-run for this version.
+Nothing is published yet and nothing is fetched from the open internet: the sources are YAML files the owner reviews in a PR. The secret is allowlisted. Update 2026-11-18 (Architect, after this version): D1 is decided as option (c) and the owner added `GEMINI_API_KEY` as a repo secret the same day, before P2-1 closed, so Workflow A stays disabled until p2-weekly-hardening merges (PRD.md section 7).
 
 ## 2. Assets
 
@@ -158,11 +158,11 @@ The Phase 2 seeds of version 1 are now rows in section 4. Each phase's Architect
 
 Details for P1-n are in `.harness/handoffs/p1-cso.md`, for P2-n in `.harness/handoffs/p2-cso.md`.
 
-Order before the first live Workflow A run: the owner decides D1, P1-4 is closed for the packages the key job installs (P2-1), then `GEMINI_API_KEY` is added. This narrows the earlier "P1-4 closed before the key" to its light half, because the key reaches only `generate`, which installs only `requirements.txt`; the orchestrator or owner confirms the narrowing.
+Order before the first live Workflow A run: the owner decides D1, P1-4 is closed for the packages the key job installs (P2-1), then `GEMINI_API_KEY` is added. This narrows the earlier "P1-4 closed before the key" to its light half, because the key reaches only `generate`, which installs only `requirements.txt`; the orchestrator or owner confirms the narrowing. Update 2026-11-18: the key was added before P2-1 closed; the replacement guard is that Workflow A stays disabled, schedule included, until p2-weekly-hardening merges.
 
 | ID | Severity | Gap | Must be closed before |
 |---|---|---|---|
-| P1-1 | High | Repo secrets reachable from any pushed or dispatched branch's workflow. D1 open | Adding `GEMINI_API_KEY` (decision); Phase 4 tokens (option a or b) |
+| P1-1 | High | Repo secrets reachable from any pushed or dispatched branch's workflow. D1 decided 2026-11-18: option (c), accepted for the quota-only Gemini key | Adding `GEMINI_API_KEY` (decision); Phase 4 tokens (option a or b) |
 | P1-2 | High | No branch protection; agent sessions can push to `main` and `queue/approved/` | Phase 4 publishing |
 | P1-3 | High | Closed by p2-validate and p2-batch; residuals tracked as P2-3 and the Phase 3 `on_screen_text` seed | (closed) |
 | P1-4 | Medium, now High for the key job | Transitive Python dependencies unpinned and not hash-checked; `generate` holds the key and writes the PR | Light half (P2-1) before the key is added; heavy half before Phase 4 tokens |

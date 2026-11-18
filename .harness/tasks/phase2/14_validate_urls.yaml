@@ -1,0 +1,34 @@
+id: p2-validate-urls
+title: URL check catches bare domains and look-alike forms (CSO P2-3)
+depends_on: [p2-validate]
+role: implementer
+notes: |
+  Hardening before the first live Workflow A run (owner approved CSO P2-1 to P2-6, 2026-11-18).
+  pipeline/script/validate.py only. Today `_text_problem` rejects only `://` and `www.`, so
+  "full story at example.net/case" or a full-width `ｗｗｗ．` form passes and would be published.
+  - NFKC-normalise each field (unicodedata.normalize("NFKC", text)) before the URL and angle-bracket
+    checks, and also treat U+3002 and U+FF61 as dots (IDNA label separators that NFKC leaves alone).
+    Keep the control, bidi and invisible character check on the raw text: NFKC must not hide one.
+  - Also reject a domain-like token: letters, digits or hyphens directly followed by a dot and a
+    TLD of 2 or more letters, with an optional path, in any case. A dot followed by a digit (3.5,
+    version 2.0) or by one letter (U.S., a.m.) is not a domain, and nor is a dot that only follows
+    another dot or a space (wait... and, No. 5).
+  - Messages stay "<field>: contains a URL" (the tests look for the field label and "URL").
+  - Update the problems() docstring rule list to say what counts as a URL now.
+  Must still pass every test in tests/script/test_validate.py (ordinary unicode, the sample queue
+  file via tests/test_queue_scripts.py). If a real queue file or seeded source text trips the new
+  rule, say so in the handoff and stop rather than loosening the rule for it.
+  Security specialist review runs (validate.py is a trigger in .harness/config.yaml).
+paths_allowed:
+  - pipeline/script/validate.py
+tests:
+  - tests/script/test_validate_urls.py
+acceptance: tests/script/test_validate_urls.py::test_acceptance
+context_files:
+  - .harness/handoffs/p2-cso.md
+  - docs/threat-model.md#6
+  - pipeline/script/validate.py
+  - tests/script/test_validate.py
+  - tests/script/test_validate_urls.py
+  - lessons.md
+max_turns: 25
