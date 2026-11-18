@@ -23,6 +23,7 @@ paths_allowed:
   - pipeline/script/validate.py
 tests:
   - tests/script/test_validate_urls.py
+  - tests/script/test_validate_urls_marks.py
 acceptance: tests/script/test_validate_urls.py::test_acceptance
 context_files:
   - .harness/handoffs/p2-cso.md
