@@ -21,6 +21,16 @@ from pipeline import constants
 _EXCERPT_CHARS = 200
 
 
+class _NoRedirect(urllib.request.HTTPRedirectHandler):
+    """Turns any 3xx into an HTTPError, so the key header is never re-sent to another host."""
+
+    def redirect_request(self, *args: Any, **kwargs: Any) -> None:
+        return None
+
+
+_OPENER = urllib.request.build_opener(_NoRedirect)
+
+
 class GeminiError(Exception):
     """Any failed Gemini call. The message never contains the API key."""
 
@@ -34,10 +44,12 @@ def generate_json(
     x-goog-api-key header: never in the URL, a log record or an exception message. A missing or
     blank key raises GeminiError naming GEMINI_API_KEY before any request.
 
-    Sends with `urllib.request.urlopen(request, timeout=constants.GEMINI_TIMEOUT_S)`. HTTP 429, any
-    5xx and a timeout are retried once after `time.sleep(constants.GEMINI_RETRY_WAIT_S)`; if the
-    retry fails too, GeminiError. Any other failure raises GeminiError at once with no retry: HTTP
-    404 (its message names `model`, since a retired model id is the usual cause), other 4xx, a
+    Sends with `opener.open(request, timeout=constants.GEMINI_TIMEOUT_S)`, an opener that never
+    follows redirects. HTTP 429, any 5xx and a timeout are retried once after
+    `time.sleep(constants.GEMINI_RETRY_WAIT_S)`; if the retry fails too, GeminiError. Any other
+    failure raises GeminiError at once with no retry: any 3xx (a redirect would re-send the key
+    header to another host), HTTP 404 (its message names `model`, since a retired model id is the
+    usual cause), other 4xx, a
     status other than "completed", no text in the model_output steps, text that is not a JSON
     object. Error messages give the HTTP status and at most a short excerpt of the response body.
 
@@ -71,7 +83,7 @@ def generate_json(
 def _send_with_one_retry(request: urllib.request.Request, model: str, key: str) -> bytes:
     for attempt in (1, 2):
         try:
-            with urllib.request.urlopen(request, timeout=constants.GEMINI_TIMEOUT_S) as response:
+            with _OPENER.open(request, timeout=constants.GEMINI_TIMEOUT_S) as response:
                 body: bytes = response.read()
                 return body
         except urllib.error.HTTPError as error:
