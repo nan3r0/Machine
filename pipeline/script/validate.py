@@ -19,7 +19,9 @@ from pipeline.constants import (
 )
 from pipeline.schema import Script
 
-_BAD_CATEGORIES = {"Cf", "Co", "Cs"}
+# Every default-ignorable code point is Cf or Cn (rejected here), Mn (dropped by _normalised) or a
+# Hangul filler (a letter, so it joins a domain rather than splitting it).
+_BAD_CATEGORIES = {"Cf", "Cn", "Co", "Cs"}
 _MARK_CATEGORIES = {"Mn", "Me"}
 # A TLD needs 2+ letters, so "3.5", "U.S." and "a.m." pass; no letters follow the first dot in "wait...".
 # Unicode letters count too, so an internationalised domain ("пример.рф") is caught.
@@ -40,10 +42,12 @@ def _fields(script: Script) -> Iterator[tuple[str, str]]:
 
 
 def _normalised(text: str) -> str:
-    """NFKC folds full-width forms; it leaves the ideographic full stops alone, and IDNA treats
-    them as dots, so they are mapped by hand. Marks (Mn, Me) are dropped after NFKC so an invisible
-    one, such as a variation selector, cannot split a domain; composed accents survive NFKC first."""
-    folded = unicodedata.normalize("NFKC", text).replace("。", ".").replace("｡", ".")
+    """NFKD folds full-width forms; it leaves the ideographic full stops alone, and IDNA treats
+    them as dots, so they are mapped by hand. Marks (Mn, Me) are then dropped so an invisible one,
+    such as a variation selector, cannot split a domain. Decomposing first means an accent leaves
+    its letter behind ("café" reads as "cafe") and "<" + U+0338 reads as "<", where NFC would
+    compose it into U+226E."""
+    folded = unicodedata.normalize("NFKD", text).replace("。", ".").replace("｡", ".")
     return "".join(char for char in folded if unicodedata.category(char) not in _MARK_CATEGORIES)
 
 
@@ -101,14 +105,15 @@ def problems(script: Script) -> list[str]:
     - Spoken and published fields (title, description, every tag, hook, every scene's narration and
       on_screen_text, loop_line) contain no URL: no `://`, no `www.` and no bare domain (Unicode
       letters, digits, underscores or hyphens, a dot, then a TLD of 2 or more letters), any case.
-      Text is NFKC-normalised first, with U+3002 and U+FF61 read as dots, so full-width look-alikes
+      Text is NFKD-normalised first, with U+3002 and U+FF61 read as dots, so full-width look-alikes
       count, and combining marks (Mn, Me) are dropped so an invisible one cannot split a domain.
       Decimals ("3.5") and one-letter abbreviations ("U.S.") are not domains.
-    - The same fields contain no `<` or `>`, full-width forms included (YouTube rejects them in
-      titles and descriptions, and in the PR body they could hide text as HTML), no control
-      character (Unicode category Cc, except a newline in the description), and no format,
-      private-use or surrogate character (Cf, Co, Cs: bidi controls and zero-width characters).
-      The control and invisible check runs on the raw text, so NFKC cannot hide one.
+    - The same fields contain no `<` or `>`, full-width forms and ones followed by a combining mark
+      included (YouTube rejects them in titles and descriptions, and in the PR body they could hide
+      text as HTML), no control character (Unicode category Cc, except a newline in the
+      description), and no format, unassigned, private-use or surrogate character (Cf, Cn, Co, Cs:
+      bidi controls, zero-width characters and reserved default-ignorables). The control and
+      invisible check runs on the raw text, so normalisation cannot hide one.
     """
     found = list(_length_problems(script))
     found += [m for label, text in _fields(script) if (m := _text_problem(label, text))]

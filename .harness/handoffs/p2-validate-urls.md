@@ -4,13 +4,13 @@
 CSO P2-3: `validate.problems` must reject bare domains and full-width look-alike URLs, while decimals and abbreviations still pass.
 
 ## Status
-done, awaiting re-review. Review round 1 fix applied (see the section below): `_normalised` now drops Mn and Me marks after NFKC, and the two rewords are done. Committed on `task/p2-validate-urls`, not pushed.
+done, awaiting re-review. Review round 2 fix applied by the Architect on escalation (see "Review round 2" below): Cn rejected on raw text, and the fold now uses NFKD. Locked tests for round 2 are in PR #79 (`tests/script/test_validate_urls_cn.py`); merge it to main first, then rebase this branch. Committed on `task/p2-validate-urls`, not pushed.
 
 ## What changed (and why)
 - `pipeline/script/validate.py` only:
   - New `_normalised`: NFKC, then U+3002 and U+FF61 mapped to ".", because NFKC leaves the ideographic full stops alone.
   - `_text_problem` runs the URL and angle-bracket checks on the normalised text. The control and invisible character check still runs on the raw text, so NFKC cannot hide one.
-  - New `_DOMAIN_LIKE` regex: `[a-z0-9-]+\.[a-z]{2,}`, case-insensitive. A TLD needs 2 or more letters, so "3.5", "2.0", "U.S." and "a.m." pass. NFKC turns "…" into "...", but no letters follow the first dot there, so "wait…and" still passes.
+  - New `_DOMAIN_LIKE` regex: `[\w-]+\.[^\W\d_]{2,}` (Unicode word characters or hyphens, a dot, then 2 or more Unicode letters; case does not matter). A TLD needs 2 or more letters, so "3.5", "2.0", "U.S." and "a.m." pass. NFKC turns "…" into "...", but no letters follow the first dot there, so "wait…and" still passes.
   - The `problems()` docstring rule list says what counts as a URL now.
 - Messages are unchanged ("<field>: contains a URL").
 
@@ -70,3 +70,33 @@ Also in that file, as regression guards for the Gate 2 reviewer's request (they 
 - After the fix: `LOOM_TASK=p2-validate-urls pytest -q --tb=short`: 1005 passed, 46 skipped (includes `test_validate_urls_marks.py`). `ruff check .` and `mypy --strict pipeline/` clean; `python tests/docs_check.py` run below.
 - `.venv/Scripts/python.exe -m pytest tests/script/test_validate_urls_marks.py -q --tb=no`: 63 failed, 70 passed. The 63 are the 9 mark cases times 7 fields; non-Latin, dot look-alike and accented cases all pass.
 - `python tests/scope_check.py task/p2-validate-urls origin/main` fails, as expected: the task role on main is `implementer`, so the new locked test and the task YAML edit are flagged. Commit 2c9cdd6 holds only those two files, so the orchestrator can cherry-pick it onto an architect branch and merge it to main first (the route PR #77 took), then rebase this branch onto main.
+
+## Review round 2 (Architect, escalation)
+
+### Findings (security review, confirmed by running them)
+- (A) medium: unassigned default-ignorable code points (Cn) split a domain invisibly: "evil.c\U000E01F0om", U+2065, U+E0080 to U+E00FF, U+FFF0 to U+FFF8. Cn was not rejected, not dropped and not `\w`, so `_text_problem` returned None.
+- (B) low: round 1 moved the angle-bracket check onto NFKC text, and NFC composes "<" + U+0338 into U+226E, so "a ≮ b" passed though the raw text holds "<" (main rejected it).
+
+### Fix (`pipeline/script/validate.py` only)
+- `_BAD_CATEGORIES` gains "Cn", checked on raw text. This closes the class, not one more instance: every Default_Ignorable_Code_Point is Cf or Cn (rejected), Mn (dropped by `_normalised`) or a Hangul filler (Lo, so it joins a domain as `\w` instead of splitting it).
+- `_normalised` uses NFKD instead of NFKC before dropping Mn and Me, so "<" + U+0338 decomposes back to "<". Accents drop off their letter ("café" reads "cafe"), which keeps words as words. One check on one folded string, no second raw-text angle check needed: NFKD never removes a raw "<".
+- Docstrings of `_normalised` and `problems()` updated (NFKD, Cn, marked angle brackets).
+
+### Decisions
+- An emoji with U+FE0F ("❤️") still passes: U+FE0F is Mn, dropped for the URL check, not rejected. Rejecting all default-ignorables was not chosen for that reason. ZWJ emoji sequences (U+200D, Cf) were already rejected on main; unchanged.
+- Behaviour change, fail-closed: precomposed "≮" and "≯" are now rejected as angle brackets (main passed them).
+- Cn depends on the runtime's Unicode tables (3.11 local is Unicode 14.0, CI 3.12 is 15.0). An emoji newer than those tables is Cn and is rejected as "control or invisible character". Fail-closed (the script is regenerated), but the message may confuse; worth a line in architecture.md section 7.
+
+### Residuals (for docs/threat-model.md P2-3)
+- Mc spacing marks (visible) and visible symbols (So, Sm, P*) between labels, including the braille blank U+2800, which renders empty.
+- A few letters whose NFKD holds a space or a middle dot (U+013F/U+0140 "Ŀŀ", Arabic isolated harakat U+FE70 to U+FE7E): visible, so not an invisible split.
+- Bare IPv4 ("1.2.3.4/x") and spelled-out or spaced dots ("example dot com", "example . com").
+
+### Docs (round 2, close-out)
+- `docs/threat-model.md` P2-3: say the fold is NFKD plus Mn/Me drop and Cn is rejected on raw text; add the residuals above.
+- `architecture.md` section 7: emoji newer than the runtime's Unicode tables are rejected (fail-closed).
+
+### Evidence (round 2)
+- `tests/script/test_validate_urls_cn.py` (from PR #79, copied in temporarily, not committed here): 105 passed, 0 skipped. On main's `validate.py` the same file gives 42 failed (the Cn cases), 63 passed; with no LOOM_TASK all 105 skip.
+- Sweep of every code point (no surrogates) through `_text_problem("title", "example"+c+".com")` and `"example.c"+c+"om"`: survivors are only Mc 445, Nd 660, No 152, Pc 10, P* 809, S* 7031, Z* 19, and 24 visible letters listed above. No Cc, Cf, Cn, Co, Mn or Me survives.
+- `LOOM_TASK=p2-validate-urls pytest -q --tb=short`: 1005 passed, 46 skipped. `ruff check .` clean, `mypy --strict pipeline/` no issues in 21 files, `python tests/docs_check.py` passed.
