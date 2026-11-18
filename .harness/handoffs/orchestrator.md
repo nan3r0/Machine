@@ -25,8 +25,7 @@ You are the Stage 0 orchestrator (HARNESS.md section 10, Stage 0). Model: Sonnet
 - One Gate 2 pass per task; chase only blocking findings.
 
 ## State (2026-11-18, end of ninth orchestrator session)
-- p2-batch built in one attempt: Gate 1 green (718 passed, 20 skipped), Gate 2 and security review approve with no blocking findings, CI green. PR #71 is waiting for the owner to merge. Worktree `.claude/worktrees/p2-batch`.
-- After the merge, close-out on `docs/p2-closeout-4` (worktree `.claude/worktrees/p2-closeout-4`): `log_outcome.py p2-batch --attempt 1 --result passed`, status.yaml, workflow.md row, CLAUDE.md status (done += weekly batch; next p2-weekly-workflow). Handoff Docs: architecture.md describes the batch flow (lines 46, 55, 89, 137); add the budget reservation note there. Then task 09 p2-weekly-workflow, then phase-end 10 to 13.
+- p2-batch merged (PR #71), built in one attempt with no blocking review findings. Close-out on `docs/p2-closeout-4`: outcome logged, status.yaml, workflow.md row, CLAUDE.md status, architecture.md weak point on the budget reservation and logical-call caps. Next: task 09 p2-weekly-workflow (security review triggers on `.github/workflows/**`), then phase-end 10 to 13.
 - Non-blocking notes for the phase-end reviews: a left-out script leaves an empty publish day; budgets count logical calls, and one call can be 2 HTTP requests with the retry (spec and threat model should say which the caps mean); fact text renders as plain markdown, safe only while sources stay owner-reviewed; the CSO should add threat-model rows for PR body injection and Gemini quota exhaustion; an oversized PR body aborts the whole batch (fails closed).
 - `log_outcome.py --result` takes `passed`, not `pass`. A background orchestrator session must edit inside a worktree (EnterWorktree), never the shared checkout.
 
