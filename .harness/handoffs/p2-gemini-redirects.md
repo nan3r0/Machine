@@ -28,8 +28,12 @@ none
 Gate 2 review plus the security specialist review (gemini.py is a trigger in `.harness/config.yaml`), then merge.
 
 ## Docs
-- None needed beyond the docstring edit in `gemini.py`.
-- At close-out: the threat-model row for P2-5 can be marked mitigated (CSO at phase end). architecture.md and spec.md do not mention how the client sends, so no change there.
+Edits needed at close-out (outside this task's `paths_allowed`, which is only `gemini.py`; its docstrings are updated):
+- `docs/threat-model.md` section 4.6, line 116: the "Gap P2-5" row becomes "Mitigated. `_NoRedirect` opener, any 3xx raises GeminiError with no retry (`gemini.py:24-31`, `:86`); `tests/script/test_gemini_redirect.py`".
+- `docs/threat-model.md` section 6, line 175: mark P2-5 closed by p2-gemini-redirects.
+- `docs/threat-model.md` rows 115, 117, 119: the diff added lines above `generate_json`, so update the gemini.py references to `:59-80` (key handling), `:105-111` (redaction), `:83-102` (retry loop) and `:109-110` (404 message).
+- `workflow.md:164`: status row for p2-gemini-redirects.
+- `architecture.md` and `spec.md` do not mention how the client sends, so no change there.
 
 ## Evidence
 - `LOOM_TASK=p2-gemini-redirects pytest -q tests/script/test_gemini_redirect.py tests/script/test_gemini.py`: 39 passed (301, 302, 303, 307, 308 refused with no hit on the target; direct control passes; acceptance passes).
