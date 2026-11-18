@@ -19,15 +19,21 @@ notes: |
     `python -m pip install -q --require-hashes -r requirements-generate.txt` (on one line: the test
     checks every line holding `pip install`); point setup-python's
     cache-dependency-path at the new file.
-  - P2-2: open-pr pushes only new scripts. Before staging, fail if any tracked file under
-    queue/approved/ changed or was deleted (git diff --quiet). Stage only untracked files directly
-    in queue/approved/ whose names match ^[a-z0-9]+(-[a-z0-9]+)*\.json$ (the Script id pattern
-    plus .json); fail on any other untracked file there, so nothing is dropped silently. Shell only;
-    no pipeline code in the write job. Read file lists with -z or a NUL-safe loop (lessons.md).
-  - P2-4: a third job `validate`: needs generate, no permissions block (read-only default), no
-    secret, no token, checkout with persist-credentials false, downloads the artifact onto the fresh
-    checkout, installs with --require-hashes -r requirements-generate.txt plus pytest at the
-    requirements-dev.txt pin in a second pip call, runs `python -m pytest -q
+  - P2-2: open-pr pushes only new scripts. The artifact is untrusted (review round 1 in the
+    handoff): download it to `${{ runner.temp }}/artifact`, never over the checkout. One copy step,
+    with no token in its env and before any git command, walks that folder's queue/approved/ with a
+    NUL-safe loop (lessons.md) under LC_ALL=C and fails on anything that is not a regular,
+    non-symlink file directly there named ^[a-z0-9]+(-[a-z0-9]+)*\.json$ (the Script id pattern
+    plus .json), so nothing is dropped silently. A file that already exists in the checkout is
+    skipped if byte-identical (generate uploads the whole folder) and fails the job if it differs.
+    Only new files are copied into queue/approved/. A later step stages and commits them, every
+    git call with `-c core.hooksPath=/dev/null`, and `gh pr create --body-file` reads pr_body.md
+    from the temp folder. Shell only; no pipeline code in the write job.
+  - P2-4: a third job `validate`: needs generate, explicit `permissions: contents: read`, no
+    secret, no token, checkout with persist-credentials false, downloads the artifact to
+    `${{ runner.temp }}/artifact` and runs open-pr's copy step (same text) before pytest. No
+    `cache: pip` on its setup-python. Installs with --require-hashes -r requirements-generate.txt
+    plus pytest at the requirements-dev.txt pin in a second pip call, runs `python -m pytest -q
     tests/test_queue_scripts.py`. open-pr needs [generate, validate].
   - P2-6: workflow-level `concurrency: {group: weekly-scripts, cancel-in-progress: false}`. The
     optional "fail early if scripts/<day> exists" is skipped (YAGNI; the concurrency group and the
