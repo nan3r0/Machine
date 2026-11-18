@@ -9,6 +9,7 @@ You are the Stage 0 orchestrator (HARNESS.md section 10, Stage 0). Model: Sonnet
 1. Worktree per task branch `task/<id>` under `.claude/worktrees/`. Python: `.venv/Scripts/python.exe` in that worktree (create with `python -m venv .venv`, install `requirements.txt` and `requirements-dev.txt` only). Before launching, check `.venv/Scripts/python.exe -c "import pydantic"`; an existing venv may be empty.
 2. Launch (window closes itself when the session ends):
    `cmd /c start "Loom task: <id>" powershell.exe -ExecutionPolicy Bypass -File .harness\scripts\open_task_window.ps1 -Task <id> -Model <from .harness/config.yaml> -WorkDir <worktree> -Message "<brief>"`
+   From Git Bash use `powershell -NoProfile -Command` with `Start-Process powershell.exe -PassThru -ArgumentList` and wrap the script path, `-WorkDir` and `-Message` in literal double quotes (spaces in "Claude Projects" otherwise split the arguments and the window dies at once). Confirm the window exists before waiting. Without the claude PID, skip the watcher and ask the owner to say when the window closes (process queries via PowerShell can be denied).
    Brief: role, "Follow CLAUDE.md", read the task YAML and handoff, Bash one plain command per call, commit but do not push, finish the handoff including Docs.
 3. One background watcher: `sh .harness/scripts/wait_task.sh <worktree> <id> <start-sha> <claude-pid>`.
 4. On TASK_DONE: run ruff, `mypy --strict pipeline/`, pytest (with `LOOM_TASK=<id>`), `tests/scope_check.py task/<id> origin/main`. Then one Gate 2 review with `.harness/scripts/run_review.sh` (prompt: read `.claude/agents/reviewer.md`, the task YAML, the handoff, the diff saved to `.harness/reviews/<id>.diff`). Add a specialist review only if `specialist_reviews` paths in config.yaml match.
@@ -22,6 +23,12 @@ You are the Stage 0 orchestrator (HARNESS.md section 10, Stage 0). Model: Sonnet
 - If the hook is not guarding you (you were not started with `-Task orchestrator`), you must rotate yourself: run `/context` at every task close-out and before launching each task, and at 50% write the State block, open the docs PR and tell the owner to start a fresh session. Do not wait to be asked.
 - One watcher per task; no polling loops in your own turns.
 - One Gate 2 pass per task; chase only blocking findings.
+
+## State (2026-11-18, end of eighth orchestrator session)
+- p2-semantic merged (PR #69). Close-out on `docs/p2-closeout-3`: status.yaml, workflow.md row, CLAUDE.md status, one lessons entry (launch quoting). Next: task 08 p2-batch, then 09 p2-weekly-workflow, then phase-end 10 to 13.
+- p2-batch brief: bound-check verdict indexes before `rewrite_line` (it raises `IndexError`); `check_script` never raises on a bad verdict, only `GeminiError` propagates and the batch decides; same "Edit and Write only" line.
+- Non-blocking p2-semantic notes for the Architect: `semantic.py` imports the private `_clean` from `generate.py` (move `_clean`, `DATA_START`, `DATA_END` to a shared public module); fact ids are checked against scene links, not the facts rendered into the prompt; locked test needed for a nested delimiter in the checker prompt (exactly one `DATA_END`), same owed test as p2-generate.
+- Orchestrator rotated at close-out; context was small, no hook was guarding.
 
 ## State (2026-11-17, end of seventh orchestrator session)
 - p2-generate merged (PR #67). Close-out on `docs/p2-closeout-2`: status.yaml, workflow.md row, CLAUDE.md status, PLAN.md D3 ledger wording (lines 39, 74, 220, 299), two lessons entries. Next: task 07 p2-semantic, then 08 p2-batch, 09 p2-weekly-workflow.
