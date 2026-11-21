@@ -9,6 +9,7 @@ temperature is given. Response: `{"status": "completed", "steps": [{"type": "mod
 "content": [{"type": "text", "text": "..."}]}], ...}`.
 """
 
+import http.client
 import json
 import os
 import time
@@ -19,6 +20,7 @@ from typing import Any
 from pipeline import constants
 
 _EXCERPT_CHARS = 200
+_UNEXPECTED_SHAPE = "Gemini response has an unexpected shape"
 
 
 class _NoRedirect(urllib.request.HTTPRedirectHandler):
@@ -49,9 +51,11 @@ def generate_json(
     `time.sleep(constants.GEMINI_RETRY_WAIT_S)`; if the retry fails too, GeminiError. Any other
     failure raises GeminiError at once with no retry: any 3xx (a redirect would re-send the key
     header to another host), HTTP 404 (its message names `model`, since a retired model id is the
-    usual cause), other 4xx, a
-    status other than "completed", no text in the model_output steps, text that is not a JSON
-    object. Error messages give the HTTP status and at most a short excerpt of the response body.
+    usual cause), other 4xx, an OSError or http.client.HTTPException while sending or reading the
+    body (its message names the exception type only), a status other than "completed", `steps` or
+    a model_output step's `content` that is not a list, no text in the model_output steps, text
+    that is not a JSON object. Error messages give the HTTP status and at most a short excerpt of
+    the response body.
 
     The returned text is the text parts of the model_output steps joined in order. The output is
     untrusted: it is only parsed here, and callers validate it.
@@ -98,6 +102,9 @@ def _send_with_one_retry(request: urllib.request.Request, model: str, key: str) 
                 raise GeminiError(f"Gemini request failed: {type(error.reason).__name__}") from None
             if attempt == 2:
                 raise GeminiError("Gemini request timed out twice") from None
+        except (OSError, http.client.HTTPException) as error:
+            # Last, since TimeoutError and URLError are OSErrors with their own rules above.
+            raise GeminiError(f"Gemini request failed: {type(error).__name__}") from None
         time.sleep(constants.GEMINI_RETRY_WAIT_S)
     raise AssertionError("unreachable")
 
@@ -119,13 +126,21 @@ def _parse_answer(raw: bytes) -> dict[str, Any]:
     if not isinstance(interaction, dict) or interaction.get("status") != "completed":
         status = interaction.get("status") if isinstance(interaction, dict) else None
         raise GeminiError(f"Gemini interaction not completed (status {status!r})")
-    texts = [
-        part["text"]
-        for step in interaction.get("steps", [])
-        if isinstance(step, dict) and step.get("type") == "model_output"
-        for part in step.get("content", [])
-        if isinstance(part, dict) and part.get("type") == "text" and isinstance(part.get("text"), str)
-    ]
+    steps = interaction.get("steps", [])
+    if not isinstance(steps, list):
+        raise GeminiError(_UNEXPECTED_SHAPE)
+    texts: list[str] = []
+    for step in steps:
+        if not isinstance(step, dict) or step.get("type") != "model_output":
+            continue
+        content = step.get("content", [])
+        if not isinstance(content, list):
+            raise GeminiError(_UNEXPECTED_SHAPE)
+        texts += [
+            part["text"]
+            for part in content
+            if isinstance(part, dict) and part.get("type") == "text" and isinstance(part.get("text"), str)
+        ]
     if not texts:
         raise GeminiError("Gemini returned no text")
     try:
