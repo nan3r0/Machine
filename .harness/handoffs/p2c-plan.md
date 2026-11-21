@@ -38,7 +38,7 @@ I generated each survivor's diff with mutmut 3.8.1's own mutator on main at 8933
 | batch `_script_section` | 8, 9 | scenes in the PR body are numbered from 1, the same as the flags |
 | validate `_hides_ascii_digit` | 2, 3, 4 | no test reaches it at all. This is the U+32C0 follow-up; the test runs the whole class (80 code points on Python 3.11) |
 | validate `_text_problem` | 4, 6, 7, 9, 10 | `x://y` and a `www.` with no TLD are rejected (PRD R12.1) |
-| validate `_length_problems` | 7, 21 | narration and tags exactly at their caps pass |
+| validate `_length_problems` | 7 | narration exactly at its cap passes |
 | sources `load_sources` | 3, 5 | slug order: `bloop` before `bloop-2` |
 
 **Equivalent or not worth a test.** No task:
@@ -55,6 +55,7 @@ I generated each survivor's diff with mutmut 3.8.1's own mutator on main at 8933
 - `AssertionError("unreachable")` (`_send_with_one_retry` 43 to 45), prompt text case (generate `write_script` 3 to 7, `rewrite_line` 6 to 14), argparse `prog` and the log level (batch `main`).
 - normalise `_year` 13 and 27: `_group` never returns 100 (`_group(["one", "hundred"], 0)` gives 1).
 - validate `_text_problem` 37 and 38: U+007F is not a number character.
+- validate `_length_problems` 21: TAGS_MAX (10) times TAG_MAX_CHARS (30) is 300, so a valid script never reaches the 500-character total and the total cap cannot bind. Phase 4 should keep this in mind for YouTube metadata; it is not a task.
 - validate `_normalised` 18 and 19: NFKD already turns U+FF61 into U+3002, so the second `.replace` is dead code. It is a one-line cleanup for whoever next edits validate.py, not a task.
 - Out of scope: render, voice and `render_one` survivors. That is Phase 1 code reached mostly by heavy tests (pyproject.toml mutmut comment); judge it from coverage.xml.
 

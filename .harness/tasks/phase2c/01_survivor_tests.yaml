@@ -33,8 +33,7 @@ notes: |
     mutants need (_hides_ascii_digit 2, 3, 4).
   - "x://y" (a scheme with no dotted host) and "www." with no TLD after it are rejected as URLs
     (PRD R12.1; _text_problem 4, 6, 7, 9, 10).
-  - Narration of exactly NARRATION_MAX_CHARS and tags of exactly TAGS_TOTAL_MAX_CHARS in total
-    pass; one character more fails (_length_problems 7, 21).
+  - Narration of exactly NARRATION_MAX_CHARS passes; one character more fails (_length_problems 7).
   sources:
   - Slugs "bloop" and "bloop-2" load in slug order, "bloop" first (load_sources 3, 5).
   A new test that fails on current code is a pipeline bug: stop, report it in the handoff, and the
