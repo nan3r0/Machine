@@ -1,0 +1,35 @@
+id: p2b-unicode-digits
+title: Validate rejects non-ASCII number characters in spoken and published text (phase review N2)
+depends_on: [p2-phase-review]
+role: implementer
+notes: |
+  Phase review N2 and QA lead rank 1. The exact layer reads ASCII 0 to 9 only, so "７２" or
+  Arabic-Indic digits carry a wrong number past R9.1. Contract change, owner decision O2 in
+  .harness/handoffs/p2b-plan.md (default taken here; a different answer rewrites the test first).
+  NFKC in normalise.py would not do: it folds full-width digits but leaves Arabic-Indic and the
+  other decimal-digit scripts alone. So the rule goes in validate.py, by category
+  (lessons.md 2026-11-18):
+  - Every field `_fields` yields (title, description, tags, hook, narration, on_screen_text,
+    loop_line) may hold no character of category Nd, Nl or No other than ASCII 0 to 9.
+  - Message: "<label>: contains a non-ASCII number character (U+XXXX)", the first such character.
+  - Check the raw text, like the control-character check. Its place among the other checks in
+    `_text_problem` is free: no other locked test holds such a character.
+  - Add the rule to the `problems` docstring.
+  The writer and every rewrite already go through validate.problems, so a script with such a
+  character is asked for again or left out; nothing else changes. No fixture, source or queued
+  script holds one today (checked by the Architect).
+  Security specialist review runs (validate.py is a trigger).
+paths_allowed:
+  - pipeline/script/validate.py
+tests:
+  - tests/script/test_validate_digits.py
+acceptance: tests/script/test_validate_digits.py::test_acceptance
+context_files:
+  - .harness/handoffs/p2-phase-review.md
+  - .harness/handoffs/p2-qa-lead.md
+  - .harness/handoffs/p2b-plan.md
+  - pipeline/script/validate.py
+  - tests/script/test_validate_digits.py
+  - tests/script/scripts.py
+  - lessons.md
+max_turns: 20

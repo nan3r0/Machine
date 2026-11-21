@@ -1,0 +1,39 @@
+id: p2b-prompt-data
+title: One shared data-block module for the writer and checker prompts (phase review N3)
+depends_on: [p2-phase-review]
+role: implementer
+notes: |
+  Phase review N3 (.harness/handoffs/p2-phase-review.md). semantic.py imports the private
+  generate._clean, DATA_START and DATA_END, and generate._data_block and semantic._data_block are
+  two block builders. No behaviour change: prompts stay byte for byte what they are today.
+  - Fill in pipeline/script/prompt_data.py (the Architect's stub): `clean` and `data_block` as their
+    docstrings say. Keep DATA_START and DATA_END as they are.
+  - generate.py: import DATA_START, DATA_END, clean and data_block from prompt_data (the names
+    DATA_START and DATA_END must stay importable from generate, tests/script/test_generate.py:18
+    imports them). Delete generate._clean and generate._data_block; build the writer and rewrite
+    blocks with `prompt_data.data_block(f"{fact.id}:{fact.text}" for fact in facts)` and clean the
+    topic, reason and old line with `prompt_data.clean`.
+  - semantic.py: import from prompt_data, not generate. Its block keeps its own line format
+    ("Scene i: ..." then "  Fact id: ..." for each linked fact) and goes through `data_block`.
+  - Cleaning a whole formatted line is the same as cleaning the untrusted part: no label ends in a
+    character a delimiter starts with.
+  Every existing test in tests/script/test_generate.py and tests/factcheck/test_semantic.py must
+  still pass unchanged.
+paths_allowed:
+  - pipeline/script/prompt_data.py
+  - pipeline/script/generate.py
+  - pipeline/factcheck/semantic.py
+tests:
+  - tests/script/test_prompt_data.py
+acceptance: tests/script/test_prompt_data.py::test_acceptance
+context_files:
+  - .harness/handoffs/p2-phase-review.md
+  - .harness/handoffs/p2b-plan.md
+  - pipeline/script/prompt_data.py
+  - pipeline/script/generate.py
+  - pipeline/factcheck/semantic.py
+  - tests/script/test_prompt_data.py
+  - tests/script/test_generate.py
+  - tests/factcheck/test_semantic.py
+  - lessons.md
+max_turns: 25

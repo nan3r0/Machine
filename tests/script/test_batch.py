@@ -296,12 +296,20 @@ def test_logs_hold_no_model_output_or_facts(tmp_path: Path, monkeypatch: pytest.
 
 
 def test_main_uses_todays_utc_date(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """The clock is frozen (QA lead: a run across UTC midnight made the real clock flaky). Sunday
+    23:30 UTC is already Monday in UTC+1, so a local-time date would start a week later."""
     dirs, _ = setup(tmp_path, monkeypatch, count=1)
-    today = datetime.now(timezone.utc).date()
+
+    class FrozenClock(datetime):
+        @classmethod
+        def now(cls, tz: Any = None) -> "FrozenClock":
+            assert tz is timezone.utc, "main must ask for UTC"
+            return cls(2026, 11, 22, 23, 30, tzinfo=timezone.utc)
+
+    monkeypatch.setattr(batch, "datetime", FrozenClock)
     assert batch.main([str(dirs.sources), str(dirs.queue), str(dirs.out)]) == 0
     [script] = dirs.written().values()
-    assert script.publish_after.weekday() == 0
-    assert 1 <= (script.publish_after - today).days <= 7
+    assert script.publish_after == MONDAY
 
 
 # --- the PR body (R13.1) --------------------------------------------------------------------------

@@ -1,0 +1,37 @@
+id: p2b-hook-check
+title: Exact-check the hook and loop line against the script's cited facts (phase review N1)
+depends_on: [p2-phase-review]
+role: implementer
+notes: |
+  Phase review N1. The hook and loop line are spoken (schema.py narration_text) but neither
+  fact-check layer sees them, so "In 1987..." in a hook gets no check. Contract change, owner
+  decision O1 in .harness/handoffs/p2b-plan.md (default taken here; a different answer rewrites
+  the test first).
+  - In batch.py, after the scenes are checked (and rewritten, if any were), run
+    `exact.unsupported(script.hook, cited)` and `exact.unsupported(script.loop_line, cited)`, where
+    `cited` is the texts of every fact any scene of the script cites (the union, not the whole
+    source: a fact no scene cites does not back the hook).
+  - A failure adds one Flag per field to `flags`, with scene None and the reason
+    "hook: not in the cited facts: <tokens>" or "loop line: not in the cited facts: <tokens>",
+    clipped by `_flag` like any reason.
+  - No rewrite and no extra Gemini call: hook and loop failures must never enter the
+    scene-index dict that the rewrite loop passes to generate.rewrite_line.
+  - No meaning check of the hook (that would change semantic's one-verdict-per-scene contract and
+    the zip(strict=True)); title and description stay unchecked. Both are listed for the owner.
+  - Update the `run` docstring step 2.
+  Every test in tests/script/test_batch.py must still pass unchanged (their hooks hold no number
+  or name). Security specialist review runs (batch.py is a trigger).
+paths_allowed:
+  - pipeline/script/batch.py
+tests:
+  - tests/script/test_batch_hook.py
+acceptance: tests/script/test_batch_hook.py::test_acceptance
+context_files:
+  - .harness/handoffs/p2-phase-review.md
+  - .harness/handoffs/p2b-plan.md
+  - pipeline/script/batch.py
+  - pipeline/factcheck/exact.py
+  - tests/script/test_batch_hook.py
+  - tests/script/test_batch.py
+  - lessons.md
+max_turns: 25

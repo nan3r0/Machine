@@ -1,0 +1,39 @@
+id: p2b-qa-tests-factcheck
+title: Locked tests for the QA lead's fact-check gaps, ranks 5 to 7 (phase review N4)
+depends_on: [p2b-prompt-data, p2b-unicode-digits]
+role: test_author
+notes: |
+  Phase review N4: QA lead proposed tests 5 to 7 (.harness/handoffs/p2-qa-lead.md). Tests only;
+  owner decision O3 sets the scope. Same reports re-run rule as p2b-qa-tests-batch: confirm each
+  targeted mutant in a mutmut.txt from after the phase2b code tasks merged.
+  - Rank 5, semantic: {"index": true} with scene 1 missing gives UNSUPPORTED; reason "  " + "y"*200
+    stays PARTIAL with reason "y"*120; exact reasons for no, repeated and malformed verdicts and
+    for "named no fact linked". The linked-facts-per-scene and DATA_END items are already in
+    tests/script/test_prompt_data.py; do not repeat them. New file tests/factcheck/test_semantic_qa.py.
+  - Rank 6, exact layer: exhaustive deterministic loops (1..9999 through words, all 90 x 90
+    two-group years, every "<10..99> oh <1..9>") against an independent oracle written in the
+    test, plus the listed literals ("twenty ten" -> 2010, "nine lives" -> [], "ten men" -> ["10"],
+    "a thousand and one nights" -> ["1001"], the proper_nouns cases). New file
+    tests/factcheck/test_exact_qa.py. Reuse the oracle in tests/factcheck/test_exact.py by import
+    if it fits; never edit that file.
+  - Rank 7: hypothesis property for decimals x scale suffixes x "$" against a Fraction oracle,
+    in tests/factcheck/test_exact_qa.py.
+  Ranks 8 to 11 are out of scope unless the owner adds them (O3).
+  A new test that fails on current code is a pipeline bug: stop, report it in the handoff, and the
+  Architect opens an implementer task (rank 6 "twenty ten" is a likely one). Never bend a test.
+paths_allowed:
+  - tests/factcheck/test_semantic_qa.py
+  - tests/factcheck/test_exact_qa.py
+tests:
+  - tests/factcheck/test_semantic_qa.py
+  - tests/factcheck/test_exact_qa.py
+acceptance: tests/factcheck/test_exact_qa.py::test_acceptance
+context_files:
+  - .harness/handoffs/p2-qa-lead.md
+  - .harness/handoffs/p2b-plan.md
+  - pipeline/factcheck/normalise.py
+  - pipeline/factcheck/semantic.py
+  - tests/factcheck/test_exact.py
+  - tests/factcheck/test_semantic.py
+  - lessons.md
+max_turns: 35

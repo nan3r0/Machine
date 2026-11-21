@@ -1,0 +1,32 @@
+id: p2b-gemini-shapes
+title: Odd Gemini response shapes and failed body reads raise GeminiError (phase review N5)
+depends_on: [p2-phase-review]
+role: implementer
+notes: |
+  Phase review N5. gemini.generate_json promises GeminiError for any failed call, and the batch
+  catches only GeminiError, so today a `steps` or `content` that is not a list (TypeError) or a
+  body read that fails (http.client.IncompleteRead, ConnectionResetError) crashes the whole weekly
+  run instead of leaving one script out.
+  - _parse_answer: anything other than a list for `steps` or a step's `content` is GeminiError
+    ("Gemini response has an unexpected shape" or similar). Keep the existing rules: non-dict
+    steps and parts and non-model_output steps are skipped, no text is GeminiError.
+  - _send_with_one_retry: an OSError or http.client.HTTPException raised while reading the body
+    is GeminiError at once, with no retry (decision in .harness/handoffs/p2b-plan.md: only 429, 5xx
+    and timeouts retry, as today; a TimeoutError during the read keeps its current retry). The
+    message names the exception type only, like the URLError branch, never the key.
+  - Update the generate_json docstring rules list to say both.
+  Security specialist review runs (gemini.py is a trigger).
+paths_allowed:
+  - pipeline/script/gemini.py
+tests:
+  - tests/script/test_gemini_shapes.py
+acceptance: tests/script/test_gemini_shapes.py::test_acceptance
+context_files:
+  - .harness/handoffs/p2-phase-review.md
+  - .harness/handoffs/p2b-plan.md
+  - pipeline/script/gemini.py
+  - tests/script/test_gemini_shapes.py
+  - tests/script/test_gemini.py
+  - tests/script/gemini_fakes.py
+  - lessons.md
+max_turns: 20
