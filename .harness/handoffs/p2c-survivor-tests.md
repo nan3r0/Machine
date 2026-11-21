@@ -45,12 +45,13 @@ Gate 2 review, merge, close-out (status.yaml), then dispatch `ci.yml` on main fo
 - Inside paths_allowed: none.
 - Owed at close-out:
   - add `p2c-survivor-tests` to `.harness/status.yaml` `done`;
-  - the workflow.md Phase 2c status row.
+  - the workflow.md Phase 2c status row;
+  - the CLAUDE.md Status line ("Next: the Phase 2c tasks"), once this task and p2c-gemini-escapes have both closed.
 - lessons.md: none, no mistake found.
 
 ## Evidence
 Run with `../p2b-qa-tests-batch/.venv/Scripts/python.exe` (the `tests` package shadowing, lessons.md 2026-11-15).
 - `LOOM_TASK=p2c-survivor-tests pytest -q tests/script/test_survivors.py`: 27 passed, 0 skipped.
-- `LOOM_TASK=p2c-survivor-tests pytest -q`: 1243 passed, 49 skipped.
+- `LOOM_TASK=p2c-survivor-tests pytest -q`: 1243 passed, 49 skipped. That is main's 1216 plus the 27 new tests. The 49 skips match main: other tasks' locked tests (such as `test_gemini_errors.py`), Windows-only tests and heavy tests. None of them is in `test_survivors.py`.
 - `ruff check .`: all checks passed. `python tests/docs_check.py`: passed.
 - Hidden-digit set on Python 3.11: 80 code points.
