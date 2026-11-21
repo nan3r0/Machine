@@ -182,3 +182,21 @@ wave 3: p2b-qa-tests-batch, p2b-qa-tests-factcheck  (scope: owner decision O3)
 ```
 
 Specialist reviews: security for p2b-gemini-shapes, p2b-unicode-digits and p2b-hook-check.
+
+## Phase 2c module order
+
+Planned 2026-11-21 by the Architect (`.harness/handoffs/p2c-plan.md`): the two Gemini exceptions that still escape, and tests for the real mutation gaps left after Phase 2b. Task files: `.harness/tasks/phase2c/00_*.yaml` and `01_*.yaml`. The two tasks share no path.
+
+```
+wave 1: p2c-gemini-escapes, p2c-survivor-tests      (no owner decision needed)
+close-out merges (status.yaml), then the owner dispatches the CI reports job on main
+```
+
+Specialist reviews: security for p2c-gemini-escapes.
+
+### Phase 2c status
+
+| Task | Status | Notes |
+|---|---|---|
+| p2c-gemini-escapes | planned | locked test `tests/script/test_gemini_errors.py` |
+| p2c-survivor-tests | planned | test_author writes `tests/script/test_survivors.py` |

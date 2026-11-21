@@ -1,0 +1,57 @@
+id: p2c-survivor-tests
+title: Locked tests for the real mutation gaps left after Phase 2b
+depends_on: [p2b-qa-tests-batch, p2b-qa-tests-factcheck]
+role: test_author
+notes: |
+  The Architect triaged the 2026-11-21 mutmut report (CI run 44942078820, 401 survivors) by
+  reading each mutant (table and the equivalent list in .harness/handoffs/p2c-plan.md). Do not
+  triage again. Write one behaviour test per item below; mutant ids are from main at 8933ed1 and
+  will shift once p2c-gemini-escapes changes gemini.py, so test the behaviour, not the id.
+  gemini (generate_json through the FakeUrlopen fakes, time.sleep patched):
+  - Text split over two model_output steps is joined in step order (_parse_answer 50).
+  - A non-dict part, a dict part of another type that carries a "text" string (for example
+    {"type": "thought", "text": "..."}) and a text part whose text is missing or not a str are
+    all skipped without a crash; the answer comes from the real text part (_parse_answer 54, 55).
+  - Two bare TimeoutErrors: GeminiError, 2 requests, one sleep (_send_with_one_retry 26).
+  - URLError(reason=TimeoutError()) is retried once (success on the second call: 2 requests);
+    twice is GeminiError after 2 requests; URLError(reason=ConnectionRefusedError()) is
+    GeminiError after 1 request and no sleep (_send_with_one_retry 31, 34, 35).
+  - An HTTP 400 whose body is not valid UTF-8 is GeminiError without the key (_http_message 9).
+  batch (helpers from tests/script/test_batch.py and tests/script/scripts.py, never edit them):
+  - out_dir under a missing parent (tmp_path / "out" / "batch") still returns 0 and writes
+    pr_body.md; out/ does not exist on a fresh runner (run 125, 127, 129).
+  - rewrite_line receives the failing scene's reason (_check_and_repair 26).
+  - A writer that always raises GenerateError is called exactly SCRIPT_ATTEMPTS times for that
+    script and the script is left out (_write 2). Derive counts from constants, never the code.
+  - The PR body numbers scenes from 1, the same numbering the flags use (_script_section 8, 9).
+    Keep PR body assertions independent of the inline code span layout (_code).
+  validate:
+  - Class-wide, per lessons.md 2026-11-18: every code point outside the N categories whose NFKD
+    form holds an ASCII digit is rejected in a spoken field with the non-ASCII number problem.
+    Compute the set at test time (unicodedata differs between Python versions; 80 code points on
+    3.11). It includes U+32C0, U+3358 (only a 0) and U+32C8 (only a 9), which the boundary
+    mutants need (_hides_ascii_digit 2, 3, 4).
+  - "x://y" (a scheme with no dotted host) and "www." with no TLD after it are rejected as URLs
+    (PRD R12.1; _text_problem 4, 6, 7, 9, 10).
+  - Narration of exactly NARRATION_MAX_CHARS passes; one character more fails (_length_problems 7).
+  sources:
+  - Slugs "bloop" and "bloop-2" load in slug order, "bloop" first (load_sources 3, 5).
+  A new test that fails on current code is a pipeline bug: stop, report it in the handoff, and the
+  Architect opens an implementer task. Never bend a test to pass.
+paths_allowed:
+  - tests/script/test_survivors.py
+tests:
+  - tests/script/test_survivors.py
+acceptance: tests/script/test_survivors.py::test_acceptance
+context_files:
+  - .harness/handoffs/p2c-plan.md
+  - pipeline/script/gemini.py
+  - pipeline/script/batch.py
+  - pipeline/script/validate.py
+  - pipeline/script/sources.py
+  - pipeline/constants.py
+  - tests/script/gemini_fakes.py
+  - tests/script/test_batch.py
+  - tests/script/scripts.py
+  - lessons.md
+max_turns: 35
