@@ -1,0 +1,30 @@
+id: p2c-gemini-escapes
+title: A failed error-body read and deeply nested JSON raise GeminiError
+depends_on: [p2b-gemini-shapes]
+role: implementer
+notes: |
+  Follow-up from the p2b wave reviews (orchestrator.md, twelfth session). The batch catches only
+  GeminiError, so these two paths still crash the whole weekly run instead of leaving one script out:
+  - _http_message calls error.read() inside the HTTPError handler, so an OSError or
+    http.client.HTTPException raised by that read (IncompleteRead, ConnectionResetError, a
+    TimeoutError) escapes raw. The sibling except clauses do not apply inside a handler. A failed
+    read gives GeminiError with the HTTP status (and the model name for 404) and no excerpt. The
+    retry rule does not change: _http_message only runs on the final raise.
+  - json.loads raises RecursionError, not ValueError, on deeply nested JSON. Both json.loads calls
+    in _parse_answer (the envelope and the joined answer text) turn it into GeminiError, no retry.
+  - Messages never contain the key. Update the generate_json docstring rules list for both.
+  - Keep it small: no new helper module, no change to the retry policy or the parse rules.
+  Security specialist review runs (gemini.py is a trigger).
+paths_allowed:
+  - pipeline/script/gemini.py
+tests:
+  - tests/script/test_gemini_errors.py
+acceptance: tests/script/test_gemini_errors.py::test_acceptance
+context_files:
+  - .harness/handoffs/p2c-plan.md
+  - pipeline/script/gemini.py
+  - tests/script/test_gemini_errors.py
+  - tests/script/test_gemini_shapes.py
+  - tests/script/gemini_fakes.py
+  - lessons.md
+max_turns: 20

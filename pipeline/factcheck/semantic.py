@@ -57,9 +57,11 @@ def check_script(script: Script, facts: Sequence[Fact]) -> list[LineVerdict]:
     in its source_fact_ids), all inside a delimited data block.
 
     A broken answer is never a pass. A scene whose verdict is missing, repeated, malformed or of an
-    unknown kind, or that names no fact id or a fact id not linked to that scene, gets UNSUPPORTED
-    with a reason saying why. Reasons are clipped to `constants.REASON_MAX_CHARS`. GeminiError
-    propagates; the batch decides.
+    unknown kind gets UNSUPPORTED with a reason saying why. A SUPPORTED or PARTIAL verdict must
+    name at least one fact id (else it is malformed), and naming a fact id not linked to that scene
+    also makes it UNSUPPORTED. An UNSUPPORTED verdict is kept as the checker gave it, with its own
+    reason and fact ids, whatever ids it names. Reasons are clipped to
+    `constants.REASON_MAX_CHARS`. GeminiError propagates; the batch decides.
     """
     prompt = "\n\n".join([_QUESTION, _DATA_RULE, data_block(_scene_lines(script, facts))])
     answer = gemini.generate_json(
