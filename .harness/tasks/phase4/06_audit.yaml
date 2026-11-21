@@ -1,0 +1,24 @@
+id: p4-audit
+title: Phase 4 compliance audit (YouTube API terms, disclosure, scopes, licences)
+depends_on: [p4-daily-workflow, p4-licences]
+role: auditor
+notes: |
+  HARNESS.md section 6b. Read-only report for the owner to approve before go-live. Items: YouTube
+  API Services Terms and Developer Policies for an unverified personal project; OAuth scope is
+  youtube.upload only; containsSyntheticMedia matches the owner's A2 decision and the current
+  YouTube altered-or-synthetic disclosure rules; the description credit line (F2); A1 and A3
+  closed by p4-licences; what data the workflows keep (artifacts, records, logs) and for how long;
+  the inauthentic-content risk (PLAN.md section 6) against what is actually built.
+paths_allowed: []
+tests: []
+acceptance: null
+context_files:
+  - .harness/handoffs/p4-plan.md
+  - .harness/handoffs/p1-audit.md
+  - .harness/handoffs/p2-audit.md
+  - HARNESS.md#6b
+  - PLAN.md#6
+  - assets/LICENSES.md
+  - .github/workflows/
+  - pipeline/publish/
+max_turns: 25

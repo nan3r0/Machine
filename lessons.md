@@ -336,3 +336,11 @@ How it was caught: identical survivor lists across two runs, then reading the co
 Fix: dispatch the reports job after the close-out PR merges. Re-run gave 401 survivors, down from 493.
 Rule going forward: dispatch `ci.yml` on main only after the status.yaml close-out is merged.
 Test added: none. Process rule.
+
+### 2026-11-21: CI ran twice on every PR push and used up the Actions allowance
+What happened: the free plan's Actions allowance ran out on 2026-11-21, mid Phase 2c. In the 6.4 days before, ci.yml made 300 runs (about 1,880 wall-clock minutes); 109 of them were pushes to branches that also ran the same check as a pull_request event, or had no PR at all.
+Why it happened (root cause, not symptom): ci.yml has bare `push:` and `pull_request:` triggers with no branch filter and no concurrency, from p1-contracts on. Each push to a PR branch started two identical runs, and nothing tracked minutes as a budget. CSO P1-5 named the missing concurrency in Phase 1 but tied it to the Phase 4 schedule.
+How it was caught: GitHub stopped running workflows; the owner traced it to the triggers.
+Fix: task p2d-ci-triggers (push on main only, PR runs cancel superseded ones). Phase plans now estimate CI minutes per task and per daily run.
+Rule going forward: treat Actions minutes as a budget. Every workflow trigger change states its minutes per run and per week, and a plan whose development pace exceeds the allowance says so before it starts.
+Test added: `tests/test_ci_triggers.py` (task p2d-ci-triggers).

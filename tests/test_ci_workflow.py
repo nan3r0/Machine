@@ -16,10 +16,11 @@ def test_ci_is_safe() -> None:
     rules.assert_safe(rules.load("ci.yml"))
 
 
-def test_ci_runs_on_every_push_and_pr_never_pr_target() -> None:
+def test_ci_runs_on_push_pr_and_dispatch_never_pr_target() -> None:
+    """Which pushes and PRs run is pinned by tests/test_ci_triggers.py (task p2d-ci-triggers)."""
     on = rules.load("ci.yml")["on"]
     assert {"push", "pull_request", "workflow_dispatch"} <= set(on)
-    assert on["push"] is None and on["pull_request"] is None, "no branch filters: every push and PR"
+    assert "pull_request_target" not in on
 
 
 def test_ci_runs_make_check_with_heavy_packages_and_ffmpeg() -> None:

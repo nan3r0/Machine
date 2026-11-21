@@ -91,6 +91,12 @@ Locked by p1-contracts. Every task's acceptance test is `test_acceptance` in its
 | R13.5 | Manual, owner, on the first Workflow A PR |
 | R13.6 | Handoffs of p2-qa-lead, p2-cso, p2-audit; owner approves |
 | R13.7 | `tests/test_weekly_hardening.py` (P2-1, P2-2, P2-4, P2-6), `tests/script/test_validate_urls.py` (P2-3), `tests/script/test_gemini_redirect.py` (P2-5) |
+| R7.3 triggers (p2d-ci-triggers) | `tests/test_ci_triggers.py` |
+| R14.1 to R14.3 | tests/publish/test_pick.py (p4-contracts writes it) |
+| R15.1 to R15.4 | tests/publish/test_youtube.py (p4-contracts writes it) |
+| R16.1 to R16.4 | tests/test_daily_publish_workflow.py and tests/test_published_records.py (p4-contracts writes them) |
+| R17 | Manual, owner, first dispatch of Workflow B |
+| R18 | Handoffs of p4-cso, p4-audit; owner approves |
 
 Phase 2 rows without backticks name test files that do not exist yet; the task that writes each file adds the backticks, so the docs check starts checking them.
 
@@ -200,3 +206,48 @@ Specialist reviews: security for p2c-gemini-escapes.
 |---|---|---|
 | p2c-gemini-escapes | planned | locked test `tests/script/test_gemini_errors.py` |
 | p2c-survivor-tests | planned | test_author writes `tests/script/test_survivors.py` |
+
+## Phase 2d module order
+
+Planned 2026-11-21 by the Architect (`.harness/handoffs/p4-plan.md`, part A): CI runs once per PR update and once per push to main, after the Actions allowance ran out. Task file: `.harness/tasks/phase2d/00_ci_triggers.yaml`. Role test_author, because `ci.yml` is locked. Security review applies.
+
+```
+wave 1: p2d-ci-triggers            (no owner decision; needs the minutes to reset)
+```
+
+### Phase 2d status
+
+| Task | Status | Notes |
+|---|---|---|
+| p2d-ci-triggers | planned | locked test `tests/test_ci_triggers.py` |
+
+## Phase 4 module order
+
+Planned 2026-11-21 by the Architect (`.harness/handoffs/p4-plan.md`, part B): YouTube only, through the first automatic upload; Instagram and TikTok deferred (owner decision O5). Task files: `.harness/tasks/phase4/00_*.yaml` to `08_*.yaml`. At most two at once; no two tasks in a wave share a path.
+
+```
+wave 1: p2d-ci-triggers, p4-licences
+wave 2: p4-contracts                         (after owner decisions O1 to O3)
+wave 3: p4-pick, p4-youtube
+wave 4: p4-daily-workflow
+owner: first live run (R17), secrets added after O1
+wave 5: p4-cso, p4-qa-lead                   (reports dispatch after the close-out merges)
+wave 6: p4-audit
+wave 7: p4-phase-review
+```
+
+Specialist reviews: security for p4-youtube and p4-daily-workflow. No visual QA: Phase 4 changes no render code.
+
+### Phase 4 status
+
+| Task | Status | Notes |
+|---|---|---|
+| p4-contracts | planned | waits for owner decisions O1 to O3 |
+| p4-pick | planned | |
+| p4-youtube | planned | |
+| p4-daily-workflow | planned | |
+| p4-licences | planned | audit A1 and A3 |
+| p4-cso | planned | threat model version 3 |
+| p4-audit | planned | |
+| p4-qa-lead | planned | |
+| p4-phase-review | planned | |
