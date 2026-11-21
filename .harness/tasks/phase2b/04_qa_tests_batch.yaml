@@ -1,0 +1,38 @@
+id: p2b-qa-tests-batch
+title: Locked tests for the QA lead's batch gaps, ranks 1 to 4 (phase review N4)
+depends_on: [p2b-hook-check, p2b-gemini-shapes, p2b-prompt-data]
+role: test_author
+notes: |
+  Phase review N4: QA lead proposed tests 1 to 4 (.harness/handoffs/p2-qa-lead.md, "Proposed
+  tests, ranked"). Tests only; owner decision O3 sets the scope (default ranks 1 to 7, split over
+  this task and p2b-qa-tests-factcheck).
+  - Before writing: the owner dispatches the CI reports job on main after the four code tasks of
+    phase2b merge, so the survivor ids are current. Confirm each targeted mutant with the new
+    mutmut.txt; drop an item whose survivors are gone and say so in the handoff.
+  - Rank 1: rewrite raising GeminiError or GenerateError keeps the script, flagged with the first
+    reason, kinds [write, check, rewrite] and no recheck.
+  - Rank 2: exact budget counts (14/14 all failing; one script rewriting every line then one
+    recheck; CHECKER_MAX_CALLS_PER_BATCH monkeypatched to 8 binds first). Derive every count by
+    hand from PLAN and constants, never from the code.
+  - Rank 3: flag content (persisting exact failure names the token, both layers joined with "; ",
+    120-char clip with whitespace collapsed, "no reason given", "case-02, scene 5").
+  - Rank 4: nine unused sources write the first seven; an existing out_dir still returns 0.
+  - Write all of it in the new file tests/script/test_batch_qa.py; import helpers from
+    tests/script/test_batch.py, never edit that file (a done task owns it).
+  - The hooks in the fixtures hold no number or name, so p2b-hook-check adds no flag; keep it so.
+  A new test that fails on current code is a pipeline bug: stop, report it in the handoff, and the
+  Architect opens an implementer task. Never bend a test to pass.
+paths_allowed:
+  - tests/script/test_batch_qa.py
+tests:
+  - tests/script/test_batch_qa.py
+acceptance: tests/script/test_batch_qa.py::test_acceptance
+context_files:
+  - .harness/handoffs/p2-qa-lead.md
+  - .harness/handoffs/p2b-plan.md
+  - pipeline/script/batch.py
+  - pipeline/constants.py
+  - tests/script/test_batch.py
+  - tests/script/scripts.py
+  - lessons.md
+max_turns: 35
