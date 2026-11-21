@@ -21,14 +21,15 @@ done (plan, task YAMLs, one locked test). Branch `docs/p4-plan`. Waits for the o
 | total | 300 | 1883 |
 
 **The change** is in `.harness/tasks/phase2d/00_ci_triggers.yaml`:
-- `push` runs on `main` only. `pull_request` keeps no filter. `workflow_dispatch` stays.
+- `push` runs on `main` and `scripts/**` only. `pull_request` keeps no filter. `workflow_dispatch` stays.
+- Why `scripts/**` stays on push: Workflow A opens that PR with GITHUB_TOKEN. GitHub's GITHUB_TOKEN page says `pull_request` runs for PRs "created or updated" by that token start in an "approval-required state". It does not say whether a later human push to the PR escapes that. Keeping push on `scripts/**` makes R12.3 (every mobile edit checked) certain. It costs about one run per owner edit, a few a week. The bot's own push starts no run.
 - Concurrency: one group per PR, and a newer PR run cancels the older one. Every other run gets its own group (`github.run_id`). GitHub cancels a *pending* run in a shared group even when `cancel-in-progress` is false, so a main push must never replace a queued reports dispatch.
 - The reports job (mutmut) stays dispatch-only.
 
 **What still works:**
 - The scope check runs on the PR event. There, `BRANCH` is `head_ref` and `BASE_REF` is the PR base, the same as today's PR runs. On a main push it skips, as now.
 - The docs check and `LOOM_TASK` behave the same.
-- The owner's mobile edits on a `scripts/<day>` PR still get CI through the `synchronize` event (R12.3).
+- The owner's mobile edits on a `scripts/<day>` PR still get CI, through the `scripts/**` push trigger (R12.3).
 - The bot's own pushes start no run (GITHUB_TOKEN), as before.
 
 **What changes:** a branch gets CI only once it has a PR. A draft PR is enough. Heavy tasks that hand off as "awaiting CI" need one.
@@ -327,7 +328,8 @@ Any miss is no-go. Re-check 30 days later. None of these numbers is a decided ta
 
 ## Decisions made
 - **The CI task is `test_author`, not implementer.** `ci.yml` is locked. The other option is the owner unlocking it.
-- **Push on main only, plus PR concurrency keyed on the PR number, `run_id` otherwise.** This avoids GitHub's rule of cancelling pending runs in a shared group.
+- **Workflow-table placement.** The p2d-ci-triggers status row sits in workflow.md's `### Phase 2 status` table. The docs check reads only headings matching `### Phase <digits> status`, so a `### Phase 2d status` table would fail CI at close-out. p2c's `### Phase 2c status` table has the same trap: move its rows into the Phase 2 table at its close-out.
+- **Push on main and `scripts/**` only, plus PR concurrency keyed on the PR number, `run_id` otherwise.** This avoids GitHub's rule of cancelling pending runs in a shared group.
 - **Claim before upload (at most once).** The Opus note's "commit right after upload" cannot share a job with the token, so the gap is closed from the other side.
 - **The ledger is in `data/published/`, not inside Script and not under `queue/`.** No schema bump, and the queue tests stay as they are.
 - **Phase 4 locked tests go to p4-contracts**, because they depend on stubs and on O1.

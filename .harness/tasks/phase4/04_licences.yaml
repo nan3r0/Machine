@@ -4,7 +4,8 @@ depends_on: []
 role: architect
 notes: |
   Phase 1 audit findings A1 and A3 (.harness/handoffs/p1-audit.md), due before the first public
-  publish. Docs only; needs web access to the upstream pages.
+  publish. Docs only; needs web access to the upstream pages. open_task_window.ps1 disallows
+  WebFetch and WebSearch, so run it as an architect agent with web tools (as p2-seed-sources).
   - A1: a "Models" table in assets/LICENSES.md: hexgrad/Kokoro-82M at VOICE_REPO_REVISION
     (weights and the af_heart voice), whisper small.en for alignment. Repo, pinned revision,
     licence, link to the licence file or model card at that revision.

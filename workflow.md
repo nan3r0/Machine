@@ -175,6 +175,7 @@ Specialist reviews: security for p2-validate, p2-gemini, p2-batch, p2-weekly-wor
 | p2b-hook-check | done, merged 2026-11-21 (PR #89) | Gate 2 approved; tests in the task YAML |
 | p2b-qa-tests-batch | done, merged 2026-11-21 (PR #91) | Gate 2 approved; tests in the task YAML |
 | p2b-qa-tests-factcheck | done, merged 2026-11-21 (PR #92) | Gate 2 approved; tests in the task YAML |
+| p2d-ci-triggers | planned | locked test `tests/test_ci_triggers.py`; plan in the Architect's Phase 4 plan handoff, part A |
 
 ## Phase 2b module order
 
@@ -215,11 +216,7 @@ Planned 2026-11-21 by the Architect (`.harness/handoffs/p4-plan.md`, part A): CI
 wave 1: p2d-ci-triggers            (no owner decision; needs the minutes to reset)
 ```
 
-### Phase 2d status
-
-| Task | Status | Notes |
-|---|---|---|
-| p2d-ci-triggers | planned | locked test `tests/test_ci_triggers.py` |
+Its status row is in the Phase 2 status table, which the docs check reads (`### Phase 2d status` would not match its heading rule).
 
 ## Phase 4 module order
 

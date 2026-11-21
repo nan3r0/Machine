@@ -10,7 +10,11 @@ notes: |
   Role is test_author, not implementer: .github/workflows/ci.yml is locked (.harness/locks.yaml),
   so the scope check refuses it from any role that does not own contracts (as for p2-entry-ci).
   Change only the top of ci.yml:
-  - on: push limited to `branches: [main]`; pull_request with no filter; workflow_dispatch kept.
+  - on: push limited to `branches: [main, "scripts/**"]`; pull_request with no filter;
+    workflow_dispatch kept. scripts/** stays because Workflow A opens that PR with GITHUB_TOKEN:
+    its pull_request runs wait for approval, and the docs do not say whether the owner's own
+    mobile edit commits escape that, so push keeps R12.3 (queue checked on every edit) certain.
+    The bot's own push there starts no run.
   - workflow-level concurrency: group keyed on the PR number for pull_request and on
     github.run_id for everything else (for example
     `ci-${{ github.event.pull_request.number || github.run_id }}`), and

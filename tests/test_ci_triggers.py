@@ -1,8 +1,9 @@
 """ci.yml triggers and concurrency (task p2d-ci-triggers, CSO P1-5).
 
 The Actions allowance ran out on 2026-11-21: every push to a PR branch ran the check job twice,
-once for `push` and once for `pull_request`. The check now runs once per PR update and once per
-push to main, and a newer PR update cancels the run it supersedes.
+once for `push` and once for `pull_request`. The check now runs once per PR update, once per
+push to main and on pushes to scripts/<day> branches, and a newer PR update cancels the run it
+supersedes.
 """
 
 from typing import Any
@@ -14,9 +15,13 @@ def ci() -> dict[str, Any]:
     return rules.load("ci.yml")
 
 
-def test_push_runs_only_on_main() -> None:
+def test_push_runs_only_on_main_and_script_prs() -> None:
+    """A task or docs branch gets its CI from the pull_request event. scripts/** stays on push: that
+    PR is opened with GITHUB_TOKEN, whose pull_request runs wait for approval, and GitHub's docs do
+    not say whether the owner's own edit commits on it escape that (R12.3)."""
     push = ci()["on"]["push"]
-    assert push == {"branches": ["main"]}, "a branch push gets its CI from the pull_request event"
+    assert set(push) == {"branches"}
+    assert sorted(push["branches"]) == ["main", "scripts/**"]
 
 
 def test_every_pull_request_runs_with_no_filter() -> None:
@@ -55,7 +60,7 @@ def test_acceptance() -> None:
     """Triggers, concurrency and every existing guard hold together."""
     wf = ci()
     rules.assert_safe(wf)
-    test_push_runs_only_on_main()
+    test_push_runs_only_on_main_and_script_prs()
     test_every_pull_request_runs_with_no_filter()
     test_manual_dispatch_is_kept_and_reports_stay_manual()
     test_concurrency_cancels_superseded_pr_runs_only()
