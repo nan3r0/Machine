@@ -232,7 +232,9 @@ The first live run can come before all of that, because the owner starts it and 
 - **The allowance is exhausted now.** Nothing in CI runs until the billing cycle resets: not this branch's PR, not p2d-ci-triggers, not the R13.5 Workflow A run, not a first upload. The owner should check the reset date under Settings → Billing.
 
 ### Owner decisions
-The defaults are what the tasks assume. O1 to O3 block p4-contracts. The rest block only go-live or nothing.
+**Decided 2026-11-21:** O1 option (b), the repo is public for now (the owner may change it later; the history scan found no secrets or personal details first). O2 default (`containsSyntheticMedia` true). O3 default credit line. O4 to O8 take their defaults. p4-contracts is unblocked once this branch merges and p2d-ci-triggers is done. The first Actions-minute check after going public: PR 97 CI ran and passed.
+
+The defaults are what the tasks assume. O1 to O3 blocked p4-contracts. The rest block only go-live or nothing.
 
 **O1. Where the YouTube tokens live (CSO P1-1; D1 said option (a) or (b) before any publishing token). Blocks p4-contracts.**
 - **(a) A second private repo, pushed to only by the owner, holds the secrets and the publish workflow.**
