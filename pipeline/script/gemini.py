@@ -54,8 +54,10 @@ def generate_json(
     usual cause), other 4xx, an OSError or http.client.HTTPException while sending or reading the
     body (its message names the exception type only), a status other than "completed", `steps` or
     a model_output step's `content` that is not a list, no text in the model_output steps, text
-    that is not a JSON object. Error messages give the HTTP status and at most a short excerpt of
-    the response body.
+    that is not a JSON object, deeply nested JSON (RecursionError) in the response or the text.
+    Error messages give the HTTP status and at most a short excerpt of the response body; if
+    reading the error body fails, the message keeps the status (and the model name for 404) and
+    has no excerpt.
 
     The returned text is the text parts of the model_output steps joined in order. The output is
     untrusted: it is only parsed here, and callers validate it.
@@ -111,17 +113,22 @@ def _send_with_one_retry(request: urllib.request.Request, model: str, key: str) 
 
 def _http_message(error: urllib.error.HTTPError, model: str, key: str) -> str:
     # Redact before cutting, so a key split by the cut cannot survive as a prefix.
-    excerpt = error.read().decode("utf-8", errors="replace").replace(key, "[redacted]")
     message = f"Gemini HTTP {error.code}"
     if error.code == 404:
         message += f" (model {model} not found, it may have been retired)"
+    try:
+        body = error.read()
+    except (OSError, http.client.HTTPException):
+        # Raised inside the HTTPError handler, so the sibling excepts do not catch it.
+        return message
+    excerpt = body.decode("utf-8", errors="replace").replace(key, "[redacted]")
     return f"{message}: {excerpt[:_EXCERPT_CHARS]}"
 
 
 def _parse_answer(raw: bytes) -> dict[str, Any]:
     try:
         interaction = json.loads(raw)
-    except ValueError:
+    except (ValueError, RecursionError):
         raise GeminiError("Gemini response is not JSON") from None
     if not isinstance(interaction, dict) or interaction.get("status") != "completed":
         status = interaction.get("status") if isinstance(interaction, dict) else None
@@ -145,7 +152,7 @@ def _parse_answer(raw: bytes) -> dict[str, Any]:
         raise GeminiError("Gemini returned no text")
     try:
         answer = json.loads("".join(texts))
-    except ValueError:
+    except (ValueError, RecursionError):
         raise GeminiError("Gemini text is not valid JSON") from None
     if not isinstance(answer, dict):
         raise GeminiError("Gemini text is not a JSON object")
