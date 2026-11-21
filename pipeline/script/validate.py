@@ -23,6 +23,8 @@ from pipeline.schema import Script
 # Hangul filler (a letter, so it joins a domain rather than splitting it).
 _BAD_CATEGORIES = {"Cf", "Cn", "Co", "Cs"}
 _MARK_CATEGORIES = {"Mn", "Me"}
+# The exact fact-check reads ASCII 0 to 9 only; NFKC would fold full-width digits but not Arabic-Indic ones.
+_NUMBER_CATEGORIES = {"Nd", "Nl", "No"}
 # A TLD needs 2+ letters, so "3.5", "U.S." and "a.m." pass; no letters follow the first dot in "wait...".
 # Unicode letters count too, so an internationalised domain ("пример.рф") is caught.
 _DOMAIN_LIKE = re.compile(r"[\w-]+\.[^\W\d_]{2,}")
@@ -63,6 +65,8 @@ def _text_problem(label: str, text: str) -> str | None:
         newline_ok = char == "\n" and label == "description"
         if category in _BAD_CATEGORIES or (category == "Cc" and not newline_ok):
             return f"{label}: contains a control or invisible character (U+{ord(char):04X})"
+        if category in _NUMBER_CATEGORIES and not "0" <= char <= "9":
+            return f"{label}: contains a non-ASCII number character (U+{ord(char):04X})"
     return None
 
 
@@ -114,6 +118,9 @@ def problems(script: Script) -> list[str]:
       description), and no format, unassigned, private-use or surrogate character (Cf, Cn, Co, Cs:
       bidi controls, zero-width characters and reserved default-ignorables). The control and
       invisible check runs on the raw text, so normalisation cannot hide one.
+    - The same fields contain no number character other than ASCII 0 to 9 (Unicode category Nd,
+      Nl or No: full-width and Arabic-Indic digits, superscripts, fractions, Roman numerals), so
+      the exact fact-check cannot be passed a wrong number it does not read. Checked on the raw text.
     """
     found = list(_length_problems(script))
     found += [m for label, text in _fields(script) if (m := _text_problem(label, text))]
