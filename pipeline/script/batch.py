@@ -48,7 +48,10 @@ def run(sources_dir: Path, queue_dir: Path, out_dir: Path, run_date: date) -> in
        either layer (exact tokens, UNSUPPORTED or PARTIAL) is rewritten once (`generate.rewrite_line`)
        and re-checked (exact for that scene, the meaning check again once for the script). Still
        failing, or a rewrite that raises GenerateError: the script stays and gets a Flag for that
-       scene with the reason. A fact-check result never stops the run.
+       scene with the reason. Then the hook and the loop line go through `exact.unsupported`
+       against the union of the facts the scenes cite; a failure is a Flag with scene None
+       ("hook: not in the cited facts: ..."), never rewritten, no Gemini call. A fact-check
+       result never stops the run.
     3. Budgets: never more than `WRITER_MAX_CALLS_PER_BATCH` writer calls (each write_script and
        rewrite_line is one) or `CHECKER_MAX_CALLS_PER_BATCH` checker calls (one per check_script),
        counted as they are made. Rewrites never spend what the scripts still to be written need
@@ -84,6 +87,7 @@ def run(sources_dir: Path, queue_dir: Path, out_dir: Path, run_date: date) -> in
             continue
         written.append((script, source))
         flags += [_flag(slug, index, reason) for index, reason in failures.items()]
+        flags += [_flag(slug, None, reason) for reason in _check_spoken_extras(script, source)]
     log.info("%d of %d scripts written, %d flags", len(written), len(picked), len(flags))
     if not written:
         return 1
@@ -130,6 +134,20 @@ def _check(script: Script, source: SourceFile, budget: _Budget) -> dict[int, str
         if reasons:
             failures[index] = "; ".join(reasons)
     return failures
+
+
+def _check_spoken_extras(script: Script, source: SourceFile) -> list[str]:
+    """Reasons the hook or loop line holds a number or name that no cited fact backs. They are
+    spoken but cite no fact, so the union of the facts the scenes cite stands in. Never rewritten."""
+    texts = {fact.id: fact.text for fact in source.facts}
+    cited_ids = {i for scene in script.scenes for i in scene.source_fact_ids}
+    cited = [texts[i] for i in sorted(cited_ids)]
+    reasons = []
+    for label, text in (("hook", script.hook), ("loop line", script.loop_line)):
+        missing = exact.unsupported(text, cited)
+        if missing:
+            reasons.append(f"{label}: not in the cited facts: " + ", ".join(missing))
+    return reasons
 
 
 def _check_and_repair(
