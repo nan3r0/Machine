@@ -19,11 +19,11 @@ from datetime import date
 from typing import Any
 
 from pipeline import constants
-from pipeline.schema import Fact, Script, SourceFile
+from pipeline.schema import Script, SourceFile
 from pipeline.script import gemini, validate
-
-DATA_START = "<source_facts>"
-DATA_END = "</source_facts>"
+from pipeline.script.prompt_data import DATA_END as DATA_END
+from pipeline.script.prompt_data import DATA_START as DATA_START
+from pipeline.script.prompt_data import clean, data_block
 
 _TONE_RULES = (
     "Tone: suspense. Short sentences. Leave a beat before each reveal. Eerie, never graphic."
@@ -100,7 +100,8 @@ def write_script(source: SourceFile, script_id: str, publish_after: date) -> Scr
     prompt = "\n\n".join([
         "Write a short video script about the topic below.",
         _TONE_RULES, _FORMAT_RULES, _CONTENT_RULES, _DATA_RULE,
-        f"Topic: {_clean(source.topic)}", _data_block(source.facts),
+        f"Topic: {clean(source.topic)}",
+        data_block(f"{fact.id}:{fact.text}" for fact in source.facts),
     ])
     answer = gemini.generate_json(constants.WRITER_MODEL, prompt, _WRITER_SCHEMA)
     try:
@@ -136,10 +137,10 @@ def rewrite_line(script: Script, index: int, source: SourceFile, reason: str) ->
     prompt = "\n\n".join([
         "Rewrite one narration line of a short video script.",
         _TONE_RULES, _CONTENT_RULES, _DATA_RULE,
-        f"The line failed a fact check. Reason: {_clean(reason)}",
-        f"Old line: {_clean(scene.narration)}",
+        f"The line failed a fact check. Reason: {clean(reason)}",
+        f"Old line: {clean(scene.narration)}",
         "Write a replacement line of similar length that the facts below support.",
-        _data_block(linked),
+        data_block(f"{fact.id}:{fact.text}" for fact in linked),
     ])
     answer = gemini.generate_json(constants.WRITER_MODEL, prompt, _REWRITE_SCHEMA)
     try:
@@ -148,21 +149,6 @@ def rewrite_line(script: Script, index: int, source: SourceFile, reason: str) ->
         return _checked(Script.model_validate(data))
     except (KeyError, TypeError, ValueError) as error:
         raise GenerateError(f"rewrite rejected: {error}") from error
-
-
-def _data_block(facts: list[Fact]) -> str:
-    """Facts one per line between the delimiters; delimiter text inside a fact is dropped."""
-    lines = [f"{fact.id}:{_clean(fact.text)}" for fact in facts]
-    return "\n".join([DATA_START, *lines, DATA_END])
-
-
-def _clean(text: str) -> str:
-    """`text` without delimiters; repeats so a nested delimiter cannot rebuild itself."""
-    previous = None
-    while previous != text:
-        previous = text
-        text = text.replace(DATA_START, "").replace(DATA_END, "")
-    return text
 
 
 def _checked(script: Script) -> Script:

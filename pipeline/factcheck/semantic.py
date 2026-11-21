@@ -13,7 +13,7 @@ from pydantic import ValidationError
 from pipeline import constants
 from pipeline.schema import Fact, LineVerdict, Script
 from pipeline.script import gemini
-from pipeline.script.generate import DATA_END, DATA_START, _clean
+from pipeline.script.prompt_data import data_block
 
 _KINDS = ["SUPPORTED", "UNSUPPORTED", "PARTIAL"]
 _SCHEMA: dict[str, Any] = {
@@ -61,7 +61,7 @@ def check_script(script: Script, facts: Sequence[Fact]) -> list[LineVerdict]:
     with a reason saying why. Reasons are clipped to `constants.REASON_MAX_CHARS`. GeminiError
     propagates; the batch decides.
     """
-    prompt = "\n\n".join([_QUESTION, _DATA_RULE, _data_block(script, facts)])
+    prompt = "\n\n".join([_QUESTION, _DATA_RULE, data_block(_scene_lines(script, facts))])
     answer = gemini.generate_json(
         constants.CHECKER_MODEL, prompt, _SCHEMA, constants.CHECKER_TEMPERATURE
     )
@@ -78,17 +78,14 @@ def check_script(script: Script, facts: Sequence[Fact]) -> list[LineVerdict]:
     ]
 
 
-def _data_block(script: Script, facts: Sequence[Fact]) -> str:
-    lines = [DATA_START]
+def _scene_lines(script: Script, facts: Sequence[Fact]) -> list[str]:
+    lines: list[str] = []
     for number, scene in enumerate(script.scenes):
-        lines.append(f"Scene {number}: {_clean(scene.narration)}")
+        lines.append(f"Scene {number}: {scene.narration}")
         lines.extend(
-            f"  Fact {fact.id}: {_clean(fact.text)}"
-            for fact in facts
-            if fact.id in scene.source_fact_ids
+            f"  Fact {fact.id}: {fact.text}" for fact in facts if fact.id in scene.source_fact_ids
         )
-    lines.append(DATA_END)
-    return "\n".join(lines)
+    return lines
 
 
 def _verdict_for(index: int, linked: list[int], entries: list[Any]) -> LineVerdict:
