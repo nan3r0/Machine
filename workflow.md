@@ -163,3 +163,25 @@ Specialist reviews: security for p2-validate, p2-gemini, p2-batch, p2-weekly-wor
 | p2-validate-urls | done, merged 2026-11-18 (PR #81); closes CSO P2-3 | See the handoff for review rounds |
 | p2-gemini-redirects | done, merged 2026-11-18 (PR #83); closes CSO P2-5 | See the handoff |
 | p2-weekly-hardening | done, merged 2026-11-18 (PR #82); closes CSO P2-1, P2-2, P2-4, P2-6 | Gate 2 approved; security review round 1 fixed (see handoff). Workflow A stays disabled until the owner's first manual run |
+
+## Phase 2b module order
+
+Planned 2026-11-21 by the Architect (`.harness/handoffs/p2b-plan.md`): phase review N1 to N5 and the QA lead's ranked tests, before Phase 4. Task files: `.harness/tasks/phase2b/00_*.yaml` to `05_*.yaml`. At most two at once; no two tasks in a wave share a path.
+
+```
+wave 1: p2b-prompt-data, p2b-gemini-shapes          (no owner decision needed)
+wave 2: p2b-unicode-digits, p2b-hook-check          (after owner decisions O2 and O1)
+owner dispatches the CI reports job on main
+wave 3: p2b-qa-tests-batch, p2b-qa-tests-factcheck  (scope: owner decision O3)
+```
+
+Specialist reviews: security for p2b-gemini-shapes, p2b-unicode-digits and p2b-hook-check.
+
+| Task | Status | Tests |
+|---|---|---|
+| p2b-prompt-data | planned | `tests/script/test_prompt_data.py` |
+| p2b-gemini-shapes | planned | `tests/script/test_gemini_shapes.py` |
+| p2b-unicode-digits | planned, waits on O2 | `tests/script/test_validate_digits.py` |
+| p2b-hook-check | planned, waits on O1 | `tests/script/test_batch_hook.py` |
+| p2b-qa-tests-batch | planned, waits on O3 and the reports re-run | tests/script/test_batch_qa.py |
+| p2b-qa-tests-factcheck | planned, waits on O3 and the reports re-run | tests/factcheck/test_semantic_qa.py, tests/factcheck/test_exact_qa.py |
