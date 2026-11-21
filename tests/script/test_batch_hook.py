@@ -12,9 +12,20 @@ import pytest
 import yaml
 
 from pipeline import constants
+from pipeline.schema import Flag
 from pipeline.script import batch, gemini
 from tests.script.scripts import make_source
-from tests.script.test_batch import RUN_DATE, Dirs, FakeGemini, run, setup, slug, writer_answer
+from tests.script.test_batch import (
+    RUN_DATE,
+    Dirs,
+    FakeGemini,
+    capped_script,
+    capped_source,
+    run,
+    setup,
+    slug,
+    writer_answer,
+)
 
 # Source 1 (make_source(100, ...)) has facts 101 to 107; fact 100 + k ends "closed in {1901 + k}."
 
@@ -82,6 +93,18 @@ def test_hook_flag_is_clipped_like_any_flag(tmp_path: Path, monkeypatch: pytest.
     [line] = flag_lines(dirs.body(), slug(1))
     reason = line.split("`", 1)[1].strip("` ")
     assert reason.startswith("hook") and len(reason) <= constants.REASON_MAX_CHARS
+
+
+def test_body_with_hook_and_loop_flags_still_fits() -> None:
+    """test_batch.py sizes the body for SCENES_MAX scene flags plus one script flag per script; a
+    script can now also carry a hook and a loop line flag, so two script flags each."""
+    written = [(capped_script(n, src), src) for n in range(1, 8) for src in [capped_source(n)]]
+    reason = "r" * constants.REASON_MAX_CHARS
+    flags = [Flag(script_id=s.id, scene=i, reason=reason)
+             for s, _ in written for i in range(constants.SCENES_MAX)]
+    flags += [Flag(script_id=s.id, scene=None, reason=f"{label}: " + reason)
+              for s, _ in written for label in ("hook", "loop line")]
+    assert len(batch.pr_body(written, flags, [], exhausted=False)) <= constants.PR_BODY_MAX_CHARS
 
 
 def test_acceptance(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:

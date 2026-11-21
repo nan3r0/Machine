@@ -12,7 +12,8 @@ notes: |
   - Every field `_fields` yields (title, description, tags, hook, narration, on_screen_text,
     loop_line) may hold no character of category Nd, Nl or No other than ASCII 0 to 9.
   - Message: "<label>: contains a non-ASCII number character (U+XXXX)", the first such character.
-  - Check the raw text, like the control-character check.
+  - Check the raw text, like the control-character check. Its place among the other checks in
+    `_text_problem` is free: no other locked test holds such a character.
   - Add the rule to the `problems` docstring.
   The writer and every rewrite already go through validate.problems, so a script with such a
   character is asked for again or left out; nothing else changes. No fixture, source or queued

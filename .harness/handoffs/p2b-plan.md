@@ -102,4 +102,5 @@ Run with `../p2-batch/.venv/Scripts/python.exe`, because the system Python's `te
   - unicode digits plus `tests/script/` and `test_queue_scripts.py`: 633 passed;
   - hook check plus `test_batch.py`: 28 passed.
 - The originals were restored with `git checkout` after a WIP commit.
-- No source yaml or queued script holds a non-ASCII number character.
+- No source yaml, queued script or other test file holds a non-ASCII number character. So where p2b-unicode-digits puts its check in `_text_problem` does not matter.
+- The PR body cap holds under N1: a script can now carry two flags with scene None (hook and loop line). `test_batch_hook.py::test_body_with_hook_and_loop_flags_still_fits` checks all 7 scripts at every cap and passes on current code. The margin stays about 10000 characters under `PR_BODY_MAX_CHARS`.
