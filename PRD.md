@@ -185,6 +185,7 @@ Assumed by Claude (owner can overrule):
 - 2026-11-15: Tests needing ffmpeg or torch carry a `heavy` marker, skip locally when the tool is missing, and always run in CI.
 - 2026-11-15: Code targets Python 3.11+ (owner's machine has 3.11); CI runs 3.12.
 - 2026-11-16: The owner approved the Phase 1 Auditor report (R7.6). No Phase 1 blockers. A1 to A3 and CSO P1-2, P1-4, P1-5 are Phase 4 pre-go-live items; CSO P1-1, P1-3 and P1-6 are Phase 2 entry items. Phase 1 is closed once main CI is green.
+- 2026-11-21: The owner approved the Phase 2 Auditor report (R13.6) and signed off threat model version 2. Still open: enable weekly-scripts and run it once by hand (R13.5).
 
 ## 8. Open questions
 
