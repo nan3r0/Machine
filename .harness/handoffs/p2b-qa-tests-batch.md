@@ -38,9 +38,10 @@ none
 Gate 2 review. After merge, the next CI reports run confirms the kills.
 
 ## Docs
-- `workflow.md` line 186: set the p2b-qa-tests-batch status to done. Lines 82 to 84 (the criterion to test map for R10.3 to R11.3) could add `tests/script/test_batch_qa.py`. Both are outside `paths_allowed`, so apply them at close-out.
+- `workflow.md` line 186: set the p2b-qa-tests-batch status to done. Lines 82 to 84 (the criterion to test map for R10.3 to R11.3) could add `tests/script/test_batch_qa.py`. `.harness/status.yaml`: add p2b-qa-tests-batch as done. All of these are outside `paths_allowed`, so apply them at close-out.
 
 ## Evidence
 - `pytest -q tests/script/test_batch_qa.py`: 14 passed.
 - Full `pytest -q`: 1140 passed, 71 skipped (heavy tests skipped locally).
 - `ruff check .`: all checks passed. `python tests/docs_check.py`: passed.
+- The new file is locked by the `tests/**` glob in `.harness/locks.yaml`. `architecture.md` does not name `test_batch`, so its map needs no change.
