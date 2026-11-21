@@ -24,6 +24,13 @@ You are the Stage 0 orchestrator (HARNESS.md section 10, Stage 0). Model: Sonnet
 - One watcher per task; no polling loops in your own turns.
 - One Gate 2 pass per task; chase only blocking findings.
 
+## State (2026-11-21, end of thirteenth orchestrator session)
+- Phase 2b done: wave 3 merged (p2b-qa-tests-batch #91, p2b-qa-tests-factcheck #92, Opus test authors, Gate 2 approved, CI green, no pipeline bug found). Close-out docs on `docs/p2b-closeout-1` (status.yaml, workflow.md, CLAUDE.md, outcome log, lessons, spec, PRD R12.1, architecture weak points).
+- CI reports re-run dispatched on main (run 44940098084): check whether the new tests kill the targeted mutants in `out/reports/mutmut.txt` and record equivalent survivors. pip-audit step fails by design (known findings).
+- Next: ask the Architect for the follow-up tasks below, then Phase 4 planning. Owner items are in the to-do artifact https://claude.ai/artifact/SWmEoSUtr7XwZ5v3o9pPFQ.
+- Architect follow-ups from wave 3 reviews: semantic.py reason strings ("(no verdict)" etc.) are now locked by tests, so treat them as contract; tighten the `check_script` docstring on unlinked fact ids (only SUPPORTED and PARTIAL convert); the batch QA tests match the `_code` inline span layout, loosen if it changes; plus the follow-ups listed in the twelfth-session block below.
+- Process: git commands with chained `&&` or loops are refused in a worktree-isolated session, run them one per call. `gh run download` of the reports artifact puts files in a `phase-reports/` subfolder; copy them up.
+
 ## State (2026-11-21, end of twelfth orchestrator session)
 - Phase 2b plan (PR #85) merged; owner accepted O1 to O3 defaults. Waves 1 and 2 merged: p2b-prompt-data #86, p2b-gemini-shapes #87, p2b-unicode-digits #88, p2b-hook-check #89 (all Gate 2 and security approved, CI green). Main was at f35c97c after #89.
 - Wave 3 next: p2b-qa-tests-batch and p2b-qa-tests-factcheck (Opus test_author, `.harness/tasks/phase2b/04_*.yaml`, `05_*.yaml`). They need fresh `out/reports/` (mutmut.txt, coverage). The old files there date from 2026-11-18. I dispatched `ci.yml` on main: run 44933489872 (check it finished, then `gh run download 44933489872 -D out/reports` or the reports artifact; the job can fail, earlier dispatch runs failed, read the log). Launch wave 3 with `.harness/scripts/open_task_window.ps1` (helper pattern in job tmp launch.ps1: Start-Process with quoted args, then watcher with the cmd.exe pid under the window).

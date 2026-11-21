@@ -31,6 +31,7 @@ pipeline/factcheck/semantic.py              # meaning layer: one checker call pe
 pipeline/script/validate.py                 # publishable-field and word-count checks
 pipeline/script/gemini.py                   # the only file that talks to Gemini
 pipeline/script/sources.py, generate.py     # pick unused sources, write a script
+pipeline/script/prompt_data.py              # shared untrusted-text cleaning and delimiters for prompts
 pipeline/script/batch.py                    # entry point of Workflow A
 sources/<slug>.yaml                         # hand-curated facts, one solved mystery each
 .github/workflows/weekly_scripts.yml        # Workflow A

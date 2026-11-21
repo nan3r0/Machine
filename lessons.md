@@ -269,7 +269,7 @@ Test added: none. This is a process rule; the Token rules step in `.harness/hand
 What happened: p2-generate removed the data-block delimiters from fact text with one `str.replace` pass. A fact holding `</source_fa</source_facts>cts>` came out as `</source_facts>`, so the prompt held two end markers and the text after the first sat outside the data block.
 Why it happened (root cause, not symptom): removing a substring can join its neighbours into a new copy of the same substring. One pass only removes the copies present before it starts. The locked test only tried a plain, non-nested delimiter.
 How it was caught: Gate 2 review, round 1.
-Fix: `_clean` in `pipeline/script/generate.py` repeats the replace until the text stops changing, and every untrusted string that goes into a prompt (fact text, topic, rewrite reason, old narration) goes through it.
+Fix: `_clean` in `pipeline/script/generate.py` repeats the replace until the text stops changing, and every untrusted string that goes into a prompt (fact text, topic, rewrite reason, old narration) goes through it. The shared helper now lives in `pipeline/script/prompt_data.py`, imported by both generate.py and semantic.py.
 Rule going forward: any filter that deletes a token from untrusted text runs until stable, or escapes the characters the token is made of. Test the nested case, not just the plain one.
 Test added: none yet; tests are locked. The Architect owes a regression test for the nested case.
 
