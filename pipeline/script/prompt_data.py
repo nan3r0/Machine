@@ -15,11 +15,15 @@ def clean(text: str) -> str:
     """`text` with every `DATA_START` and `DATA_END` removed. Removal repeats until the text stops
     changing, so a nested delimiter such as `</source_fa</source_facts>cts>` cannot rebuild itself
     (lessons.md 2026-11-17). All other text is kept as it is."""
-    raise NotImplementedError
+    previous = None
+    while previous != text:
+        previous = text
+        text = text.replace(DATA_START, "").replace(DATA_END, "")
+    return text
 
 
 def data_block(lines: Iterable[str]) -> str:
     """`DATA_START`, then each of `lines` passed through `clean`, then `DATA_END`, joined with
     newlines. Callers format their own lines (labels such as "Scene 0: " or "101:"); this only
     cleans and wraps them, so the result holds exactly one `DATA_START` and one `DATA_END`."""
-    raise NotImplementedError
+    return "\n".join([DATA_START, *(clean(line) for line in lines), DATA_END])
