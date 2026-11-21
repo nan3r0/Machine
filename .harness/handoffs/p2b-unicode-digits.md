@@ -9,6 +9,8 @@ done
 ## What changed (and why)
 - `pipeline/script/validate.py`: new `_NUMBER_CATEGORIES = {"Nd", "Nl", "No"}`. The raw-text loop in `_text_problem` (the one that checks control characters) now also returns `"<label>: contains a non-ASCII number character (U+XXXX)"` for the first character in those categories that is not ASCII 0 to 9. Added the rule to the `problems` docstring.
 - Checked on the raw text, by category, as lessons.md 2026-11-18 asks. NFKC was not used: it folds full-width digits but leaves Arabic-Indic and other decimal-digit scripts alone.
+- Security review follow-up: 80 symbols outside Nd/Nl/No (for example U+32C0 "1月", U+3358 "0点") fold under NFKD to ASCII digits. `_hides_ascii_digit` rejects those too, same message. Not done: CJK numerals such as 一 (category Lo, `unicodedata.numeric` set). They are words in a non-English script, narration is English, and the locked contract is by category; a script allowlist is the reviewer's longer-term option and is an owner call.
+- No regression test for the 80 symbols: the test file is locked and outside `paths_allowed`. The Architect owes one, for example every char above U+007F whose NFKD holds an ASCII digit is rejected.
 - The writer and every rewrite already go through `validate.problems`, so no other file changes.
 
 ## Decisions made
