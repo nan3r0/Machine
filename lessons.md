@@ -328,3 +328,11 @@ How it was caught: the push was blocked.
 Fix: merge `origin/main` into the branch instead; the duplicate test commits merge cleanly.
 Rule going forward: update a pushed task branch with a merge, never a rebase and force-push.
 Test added: none. Process rule.
+
+### 2026-11-21: A reports re-run before the close-out skips the new tests
+What happened: the CI reports job (mutmut) was dispatched right after the last test PRs merged. The mutation report was byte for byte the old one, so it looked as if the new tests killed nothing.
+Why it happened (root cause, not symptom): `tests/conftest.py` runs only tasks listed in `.harness/status.yaml` `done`, and mutmut copies `.harness/`. The close-out PR that adds the tasks to `done` had not merged yet, so the new tests never ran.
+How it was caught: identical survivor lists across two runs, then reading the conftest rule.
+Fix: dispatch the reports job after the close-out PR merges. Re-run gave 401 survivors, down from 493.
+Rule going forward: dispatch `ci.yml` on main only after the status.yaml close-out is merged.
+Test added: none. Process rule.
