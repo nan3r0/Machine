@@ -5,12 +5,13 @@ Imports nothing from `pipeline` and does no IO. Parse script files with
 but a wrong JSON type (for example "12" for an int) is rejected with an error naming the field.
 """
 
-from datetime import date
+from datetime import date, timedelta
 from typing import Annotated, Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, model_validator
 
 NonBlank = Annotated[str, Field(pattern=r"\S")]
+ScriptId = Annotated[str, Field(pattern=r"^[a-z0-9]+(-[a-z0-9]+)*$")]
 Template = Literal["chart", "map", "steps", "story"]
 Platform = Literal["youtube", "instagram", "tiktok"]
 
@@ -39,7 +40,7 @@ class Script(_Strict):
     """One video script, as written to queue/approved/<id>.json."""
 
     schema_version: Literal[1] = 1
-    id: Annotated[str, Field(pattern=r"^[a-z0-9]+(-[a-z0-9]+)*$")]
+    id: ScriptId
     topic: NonBlank
     template: Template
     hook: NonBlank
@@ -142,4 +143,30 @@ class LineVerdict(_Strict):
     def _support_names_a_fact(self) -> "LineVerdict":
         if self.verdict != "UNSUPPORTED" and not self.fact_ids:
             raise ValueError(f"a {self.verdict} verdict must name at least one fact id")
+        return self
+
+
+class PublishRecord(_Strict):
+    """One video in the publish ledger, stored as data/published/<script_id>.json (PRD R16.3).
+    Parse with `PublishRecord.model_validate_json(text)`; every field must be present, nulls included.
+
+    The claim job writes it with no video id before the upload: such a record means an upload may
+    have reached YouTube unrecorded, so nothing is published until the owner resolves it. The
+    record job then sets `youtube_video_id` and `published_at` together. `script_sha` is the git
+    blob SHA of the approved script file, which moves unchanged to queue/published/. Times are UTC.
+    """
+
+    script_id: ScriptId
+    script_sha: Annotated[str, Field(pattern=r"^[0-9a-f]{40}$")]
+    claimed_at: AwareDatetime
+    youtube_video_id: Annotated[str, Field(pattern=r"^[A-Za-z0-9_-]{11}$")] | None
+    published_at: AwareDatetime | None
+
+    @model_validator(mode="after")
+    def _utc_and_complete(self) -> "PublishRecord":
+        for moment in (self.claimed_at, self.published_at):
+            if moment is not None and moment.utcoffset() != timedelta(0):
+                raise ValueError(f"{moment.isoformat()} is not UTC")
+        if (self.youtube_video_id is None) != (self.published_at is None):
+            raise ValueError("youtube_video_id and published_at are set together or not at all")
         return self

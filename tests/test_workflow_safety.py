@@ -47,9 +47,67 @@ jobs:
 """
 
 
+# Shaped like the planned daily_publish.yml (p4-plan, owner decision O1 option (b)): the YouTube
+# secrets only in the read-only upload job, which names its protected environment.
+DAILY = f"""\
+name: daily publish
+on:
+  schedule:
+    - cron: "7 14 * * *"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@{SHA}
+        with:
+          persist-credentials: false
+  claim:
+    needs: render
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@{SHA}
+        with:
+          ref: main
+      - name: Claim
+        run: git push origin HEAD:main
+  upload:
+    needs: [render, claim]
+    runs-on: ubuntu-latest
+    environment: youtube
+    steps:
+      - uses: actions/checkout@{SHA}
+        with:
+          persist-credentials: false
+      - name: Upload
+        env:
+          YOUTUBE_CLIENT_ID: ${{{{ secrets.YOUTUBE_CLIENT_ID }}}}
+          YOUTUBE_CLIENT_SECRET: ${{{{ secrets.YOUTUBE_CLIENT_SECRET }}}}
+          YOUTUBE_REFRESH_TOKEN: ${{{{ secrets.YOUTUBE_REFRESH_TOKEN }}}}
+        run: python -m pipeline.publish.youtube
+  record:
+    needs: [render, claim, upload]
+    if: always() && needs.claim.result == 'success'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@{SHA}
+        with:
+          ref: main
+      - name: Record
+        run: git push origin HEAD:main
+"""
+
+
 @pytest.fixture
 def workflows(tmp_path: Path) -> Path:
     (tmp_path / "weekly_scripts.yml").write_text(WEEKLY, encoding="utf-8")
+    (tmp_path / "daily_publish.yml").write_text(DAILY, encoding="utf-8")
     return tmp_path
 
 
@@ -61,6 +119,12 @@ def edit(path: Path, old: str, new: str) -> None:
 
 def test_clean_fixture_passes(workflows: Path) -> None:
     assert rules.directory_problems(workflows) == []
+
+
+@pytest.mark.parametrize("name", ["weekly_scripts.yml", "daily_publish.yml"])
+def test_each_clean_fixture_passes_alone(tmp_path: Path, name: str) -> None:
+    (tmp_path / name).write_text(WEEKLY if name.startswith("weekly") else DAILY, encoding="utf-8")
+    assert rules.directory_problems(tmp_path) == []
 
 
 BAD = [
@@ -121,6 +185,9 @@ BAD = [
                  id="persist-credentials-string"),
     pytest.param("        with:\n          persist-credentials: false\n", "", "generate: checkout",
                  id="persist-credentials-default"),
+    pytest.param("  generate:\n    runs-on: ubuntu-latest\n",
+                 "  generate:\n    runs-on: ubuntu-latest\n    environment: youtube\n",
+                 "generate: environment", id="environment-in-other-file"),
 ]
 
 
@@ -131,12 +198,58 @@ def test_bad_workflow_fails(workflows: Path, old: str, new: str, message: str) -
     assert any(message in problem for problem in found), found
 
 
+UPLOAD_ENV = "        env:\n          YOUTUBE_CLIENT_ID:"
+BAD_DAILY = [
+    pytest.param("    environment: youtube\n", "", "upload: environment", id="environment-missing"),
+    pytest.param("environment: youtube", "environment: production", "upload: environment",
+                 id="environment-other-name"),
+    pytest.param("    environment: youtube\n", "    environment:\n      name: youtube\n",
+                 "upload: environment", id="environment-mapping"),
+    pytest.param("  claim:\n    needs: render\n", "  claim:\n    needs: render\n    environment: youtube\n",
+                 "claim: environment", id="environment-on-write-job"),
+    pytest.param("  render:\n    runs-on: ubuntu-latest\n",
+                 "  render:\n    runs-on: ubuntu-latest\n    environment: youtube\n",
+                 "render: environment", id="environment-on-read-job"),
+    pytest.param("    environment: youtube\n",
+                 "    environment: youtube\n    permissions:\n      contents: write\n",
+                 "upload: permissions", id="write-on-secret-job"),
+    pytest.param("      - name: Claim\n",
+                 "      - name: Claim\n        env:\n          T: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}\n",
+                 "claim: secret", id="youtube-secret-on-claim"),
+    pytest.param("      - name: Record\n",
+                 "      - name: Record\n        env:\n          T: ${{ secrets.YOUTUBE_CLIENT_SECRET }}\n",
+                 "record: secret", id="youtube-secret-on-record"),
+    pytest.param("${{ secrets.YOUTUBE_CLIENT_ID }}", "${{ secrets.GEMINI_API_KEY }}", "upload: secret",
+                 id="other-secret-on-upload"),
+    pytest.param(UPLOAD_ENV, "        env:\n          GH_TOKEN: ${{ github.token }}\n"
+                             "          YOUTUBE_CLIENT_ID:", "upload: github.token", id="token-on-upload"),
+    pytest.param("    needs: render\n    runs-on: ubuntu-latest\n    permissions:\n      contents: write\n",
+                 "    needs: render\n    runs-on: ubuntu-latest\n    permissions:\n      contents: write\n"
+                 "      pull-requests: write\n", "claim: permissions", id="claim-wider-than-allowlisted"),
+]
+
+
+@pytest.mark.parametrize(("old", "new", "message"), BAD_DAILY)
+def test_bad_daily_workflow_fails(workflows: Path, old: str, new: str, message: str) -> None:
+    edit(workflows / "daily_publish.yml", old, new)
+    found = rules.directory_problems(workflows)
+    assert any(message in problem for problem in found), found
+
+
 def test_allowlist_is_per_file(workflows: Path) -> None:
     """The same jobs in a differently named file get no exceptions."""
     (workflows / "weekly_scripts.yml").rename(workflows / "other.yml")
+    (workflows / "daily_publish.yml").rename(workflows / "daily.yml")
     found = rules.directory_problems(workflows)
-    for message in ("open-pr: permissions", "generate: secret", "open-pr: github.token", "open-pr: checkout"):
+    for message in ("open-pr: permissions", "generate: secret", "open-pr: github.token", "open-pr: checkout",
+                    "claim: permissions", "record: permissions", "upload: secret", "upload: environment"):
         assert any(message in problem for problem in found), (message, found)
+
+
+def test_environment_jobs_are_secret_jobs() -> None:
+    """A named environment is how the YouTube secrets get a main-only rule (O1 option (b))."""
+    assert rules.ENVIRONMENT_JOBS == {("daily_publish.yml", "upload"): "youtube"}
+    assert set(rules.ENVIRONMENT_JOBS) <= set(rules.SECRET_JOBS)
 
 
 def test_yaml_extension_is_read_too(workflows: Path) -> None:

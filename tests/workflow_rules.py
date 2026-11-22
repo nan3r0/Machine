@@ -31,9 +31,18 @@ READ_ONLY = {"contents": "read"}
 # is an Architect decision. A secret never goes to a job that can write (test_workflow_safety.py).
 WRITE_JOBS: dict[tuple[str, str], dict[str, str]] = {
     ("weekly_scripts.yml", "open-pr"): {"contents": "write", "pull-requests": "write"},
+    ("daily_publish.yml", "claim"): {"contents": "write"},
+    ("daily_publish.yml", "record"): {"contents": "write"},
 }
 SECRET_JOBS: dict[tuple[str, str], set[str]] = {
     ("weekly_scripts.yml", "generate"): {"GEMINI_API_KEY"},
+    ("daily_publish.yml", "upload"): {"YOUTUBE_CLIENT_ID", "YOUTUBE_CLIENT_SECRET", "YOUTUBE_REFRESH_TOKEN"},
+}
+# Owner decision O1 option (b): the YouTube secrets are environment secrets behind a main-only
+# deployment rule. The job must name exactly this environment (a plain string), and no other job
+# may name one.
+ENVIRONMENT_JOBS: dict[tuple[str, str], str] = {
+    ("daily_publish.yml", "upload"): "youtube",
 }
 # Expressions are case-insensitive. A bare `secrets` (toJSON(secrets), secrets['X'], `secrets:
 # inherit`) has no name group, so it never matches an allowlist entry.
@@ -72,6 +81,9 @@ def job_problems(name: str, job_id: str, job: dict[str, Any]) -> list[str]:
     permissions = job.get("permissions", READ_ONLY)
     if permissions not in (READ_ONLY, WRITE_JOBS.get(key, READ_ONLY)):
         found.append(f"{where}: permissions {permissions} are not allowlisted for this job")
+    environment, expected = job.get("environment"), ENVIRONMENT_JOBS.get(key)
+    if environment != expected:
+        found.append(f"{where}: environment {environment!r} must be {expected!r}")
     job_steps = job.get("steps", [])
     for uses in [job.get("uses")] + [step.get("uses") for step in job_steps]:
         if uses and not str(uses).startswith("./") and not PINNED.match(str(uses)):
@@ -89,10 +101,10 @@ def job_problems(name: str, job_id: str, job: dict[str, Any]) -> list[str]:
 
 
 def safety_problems(workflow: dict[str, Any], name: str) -> list[str]:
-    """Read-only token at workflow level, job permissions and secrets only as allowlisted for
-    (name, job id), no pull_request_target, third-party actions and reusable workflows pinned to a
-    commit SHA, no `${{ }}` inside `run:` (pass values through `env:`), and checkouts that keep no
-    credentials except in an allowlisted write job."""
+    """Read-only token at workflow level, job permissions, secrets and environment only as
+    allowlisted for (name, job id), no pull_request_target, third-party actions and reusable
+    workflows pinned to a commit SHA, no `${{ }}` inside `run:` (pass values through `env:`), and
+    checkouts that keep no credentials except in an allowlisted write job."""
     found = []
     if workflow.get("permissions") != READ_ONLY:
         found.append(f"{name}: workflow permissions must be exactly contents: read")

@@ -116,3 +116,23 @@ CHECKER_MAX_CALLS_PER_BATCH = 14
 SCRIPT_ATTEMPTS = 2  # write_script calls the batch makes per script: first try plus one retry
 GEMINI_TIMEOUT_S = 120
 GEMINI_RETRY_WAIT_S = 10  # wait before the single retry after HTTP 429, a 5xx or a timeout
+
+# YouTube (Phase 4, owner decisions O1 to O3 of 2026-11-21). Data API v3 videos.insert, resumable
+# upload, read 2026-11-21 (.harness/handoffs/p4-plan.md). One insert a day; no retry inside a run.
+YOUTUBE_TOKEN_ENDPOINT = "https://oauth2.googleapis.com/token"
+YOUTUBE_UPLOAD_ENDPOINT = "https://www.googleapis.com/upload/youtube/v3/videos"
+# The resumable session URL carries the access token, so it must be https on this host.
+YOUTUBE_UPLOAD_HOST = "www.googleapis.com"
+YOUTUBE_SCOPE = "https://www.googleapis.com/auth/youtube.upload"  # the only scope the token may hold
+YOUTUBE_CATEGORY_ID = "27"  # Education; the owner may change it
+YOUTUBE_PRIVACY = "public"
+YOUTUBE_MADE_FOR_KIDS = False
+YOUTUBE_SYNTHETIC_MEDIA = True  # O2: a realistic synthetic voice narrates real events
+# O3: appended to every description after YOUTUBE_CREDIT_SEPARATOR. Names, not links, so it passes
+# the published-field URL rule.
+YOUTUBE_CREDIT_LINE = ("Sources: Wikipedia (CC BY-SA 4.0) and public records. "
+                       "Narrated with a synthetic voice.")
+YOUTUBE_CREDIT_SEPARATOR = "\n\n"
+YOUTUBE_DESCRIPTION_MAX_BYTES = 5000  # YouTube's limit, in UTF-8 bytes
+YOUTUBE_CONNECT_TIMEOUT_S = 60  # token refresh and the upload init request
+YOUTUBE_UPLOAD_TIMEOUT_S = 900  # the PUT of up to MAX_FILE_BYTES on a runner
