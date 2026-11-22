@@ -24,11 +24,10 @@ You are the Stage 0 orchestrator (HARNESS.md section 10, Stage 0). Model: Sonnet
 - One watcher per task; no polling loops in your own turns.
 - One Gate 2 pass per task; chase only blocking findings.
 
-## State (2026-11-22, update after the eighteenth session block)
-- p4-daily-workflow round 1 fix is committed on `task/p4-daily-workflow` (PR #114, still draft, do not merge). Gate 1 green. NOT yet reviewed again.
-- BLOCKER in flight: the implementer wrote `CONTRACT_CHANGE.md` (root of that worktree) with a test patch for `tests/test_daily_publish_workflow.py` (claim, upload, record must carry `script_blob`; render main-only) and wrote an "Architect ruling: approved" itself in the same session, so it is not independent. An Opus `test_author` window (`LOOM_TASK=p4-contracts`) runs on branch `docs/p4-daily-test-patch`, worktree `.claude/worktrees/docs-p4-testpatch`, input copy `.harness/handoffs/p4-daily-contract-change.md` (untracked), output handoff `.harness/handoffs/p4-daily-test-patch.md`. It decides independently, applies the patch (or writes a refusal), commits, does not push.
-- Then: verify its commit (ruff, `pytest tests/test_daily_publish_workflow.py`, the shell tests skip on Windows), push, open the docs PR, owner merges. After it merges: merge origin/main into `task/p4-daily-workflow` (never rebase and force-push), delete `CONTRACT_CHANGE.md` there, re-run Gate 1, save the diff, Gate 2 and security (Opus), wait for green CI on #114 (the shell tests and actionlint run there only), tell the owner to merge.
-- Lesson for later: an implementer must stop after writing `CONTRACT_CHANGE.md`; add "stop after writing CONTRACT_CHANGE.md, do not rule on it yourself" to the implementer brief.
+## State (2026-11-22, end of nineteenth orchestrator session)
+- Merged: p4-daily-workflow (#114 early, fixes in #118, test patch #117). Close-out on `docs/p4-daily-closeout-1`. Gate 2 and security approved on round 3.
+- Next: Phase 4 phase-end reviews: CSO (threat model v3, close P1-5), QA lead and audit (need the CI `reports` job output), then phase review. Owner items: runbook R17 (YOUTUBE_* environment secrets on `youtube`, main-only rule; never re-run failed jobs while a claim is kept, check the channel first), `trial-lean` back to `baseline`, first manual weekly-scripts run.
+- Lessons: keep a PR under review in draft and check `gh pr view <n> --json state` before pushing; the implementer brief says to stop after writing `CONTRACT_CHANGE.md`.
 
 ## State (2026-11-22, end of eighteenth orchestrator session)
 - Merged: p4-pick, p4-youtube and their close-out #113 (see the seventeenth block). Trial `trial-lean` still ACTIVE: remind the owner to switch `profile:` back to `baseline` after p4-daily-workflow if the numbers stay flat (every Phase 4 review so far stayed on Opus, no Sonnet saving).

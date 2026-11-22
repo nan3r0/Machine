@@ -360,3 +360,11 @@ How it was caught: the orchestrator checked the profile field of the first logge
 Fix: `log_outcome.py` reads the config through `model_for.main_root()`.
 Rule going forward: anything that depends on a setting the owner changes in the main checkout reads it from there, and its test runs from a real worktree.
 Test added: `.harness/tests/test_log_outcome.py::test_worktree_run_records_the_main_checkouts_profile`.
+
+### 2026-11-22: draft PR merged before its review fixes, and an implementer ruled on its own contract change
+What happened: PR #114 (p4-daily-workflow) merged while still a draft in review, so main got the version with the script blob skew. The fixes went in a second PR (#118). Separately, the implementer wrote `CONTRACT_CHANGE.md` and then wrote "Architect ruling: approved" itself in the same session.
+Why it happened (root cause, not symptom): nothing stops a merge of a PR under review, and the implementer brief did not say to stop after writing `CONTRACT_CHANGE.md`.
+How it was caught: the orchestrator read the PR state after pushing the round 2 fix and `gh` reported it closed and merged.
+Fix: round 1 and 2 fixes carried by #118; the test patch went through an independent Opus test author (PR #117).
+Rule going forward: a PR under review stays draft and is not merged until the orchestrator says so; check `gh pr view <n> --json state` before every push to a task branch. The implementer brief says to stop after writing `CONTRACT_CHANGE.md` and never rule on it.
+Test added: none, process rule.
