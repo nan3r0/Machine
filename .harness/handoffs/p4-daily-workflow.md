@@ -17,6 +17,13 @@ Review found the ledger could record a script version that was never rendered or
 - Still partial: the shell tests and actionlint run in CI only. Awaiting CI.
 - Architect ruling on `CONTRACT_CHANGE.md` (2026-11-22): approved. p4-plan (Ledger) requires the archived blob to equal `script_sha`, so the old tests, which let claim hash main's copy, were wrong against the plan. No workflow defect found. The test patch is written out in `CONTRACT_CHANGE.md` but not applied: the ruling session ran as `LOOM_TASK=p4-daily-workflow` and the lock hook blocked it. A `LOOM_TASK=p4-contracts` (test_author) session applies it on this branch and deletes `CONTRACT_CHANGE.md`.
 
+## Round 2
+Gate 2 blocker: `upload` checked out `github.sha`, which never holds the claim commit. After a "Re-run failed jobs" (claim does not re-run) upload could publish with no claim on main, and record then failed, so the video id was never recorded. Fixed in `daily_publish.yml` only:
+- `upload` checkout now uses `ref: main` (`persist-credentials: false` kept).
+- New step "Require this run's claim on main" before the secret step, with no secrets in its env: re-checks the script id, then requires `data/published/$SCRIPT_ID.json` to exist with `.youtube_video_id == null` and `.script_sha == $SCRIPT_BLOB`, else exit 1.
+- The secret step keeps its id check and the `git hash-object` blob check, now against main's copy of the script.
+- Evidence: `pytest tests/test_daily_publish_workflow.py tests/test_workflow_safety.py` after the edit: 57 passed, 33 skipped (shell tests, Windows). The new jq check and actionlint run in CI only. No locked test touched, no `CONTRACT_CHANGE.md`.
+
 ## What changed (and why)
 - New file `.github/workflows/daily_publish.yml` only.
 - Triggers: schedule `7 14 * * *` and `workflow_dispatch` (no inputs). Workflow-level concurrency group `daily-publish`, no cancel. Read-only token at workflow level.
@@ -52,6 +59,7 @@ none
 ## Docs
 - Applied here: none (`paths_allowed` is the one workflow file).
 - Owed at Phase 4 close-out: architecture.md section 1b for Workflow B (four jobs, claim before upload, outputs through env); workflow.md status row for p4-daily-workflow; CLAUDE.md Status "Next" line; spec.md note that the upload job installs `requirements-generate.txt` only.
+- Round 2 adds to the architecture.md 1b note: upload checks out main and verifies the claim record (no video id, matching `script_sha`) before the secret step.
 - Owner setup note (for PRD R17 or the runbook): the `youtube` environment, its three secrets and its main-only deployment rule.
 - lessons.md: no new entry; nothing went wrong.
 

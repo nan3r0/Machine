@@ -150,8 +150,11 @@ jobs:
       video_id: ${{ steps.upload.outputs.video_id }}
       sent: ${{ steps.upload.outputs.sent }}
     steps:
+      # main, not github.sha: the claim commit is only on main, and a re-run of failed jobs does
+      # not re-run claim, so the claim must be checked here.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          ref: main
           persist-credentials: false
 
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
@@ -165,6 +168,22 @@ jobs:
         with:
           name: final-video
           path: ${{ runner.temp }}/artifact
+
+      - name: Require this run's claim on main
+        env:
+          SCRIPT_ID: ${{ needs.render.outputs.script_id }}
+          SCRIPT_BLOB: ${{ needs.render.outputs.script_blob }}
+        run: |
+          if [[ ! "$SCRIPT_ID" =~ ^[a-z0-9]+(-[a-z0-9]+)*$ ]]; then
+            echo "unexpected script id"
+            exit 1
+          fi
+          record="data/published/$SCRIPT_ID.json"
+          if [ ! -f "$record" ] \
+              || ! jq -e --arg sha "$SCRIPT_BLOB" '.youtube_video_id == null and .script_sha == $sha' "$record" > /dev/null; then
+            echo "main holds no claim for this run, nothing sent"
+            exit 1
+          fi
 
       - name: Upload to YouTube
         id: upload
