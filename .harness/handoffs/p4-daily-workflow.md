@@ -6,11 +6,21 @@ Write `.github/workflows/daily_publish.yml` (PRD R16, Workflow B): render, claim
 ## Status
 partial: awaiting CI. The structure tests pass locally. The claim and record shell tests (`@shell_tools`) skip on Windows and jq is not installed here, so they have not run. They must pass in CI before this counts as done. actionlint is not installed locally either, so the workflow has not been linted; CI's actionlint step is the check. Security review applies (`.github/workflows/**`).
 
+## Round 1
+Review found the ledger could record a script version that was never rendered or uploaded (render read `github.sha`, claim and record read main). Fixed in `daily_publish.yml` only:
+- `render`: job-level `if: github.ref == 'refs/heads/main'`; `pick` step also outputs `script_blob` (`git hash-object` of the script, checked against `^[0-9a-f]{40}$`).
+- `claim`: takes `SCRIPT_BLOB` through env, validates it, refuses when main's script hash differs, before the first push and again after the `pull --rebase` retry. `script_sha` is written from `SCRIPT_BLOB`.
+- `upload`: re-hashes the script in its own checkout and refuses on a mismatch before the CLI runs.
+- `record`: before moving the script, its hash must equal the record's `script_sha`, else fail and leave the claim.
+- Blocker: the locked claim shell tests pass no `render.script_blob`, so they will fail in CI against the strict claim. `CONTRACT_CHANGE.md` written with the test changes needed. The architect must update the tests; the workflow was not loosened.
+- Owner notes for the runbook (R17): a stuck claim with no upload step log means nothing was sent; the YOUTUBE_* secrets must be environment secrets with a main-only deployment rule. A manual dispatch from a branch now skips every job.
+- Still partial: the shell tests and actionlint run in CI only. Awaiting CI.
+
 ## What changed (and why)
 - New file `.github/workflows/daily_publish.yml` only.
 - Triggers: schedule `7 14 * * *` and `workflow_dispatch` (no inputs). Workflow-level concurrency group `daily-publish`, no cancel. Read-only token at workflow level.
 - `render`: no secret, read token, checkout without credentials. Same heavy install as `render.yml` (torch from the CPU index first, model cache keyed on the heavy pins and constants). `pick` prints the id, the step regex-checks it and writes `script_id` to the job output. `render_one` renders from `queue/approved/$SCRIPT_ID.json`. Only `out/render/final.mp4` goes up as an artifact, retention 1 day.
-- `claim`: `contents: write`, no secret, runs no repo code. Checkout `ref: main` with credentials. Git hooks are off through `GIT_CONFIG_COUNT/KEY_0/VALUE_0` (same as `weekly_scripts.yml` open-pr). It re-checks the id, refuses when main already holds the record or no longer holds the approved script, writes the record with `jq` (`script_sha` from `git hash-object`), commits and pushes. On a rejected push: one `pull --rebase`, a second check that the script is still approved, one more push.
+- `claim`: `contents: write`, no secret, runs no repo code. Checkout `ref: main` with credentials. Git hooks are off through `GIT_CONFIG_COUNT/KEY_0/VALUE_0` (same as `weekly_scripts.yml` open-pr). It re-checks the id, refuses when main already holds the record or its script hash differs from `SCRIPT_BLOB`, writes the record with `jq` (`script_sha` from `SCRIPT_BLOB`), commits and pushes. On a rejected push: one `pull --rebase`, a second hash check, one more push.
 - `upload`: read token, `environment: youtube` (O1 option b), checkout without credentials, hashed install of `requirements-generate.txt` only, no `setup-python` cache and no `actions/cache` step. The artifact downloads to `runner.temp/artifact`, never over the checkout. The one step with the three YOUTUBE_* secrets re-checks the id and runs `python -m pipeline.publish.youtube SCRIPT MP4 "$GITHUB_OUTPUT"`. The job outputs `video_id` and `sent` from that step.
 - `record`: `if: always() && needs.claim.result == 'success'`, `contents: write`, no secret. It needs a claim-only record on main (else it fails and pushes nothing). With a valid video id: sets `youtube_video_id` and `published_at`, `git mv` the script to `queue/published/` unchanged, one commit. With `sent=false` and no video id: `git rm` the record, one commit, exit 0. Anything else fails and leaves the claim.
 - Every job-output value (`script_id`, `video_id`, `sent`) reaches `run:` through `env:` only. No `${{ }}` sits inside any `run:`.

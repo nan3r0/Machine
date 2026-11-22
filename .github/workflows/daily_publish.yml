@@ -17,10 +17,13 @@ concurrency:
 jobs:
   # No secret and a read-only token. Heavy installs run here, so it only hands over final.mp4.
   render:
+    # A branch run would render a script main may not hold, so only main publishes.
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 45
     outputs:
       script_id: ${{ steps.pick.outputs.script_id }}
+      script_blob: ${{ steps.pick.outputs.script_blob }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -57,7 +60,13 @@ jobs:
             echo "pick gave an unexpected script id"
             exit 1
           fi
+          script_blob="$(git hash-object -- "queue/approved/$script_id.json")"
+          if [[ ! "$script_blob" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "unexpected script hash"
+            exit 1
+          fi
           echo "script_id=$script_id" >> "$GITHUB_OUTPUT"
+          echo "script_blob=$script_blob" >> "$GITHUB_OUTPUT"
 
       - name: Render
         env:
@@ -89,6 +98,7 @@ jobs:
       - name: Commit the claim
         env:
           SCRIPT_ID: ${{ needs.render.outputs.script_id }}
+          SCRIPT_BLOB: ${{ needs.render.outputs.script_blob }}
           GIT_CONFIG_COUNT: "1"
           GIT_CONFIG_KEY_0: core.hooksPath
           GIT_CONFIG_VALUE_0: /dev/null
@@ -97,18 +107,23 @@ jobs:
             echo "unexpected script id"
             exit 1
           fi
+          if [[ ! "$SCRIPT_BLOB" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "unexpected script hash"
+            exit 1
+          fi
           script="queue/approved/$SCRIPT_ID.json"
           record="data/published/$SCRIPT_ID.json"
           if [ -e "$record" ]; then
             echo "main already holds a record for this script"
             exit 1
           fi
-          if [ ! -f "$script" ]; then
-            echo "main no longer holds the approved script"
+          # The script on main must be the exact version that was rendered.
+          if [ ! -f "$script" ] || [ "$(git hash-object -- "$script")" != "$SCRIPT_BLOB" ]; then
+            echo "main no longer holds the approved script that was rendered"
             exit 1
           fi
           mkdir -p data/published
-          jq -n --arg id "$SCRIPT_ID" --arg sha "$(git hash-object -- "$script")" \
+          jq -n --arg id "$SCRIPT_ID" --arg sha "$SCRIPT_BLOB" \
             --arg at "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
             '{script_id: $id, script_sha: $sha, claimed_at: $at, youtube_video_id: null, published_at: null}' > "$record"
           git config user.name "github-actions[bot]"
@@ -117,8 +132,8 @@ jobs:
           git commit -m "Claim $SCRIPT_ID for upload"
           if ! git push origin main; then
             git pull --rebase origin main
-            if [ ! -f "$script" ]; then
-              echo "main no longer holds the approved script"
+            if [ ! -f "$script" ] || [ "$(git hash-object -- "$script")" != "$SCRIPT_BLOB" ]; then
+              echo "main changed while claiming, nothing pushed"
               exit 1
             fi
             git push origin main
@@ -155,12 +170,17 @@ jobs:
         id: upload
         env:
           SCRIPT_ID: ${{ needs.render.outputs.script_id }}
+          SCRIPT_BLOB: ${{ needs.render.outputs.script_blob }}
           YOUTUBE_CLIENT_ID: ${{ secrets.YOUTUBE_CLIENT_ID }}
           YOUTUBE_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
           YOUTUBE_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
         run: |
           if [[ ! "$SCRIPT_ID" =~ ^[a-z0-9]+(-[a-z0-9]+)*$ ]]; then
             echo "unexpected script id"
+            exit 1
+          fi
+          if [ "$(git hash-object -- "queue/approved/$SCRIPT_ID.json")" != "$SCRIPT_BLOB" ]; then
+            echo "the script differs from the rendered version, nothing sent"
             exit 1
           fi
           python -m pipeline.publish.youtube "queue/approved/$SCRIPT_ID.json" "$RUNNER_TEMP/artifact/final.mp4" "$GITHUB_OUTPUT"
@@ -204,6 +224,11 @@ jobs:
           if [ -n "$VIDEO_ID" ]; then
             if [[ ! "$VIDEO_ID" =~ ^[A-Za-z0-9_-]{11}$ ]]; then
               echo "unexpected video id, claim kept"
+              exit 1
+            fi
+            if [ ! -f "queue/approved/$SCRIPT_ID.json" ] \
+              || [ "$(git hash-object -- "queue/approved/$SCRIPT_ID.json")" != "$(jq -r '.script_sha' "$record")" ]; then
+              echo "the script differs from the claimed version, claim kept"
               exit 1
             fi
             jq --arg v "$VIDEO_ID" --arg at "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
