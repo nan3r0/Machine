@@ -6,11 +6,29 @@ Write `.github/workflows/daily_publish.yml` (PRD R16, Workflow B): render, claim
 ## Status
 partial: awaiting CI. The structure tests pass locally. The claim and record shell tests (`@shell_tools`) skip on Windows and jq is not installed here, so they have not run. They must pass in CI before this counts as done. actionlint is not installed locally either, so the workflow has not been linted; CI's actionlint step is the check. Security review applies (`.github/workflows/**`).
 
+## Round 1
+Review found the ledger could record a script version that was never rendered or uploaded (render read `github.sha`, claim and record read main). Fixed in `daily_publish.yml` only:
+- `render`: job-level `if: github.ref == 'refs/heads/main'`; `pick` step also outputs `script_blob` (`git hash-object` of the script, checked against `^[0-9a-f]{40}$`).
+- `claim`: takes `SCRIPT_BLOB` through env, validates it, refuses when main's script hash differs, before the first push and again after the `pull --rebase` retry. `script_sha` is written from `SCRIPT_BLOB`.
+- `upload`: re-hashes the script in its own checkout and refuses on a mismatch before the CLI runs.
+- `record`: before moving the script, its hash must equal the record's `script_sha`, else fail and leave the claim.
+- Blocker: the locked claim shell tests pass no `render.script_blob`, so they will fail in CI against the strict claim. `CONTRACT_CHANGE.md` written with the test changes needed. The architect must update the tests; the workflow was not loosened.
+- Owner notes for the runbook (R17): a stuck claim with no upload step log means nothing was sent; the YOUTUBE_* secrets must be environment secrets with a main-only deployment rule. A manual dispatch from a branch now skips every job.
+- Still partial: the shell tests and actionlint run in CI only. Awaiting CI.
+- Architect ruling on `CONTRACT_CHANGE.md` (2026-11-22): approved. p4-plan (Ledger) requires the archived blob to equal `script_sha`, so the old tests, which let claim hash main's copy, were wrong against the plan. No workflow defect found. The test patch is written out in `CONTRACT_CHANGE.md` but not applied: the ruling session ran as `LOOM_TASK=p4-daily-workflow` and the lock hook blocked it. A `LOOM_TASK=p4-contracts` (test_author) session applies it on this branch and deletes `CONTRACT_CHANGE.md`.
+
+## Round 2
+Gate 2 blocker: `upload` checked out `github.sha`, which never holds the claim commit. After a "Re-run failed jobs" (claim does not re-run) upload could publish with no claim on main, and record then failed, so the video id was never recorded. Fixed in `daily_publish.yml` only:
+- `upload` checkout now uses `ref: main` (`persist-credentials: false` kept).
+- New step "Require this run's claim on main" before the secret step, with no secrets in its env: re-checks the script id, then requires `data/published/$SCRIPT_ID.json` to exist with `.youtube_video_id == null` and `.script_sha == $SCRIPT_BLOB`, else exit 1.
+- The secret step keeps its id check and the `git hash-object` blob check, now against main's copy of the script.
+- Evidence: `pytest tests/test_daily_publish_workflow.py tests/test_workflow_safety.py` after the edit: 57 passed, 33 skipped (shell tests, Windows). The new jq check and actionlint run in CI only. No locked test touched, no `CONTRACT_CHANGE.md`.
+
 ## What changed (and why)
 - New file `.github/workflows/daily_publish.yml` only.
 - Triggers: schedule `7 14 * * *` and `workflow_dispatch` (no inputs). Workflow-level concurrency group `daily-publish`, no cancel. Read-only token at workflow level.
 - `render`: no secret, read token, checkout without credentials. Same heavy install as `render.yml` (torch from the CPU index first, model cache keyed on the heavy pins and constants). `pick` prints the id, the step regex-checks it and writes `script_id` to the job output. `render_one` renders from `queue/approved/$SCRIPT_ID.json`. Only `out/render/final.mp4` goes up as an artifact, retention 1 day.
-- `claim`: `contents: write`, no secret, runs no repo code. Checkout `ref: main` with credentials. Git hooks are off through `GIT_CONFIG_COUNT/KEY_0/VALUE_0` (same as `weekly_scripts.yml` open-pr). It re-checks the id, refuses when main already holds the record or no longer holds the approved script, writes the record with `jq` (`script_sha` from `git hash-object`), commits and pushes. On a rejected push: one `pull --rebase`, a second check that the script is still approved, one more push.
+- `claim`: `contents: write`, no secret, runs no repo code. Checkout `ref: main` with credentials. Git hooks are off through `GIT_CONFIG_COUNT/KEY_0/VALUE_0` (same as `weekly_scripts.yml` open-pr). It re-checks the id, refuses when main already holds the record or its script hash differs from `SCRIPT_BLOB`, writes the record with `jq` (`script_sha` from `SCRIPT_BLOB`), commits and pushes. On a rejected push: one `pull --rebase`, a second hash check, one more push.
 - `upload`: read token, `environment: youtube` (O1 option b), checkout without credentials, hashed install of `requirements-generate.txt` only, no `setup-python` cache and no `actions/cache` step. The artifact downloads to `runner.temp/artifact`, never over the checkout. The one step with the three YOUTUBE_* secrets re-checks the id and runs `python -m pipeline.publish.youtube SCRIPT MP4 "$GITHUB_OUTPUT"`. The job outputs `video_id` and `sent` from that step.
 - `record`: `if: always() && needs.claim.result == 'success'`, `contents: write`, no secret. It needs a claim-only record on main (else it fails and pushes nothing). With a valid video id: sets `youtube_video_id` and `published_at`, `git mv` the script to `queue/published/` unchanged, one commit. With `sent=false` and no video id: `git rm` the record, one commit, exit 0. Anything else fails and leaves the claim.
 - Every job-output value (`script_id`, `video_id`, `sent`) reaches `run:` through `env:` only. No `${{ }}` sits inside any `run:`.
@@ -41,6 +59,7 @@ none
 ## Docs
 - Applied here: none (`paths_allowed` is the one workflow file).
 - Owed at Phase 4 close-out: architecture.md section 1b for Workflow B (four jobs, claim before upload, outputs through env); workflow.md status row for p4-daily-workflow; CLAUDE.md Status "Next" line; spec.md note that the upload job installs `requirements-generate.txt` only.
+- Round 2 adds to the architecture.md 1b note: upload checks out main and verifies the claim record (no video id, matching `script_sha`) before the secret step.
 - Owner setup note (for PRD R17 or the runbook): the `youtube` environment, its three secrets and its main-only deployment rule.
 - lessons.md: no new entry; nothing went wrong.
 
