@@ -3,8 +3,12 @@
 Pure file logic: no network, no secret. Contract written by p4-contracts; p4-pick implements it.
 """
 
-from datetime import date
+import argparse
+import sys
+from datetime import date, datetime, timezone
 from pathlib import Path
+
+from pipeline.schema import PublishRecord, Script
 
 
 class PickError(Exception):
@@ -29,7 +33,47 @@ def next_script(queue_dir: Path, records_dir: Path, today: date) -> str:
        Return the first by (`publish_after`, `id`). With none, raise PickError whose message starts
        with "queue empty".
     """
-    raise NotImplementedError
+    if not records_dir.is_dir():
+        raise PickError(f"ledger folder missing: {records_dir}")
+    records = _load_records(records_dir)
+    for record in records:
+        if record.youtube_video_id is None:
+            raise PickError(
+                f"unconfirmed claim for {record.script_id}: an upload may have reached YouTube. "
+                "Check the channel, then fill in or delete its record"
+            )
+    approved = _load_approved(queue_dir / "approved")
+    recorded = {record.script_id for record in records}
+    for script in approved:
+        if script.id in recorded:
+            raise PickError(f"{script.id} is published but still in queue/approved/")
+    due = [s for s in approved if s.publish_after <= today]
+    if not due:
+        raise PickError("queue empty: no approved script is due")
+    return min(due, key=lambda s: (s.publish_after, s.id)).id
+
+
+def _load_records(records_dir: Path) -> list[PublishRecord]:
+    records = []
+    for path in sorted(records_dir.glob("*.json")):
+        try:
+            record = PublishRecord.model_validate_json(path.read_text(encoding="utf-8"))
+        except (OSError, ValueError) as error:
+            raise PickError(f"cannot read record {path.name}: {error}") from error
+        if path.name != f"{record.script_id}.json":
+            raise PickError(f"record {path.name} does not match its script_id {record.script_id}")
+        records.append(record)
+    return records
+
+
+def _load_approved(approved_dir: Path) -> list[Script]:
+    scripts = []
+    for path in sorted(approved_dir.glob("*.json")):
+        try:
+            scripts.append(Script.model_validate_json(path.read_text(encoding="utf-8")))
+        except (OSError, ValueError) as error:
+            raise PickError(f"cannot read script {path.name}: {error}") from error
+    return scripts
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -39,7 +83,17 @@ def main(argv: list[str] | None = None) -> int:
     regex-check it. On PickError prints the reason to stderr, nothing to stdout, and returns 1: the
     scheduled run goes red and GitHub emails the owner (owner decision O6).
     """
-    raise NotImplementedError
+    parser = argparse.ArgumentParser(prog="pipeline.publish.pick")
+    parser.add_argument("queue_dir", type=Path)
+    parser.add_argument("records_dir", type=Path)
+    args = parser.parse_args(argv)
+    try:
+        script_id = next_script(args.queue_dir, args.records_dir, datetime.now(timezone.utc).date())
+    except PickError as error:
+        print(error, file=sys.stderr)
+        return 1
+    print(script_id)
+    return 0
 
 
 if __name__ == "__main__":
