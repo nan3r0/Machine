@@ -95,7 +95,8 @@ def upload(script: Script, video_path: Path) -> str:
     access = _refresh_access_token(credentials, stored)
     stored.append(access)
     session_url = _start_session(script, size, access, stored)
-    return _send_video(video_path, session_url, access, [*stored, session_url])
+    upload_ids = urllib.parse.parse_qs(urllib.parse.urlsplit(session_url).query).get("upload_id", [])
+    return _send_video(video_path, session_url, access, [*stored, session_url, *upload_ids])
 
 
 def _checked_size(video_path: Path) -> int:
@@ -238,7 +239,9 @@ def _http_message(error: urllib.error.HTTPError, step: str, stored: list[str]) -
         message += " (the refresh token was revoked or expired, make it again)"
     # Redact before cutting, so a secret split by the cut cannot survive as a prefix.
     for secret in stored:
-        text = text.replace(secret, "[redacted]")
+        # An echoed secret may come back URL-encoded or JSON-escaped.
+        for form in (secret, urllib.parse.quote(secret, safe=""), json.dumps(secret)[1:-1]):
+            text = text.replace(form, "[redacted]")
     return f"{message}: {text[:_EXCERPT_CHARS]}"
 
 

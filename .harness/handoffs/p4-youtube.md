@@ -20,6 +20,8 @@ done. Gate 1 locally green. Security review applies (`pipeline/publish/**`). No 
 - The `sent` flag flips to True only inside `_send_video`'s `_call`, so a failed local `read_bytes` still counts as `sent=False`. The contract says "no byte went out", which this matches.
 - Reads the whole mp4 into memory (max 100 MB, `MAX_FILE_BYTES`). Streaming would add code for no gain on a runner.
 
+- Security review finding (echoed secrets in error excerpts): redaction now also covers each secret's URL-encoded and JSON-escaped forms and the session `upload_id`. Not done: reporting only parsed `error` fields (the plain excerpt helps the owner debug the first live run). A locked test for the encoded forms is owed by the Architect, since `tests/publish/` is locked.
+
 ## Tried and abandoned
 none
 
