@@ -63,7 +63,7 @@ pytest_add_cli_args = ["-m", "not heavy"]
 # mutmut already copies tests/ and pyproject.toml. A nested file needs its folder listed, since
 # mutmut copies single files without creating parent folders.
 also_copy = [
-    "queue/", "sources/", "data/", ".harness/", "assets/", ".github/", ".claude/hooks/",
+    "queue/", "sources/", ".harness/", "assets/", ".github/", ".claude/hooks/",
     "Makefile", ".gitignore", "requirements.txt", "requirements-dev.txt", "requirements-heavy.txt",
     "requirements-generate.txt",
     "CLAUDE.md", "README.md", "workflow.md", "lessons.md",
