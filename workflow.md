@@ -175,6 +175,8 @@ Specialist reviews: security for p2-validate, p2-gemini, p2-batch, p2-weekly-wor
 | p2b-hook-check | done, merged 2026-11-21 (PR #89) | Gate 2 approved; tests in the task YAML |
 | p2b-qa-tests-batch | done, merged 2026-11-21 (PR #91) | Gate 2 approved; tests in the task YAML |
 | p2b-qa-tests-factcheck | done, merged 2026-11-21 (PR #92) | Gate 2 approved; tests in the task YAML |
+| p2c-gemini-escapes | done, merged 2026-11-22 (PR #97) | Gate 2 and security review approved; tests in `tests/script/test_gemini_errors.py` |
+| p2c-survivor-tests | done, merged 2026-11-22 (PR #98) | Gate 2 approved; tests in `tests/script/test_survivors.py` |
 | p2d-ci-triggers | planned | locked test `tests/test_ci_triggers.py`; plan in the Architect's Phase 4 plan handoff, part A |
 
 ## Phase 2b module order
@@ -200,13 +202,6 @@ close-out merges (status.yaml), then the owner dispatches the CI reports job on 
 ```
 
 Specialist reviews: security for p2c-gemini-escapes.
-
-### Phase 2c status
-
-| Task | Status | Notes |
-|---|---|---|
-| p2c-gemini-escapes | planned | locked test `tests/script/test_gemini_errors.py` |
-| p2c-survivor-tests | planned | test_author writes `tests/script/test_survivors.py` |
 
 ## Phase 2d module order
 
