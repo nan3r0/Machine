@@ -4,9 +4,10 @@ Structure tests read the file; the claim and record tests run those jobs' `run:`
 in a scratch git repo with a local bare remote, so they need bash, git and jq (Linux CI).
 
 Contract for the shell steps, beyond the task notes:
-- Job outputs: render `script_id`, upload `video_id` and `sent` (`true` or `false`), as the
-  youtube CLI writes them. Steps read them only through `env:` values of the form
-  `${{ needs.<job>.outputs.<name> }}`; the runner below resolves exactly those, plus
+- Job outputs: render `script_id` and `script_blob` (`git hash-object` of the rendered script),
+  upload `video_id` and `sent` (`true` or `false`), as the youtube CLI writes them. Steps read
+  them only through `env:` values of the form `${{ needs.<job>.outputs.<name> }}`; the runner
+  below resolves exactly those, plus
   `${{ runner.temp }}`, and turns every other expression into a dummy.
 - claim and record run no step-level `if:`; they branch in shell. Their checkouts use `ref: main`,
   since the claim commit lands on main after the run started.
@@ -15,6 +16,9 @@ Contract for the shell steps, beyond the task notes:
   `data/published/<id>.json` or no longer holds `queue/approved/<id>.json`. record fails, with no
   push, unless main holds a claim-only record for the id. Releasing a claim on `sent=false` exits 0:
   the upload job has already failed the run.
+- One version end to end (p4-plan, Ledger): claim and upload refuse unless the script's blob equals
+  `script_blob`, and claim writes it as `script_sha`; record moves the script only when its blob
+  equals the record's `script_sha`. Render runs on main only, so a branch run publishes nothing.
 """
 
 import os
@@ -99,7 +103,9 @@ def test_render_job() -> None:
     assert "python -m pipeline.render_one" in run
     rules.assert_torch_from_cpu_index_first(run)
     rules.assert_model_cache_tracks_pins(workflow())
-    assert "script_id" in (job("render").get("outputs") or {})
+    assert "git hash-object" in run
+    assert {"script_id", "script_blob"} <= set(job("render").get("outputs") or {})
+    assert " ".join(str(job("render").get("if", "")).split()) == "github.ref == 'refs/heads/main'"
     [upload] = uses("render", "actions/upload-artifact")
     path = str(upload["with"]["path"]).strip()
     assert "\n" not in path and path.endswith("final.mp4"), "the artifact is final.mp4 only"
@@ -133,6 +139,12 @@ def test_upload_job() -> None:
     assert len(keyed) == 1 and set(keyed[0]["env"]) >= SECRETS, "the secrets are in exactly one step's env"
     assert "python -m pipeline.publish.youtube" in str(keyed[0]["run"])
     assert "GITHUB_OUTPUT" in str(keyed[0]["run"])
+    blob_ref = OUTPUT_REF.match(str(keyed[0]["env"].get("SCRIPT_BLOB", "")).strip())
+    assert blob_ref is not None and blob_ref.groups() == ("render", "script_blob")
+    upload_run = str(keyed[0]["run"])
+    assert "git hash-object" in upload_run and "$SCRIPT_BLOB" in upload_run
+    assert upload_run.index("git hash-object") < upload_run.index("python -m pipeline.publish.youtube"), \
+        "the script version is checked before anything is sent"
     installs = [line for line in job_run("upload").splitlines() if "pip install" in line]
     assert installs
     for line in installs:
@@ -233,6 +245,15 @@ def head(remote: Path) -> str:
     return git(remote, "rev-parse", "main").strip()
 
 
+def blob(remote: Path) -> str:
+    """The approved script's blob on main, as render's `script_blob` output gives it."""
+    return git(remote, "rev-parse", f"main:{SCRIPT}").strip()
+
+
+def claim_outputs(remote: Path) -> dict[str, str]:
+    return {"render.script_id": ID, "render.script_blob": blob(remote)}
+
+
 def record_on_main(remote: Path) -> str | None:
     return show(remote, RECORD) if RECORD in files(remote) else None
 
@@ -259,7 +280,7 @@ def old_record(remote: Path, video_id: str | None) -> bytes:
 
 def claimed(tmp_path: Path) -> Path:
     remote = remote_with_script(tmp_path)
-    assert run_job(tmp_path, checkout(tmp_path, remote, "claim"), "claim", {"render.script_id": ID}) == 0
+    assert run_job(tmp_path, checkout(tmp_path, remote, "claim"), "claim", claim_outputs(remote)) == 0
     return remote
 
 
@@ -269,7 +290,7 @@ def test_claim_commits_a_record_before_the_upload(tmp_path: Path) -> None:
     base = head(remote)
     repo = checkout(tmp_path, remote, "claim")
     expected_sha = git(repo, "hash-object", SCRIPT).strip()
-    assert run_job(tmp_path, repo, "claim", {"render.script_id": ID}) == 0
+    assert run_job(tmp_path, repo, "claim", claim_outputs(remote)) == 0
     assert git(remote, "rev-list", "--count", f"{base}..main").strip() == "1"
     assert git(remote, "diff", "--name-only", base, "main").split() == [RECORD]
     record = PublishRecord.model_validate_json(show(remote, RECORD))
@@ -280,13 +301,14 @@ def test_claim_commits_a_record_before_the_upload(tmp_path: Path) -> None:
 @shell_tools
 def test_claim_retries_once_after_a_rejected_push(tmp_path: Path) -> None:
     remote = remote_with_script(tmp_path)
+    rendered = claim_outputs(remote)
     repo = checkout(tmp_path, remote, "claim")
     other = checkout(tmp_path, remote, "other")
     put(other / "notes.txt", b"pushed while the run rendered\n")
     git(other, "add", "-A")
     git(other, "commit", "-q", "-m", "concurrent")
     git(other, "push", "-q", "origin", "main")
-    assert run_job(tmp_path, repo, "claim", {"render.script_id": ID}) == 0
+    assert run_job(tmp_path, repo, "claim", rendered) == 0
     assert {RECORD, "notes.txt"} <= files(remote)
 
 
@@ -296,7 +318,8 @@ def test_claim_refuses_a_bad_script_id(tmp_path: Path, bad: str) -> None:
     remote = remote_with_script(tmp_path)
     base = head(remote)
     repo = checkout(tmp_path, remote, "claim")
-    assert run_job(tmp_path, repo, "claim", {"render.script_id": bad}) != 0
+    outputs = {"render.script_id": bad, "render.script_blob": blob(remote)}
+    assert run_job(tmp_path, repo, "claim", outputs) != 0
     assert head(remote) == base
     assert not (repo / "pwned").exists()
 
@@ -306,6 +329,7 @@ def test_claim_refuses_a_bad_script_id(tmp_path: Path, bad: str) -> None:
 def test_claim_never_rewrites_or_claims_what_main_does_not_offer(tmp_path: Path, main_holds: str) -> None:
     """At most once: a run queued behind a timed-out upload picked from an older checkout."""
     remote = remote_with_script(tmp_path)
+    rendered = claim_outputs(remote)
     if main_holds == "no-approved-script":
         change_main(tmp_path, remote, {}, remove=(SCRIPT,))
     else:
@@ -313,8 +337,42 @@ def test_claim_never_rewrites_or_claims_what_main_does_not_offer(tmp_path: Path,
         change_main(tmp_path, remote, {RECORD: old_record(remote, video_id)})
     base, before = head(remote), record_on_main(remote)
     repo = checkout(tmp_path, remote, "claim")
-    assert run_job(tmp_path, repo, "claim", {"render.script_id": ID}) != 0
+    assert run_job(tmp_path, repo, "claim", rendered) != 0
     assert (head(remote), record_on_main(remote)) == (base, before)
+
+
+def edit_script(tmp_path: Path, remote: Path) -> None:
+    """The owner re-approves a different version of the script on main."""
+    change_main(tmp_path, remote, {SCRIPT: show(remote, SCRIPT).encode("utf-8") + b"\n"})
+
+
+@shell_tools
+@pytest.mark.parametrize("bad", ["", "abc", "0" * 39, "0" * 41, "z" * 40, "$(touch pwned)" + "0" * 26])
+def test_claim_refuses_a_bad_script_blob(tmp_path: Path, bad: str) -> None:
+    remote = remote_with_script(tmp_path)
+    base = head(remote)
+    repo = checkout(tmp_path, remote, "claim")
+    assert run_job(tmp_path, repo, "claim", {"render.script_id": ID, "render.script_blob": bad}) != 0
+    assert head(remote) == base
+    assert not (repo / "pwned").exists()
+
+
+@shell_tools
+@pytest.mark.parametrize("changed", ["before-the-claim", "during-the-claim"])
+def test_claim_refuses_a_script_version_that_was_not_rendered(tmp_path: Path, changed: str) -> None:
+    """during-the-claim: the local check passes, the push is rejected, and the rebase brings the
+    new version, so only the re-check after `pull --rebase` can refuse."""
+    remote = remote_with_script(tmp_path)
+    rendered = claim_outputs(remote)
+    if changed == "before-the-claim":
+        edit_script(tmp_path, remote)
+    repo = checkout(tmp_path, remote, "claim")
+    if changed == "during-the-claim":
+        edit_script(tmp_path, remote)
+    base = head(remote)
+    assert blob(remote) != rendered["render.script_blob"]
+    assert run_job(tmp_path, repo, "claim", rendered) != 0
+    assert head(remote) == base and RECORD not in files(remote)
 
 
 @shell_tools
@@ -372,16 +430,30 @@ def test_record_leaves_the_claim_when_the_upload_is_unknown(tmp_path: Path, vide
 
 
 @shell_tools
+def test_record_keeps_the_claim_when_the_script_changed(tmp_path: Path) -> None:
+    """The ledger never archives a version other than the one claimed and uploaded."""
+    remote = claimed(tmp_path)
+    claim_sha = PublishRecord.model_validate_json(show(remote, RECORD)).script_sha
+    edit_script(tmp_path, remote)
+    base, before = head(remote), record_on_main(remote)
+    repo = checkout(tmp_path, remote, "record")
+    outputs = {"render.script_id": ID, "upload.video_id": VIDEO, "upload.sent": ""}
+    assert run_job(tmp_path, repo, "record", outputs) != 0
+    assert (head(remote), record_on_main(remote)) == (base, before)
+    assert SCRIPT in files(remote) and blob(remote) != claim_sha
+
+
+@shell_tools
 @pytest.mark.parametrize("name", ["claim", "record"])
 def test_write_jobs_run_no_git_hooks(tmp_path: Path, name: str) -> None:
     remote = remote_with_script(tmp_path) if name == "claim" else claimed(tmp_path)
+    outputs = {**claim_outputs(remote), "upload.video_id": VIDEO, "upload.sent": ""}
     repo = checkout(tmp_path, remote, name)
     marker = tmp_path / "hook-ran"
     for hook in ("pre-commit", "commit-msg", "post-commit", "pre-push", "reference-transaction",
                  "post-checkout", "post-merge", "pre-rebase", "post-rewrite"):
         put(repo / ".git" / "hooks" / hook, f"#!/bin/sh\ntouch '{marker}'\nexit 1\n".encode("utf-8"))
         (repo / ".git" / "hooks" / hook).chmod(0o755)
-    outputs = {"render.script_id": ID, "upload.video_id": VIDEO, "upload.sent": ""}
     assert run_job(tmp_path, repo, name, outputs) == 0
     assert not marker.exists(), f"git ran a hook in {name}, which holds the write token"
 
