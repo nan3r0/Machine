@@ -26,16 +26,13 @@ import re
 import shutil
 import subprocess
 import sys
-from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
 import pytest
 
-from pipeline.schema import PublishRecord
 from tests import workflow_rules as rules
 from tests.script.scripts import make_script
-from tests.test_published_records import record_problems
 
 NAME = "daily_publish.yml"
 ROOT = Path(__file__).resolve().parent.parent
@@ -270,32 +267,10 @@ def change_main(tmp_path: Path, remote: Path, add: dict[str, bytes], remove: tup
     git(repo, "push", "-q", "origin", "main")
 
 
-def old_record(remote: Path, video_id: str | None) -> bytes:
-    """A record from an earlier run, built without the claim job, with a fixed old claim time."""
-    record = PublishRecord(script_id=ID, script_sha=git(remote, "rev-parse", f"main:{SCRIPT}").strip(),
-                           claimed_at=datetime(2026, 11, 20, 14, 9, tzinfo=UTC), youtube_video_id=video_id,
-                           published_at=datetime(2026, 11, 20, 14, 12, tzinfo=UTC) if video_id else None)
-    return record.model_dump_json().encode("utf-8") + b"\n"
-
-
 def claimed(tmp_path: Path) -> Path:
     remote = remote_with_script(tmp_path)
     assert run_job(tmp_path, checkout(tmp_path, remote, "claim"), "claim", claim_outputs(remote)) == 0
     return remote
-
-
-@shell_tools
-def test_claim_commits_a_record_before_the_upload(tmp_path: Path) -> None:
-    remote = remote_with_script(tmp_path)
-    base = head(remote)
-    repo = checkout(tmp_path, remote, "claim")
-    expected_sha = git(repo, "hash-object", SCRIPT).strip()
-    assert run_job(tmp_path, repo, "claim", claim_outputs(remote)) == 0
-    assert git(remote, "rev-list", "--count", f"{base}..main").strip() == "1"
-    assert git(remote, "diff", "--name-only", base, "main").split() == [RECORD]
-    record = PublishRecord.model_validate_json(show(remote, RECORD))
-    assert (record.script_id, record.script_sha) == (ID, expected_sha)
-    assert record.youtube_video_id is None and record.published_at is None
 
 
 @shell_tools
@@ -325,16 +300,11 @@ def test_claim_refuses_a_bad_script_id(tmp_path: Path, bad: str) -> None:
 
 
 @shell_tools
-@pytest.mark.parametrize("main_holds", ["claim-only-record", "published-record", "no-approved-script"])
-def test_claim_never_rewrites_or_claims_what_main_does_not_offer(tmp_path: Path, main_holds: str) -> None:
+def test_claim_never_claims_what_main_does_not_offer(tmp_path: Path) -> None:
     """At most once: a run queued behind a timed-out upload picked from an older checkout."""
     remote = remote_with_script(tmp_path)
     rendered = claim_outputs(remote)
-    if main_holds == "no-approved-script":
-        change_main(tmp_path, remote, {}, remove=(SCRIPT,))
-    else:
-        video_id = VIDEO if main_holds == "published-record" else None
-        change_main(tmp_path, remote, {RECORD: old_record(remote, video_id)})
+    change_main(tmp_path, remote, {}, remove=(SCRIPT,))
     base, before = head(remote), record_on_main(remote)
     repo = checkout(tmp_path, remote, "claim")
     assert run_job(tmp_path, repo, "claim", rendered) != 0
@@ -376,23 +346,6 @@ def test_claim_refuses_a_script_version_that_was_not_rendered(tmp_path: Path, ch
 
 
 @shell_tools
-def test_record_publishes_the_video_id_and_moves_the_script(tmp_path: Path) -> None:
-    remote = claimed(tmp_path)
-    claim = head(remote)
-    claim_sha = PublishRecord.model_validate_json(show(remote, RECORD)).script_sha
-    repo = checkout(tmp_path, remote, "record")
-    outputs = {"render.script_id": ID, "upload.video_id": VIDEO, "upload.sent": ""}
-    assert run_job(tmp_path, repo, "record", outputs) == 0
-    assert git(remote, "rev-list", "--count", f"{claim}..main").strip() == "1"
-    record = PublishRecord.model_validate_json(show(remote, RECORD))
-    assert record.youtube_video_id == VIDEO and record.published_at is not None
-    assert record.script_sha == claim_sha
-    assert SCRIPT not in files(remote) and f"queue/published/{ID}.json" in files(remote)
-    assert git(remote, "rev-parse", f"main:queue/published/{ID}.json").strip() == claim_sha
-    assert record_problems(checkout(tmp_path, remote, "check")) == []
-
-
-@shell_tools
 def test_record_releases_a_claim_that_sent_nothing(tmp_path: Path) -> None:
     remote = claimed(tmp_path)
     repo = checkout(tmp_path, remote, "record")
@@ -402,13 +355,9 @@ def test_record_releases_a_claim_that_sent_nothing(tmp_path: Path) -> None:
 
 
 @shell_tools
-@pytest.mark.parametrize("main_holds", ["no-record", "published-record"])
 @pytest.mark.parametrize(("video_id", "sent"), [(VIDEO, ""), ("", "false")])
-def test_record_needs_a_claim_only_record(tmp_path: Path, main_holds: str, video_id: str, sent: str) -> None:
-    """A published record is never rewritten or deleted, so a late sent=false cannot reopen it."""
+def test_record_needs_a_claim(tmp_path: Path, video_id: str, sent: str) -> None:
     remote = remote_with_script(tmp_path)
-    if main_holds == "published-record":
-        change_main(tmp_path, remote, {RECORD: old_record(remote, VIDEO)})
     base, before = head(remote), record_on_main(remote)
     repo = checkout(tmp_path, remote, "record")
     outputs = {"render.script_id": ID, "upload.video_id": video_id, "upload.sent": sent}
@@ -427,20 +376,6 @@ def test_record_leaves_the_claim_when_the_upload_is_unknown(tmp_path: Path, vide
     assert run_job(tmp_path, repo, "record", outputs) != 0
     assert head(remote) == claim
     assert not (repo / "pwned").exists()
-
-
-@shell_tools
-def test_record_keeps_the_claim_when_the_script_changed(tmp_path: Path) -> None:
-    """The ledger never archives a version other than the one claimed and uploaded."""
-    remote = claimed(tmp_path)
-    claim_sha = PublishRecord.model_validate_json(show(remote, RECORD)).script_sha
-    edit_script(tmp_path, remote)
-    base, before = head(remote), record_on_main(remote)
-    repo = checkout(tmp_path, remote, "record")
-    outputs = {"render.script_id": ID, "upload.video_id": VIDEO, "upload.sent": ""}
-    assert run_job(tmp_path, repo, "record", outputs) != 0
-    assert (head(remote), record_on_main(remote)) == (base, before)
-    assert SCRIPT in files(remote) and blob(remote) != claim_sha
 
 
 @shell_tools

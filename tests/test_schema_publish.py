@@ -17,11 +17,13 @@ from tests.script.scripts import make_script
 
 SHA = "0123456789abcdef0123456789abcdef01234567"
 CLAIMED = "2026-11-23T14:09:12Z"  # what `date -u +%Y-%m-%dT%H:%M:%SZ` prints in the claim job
+RUN_ID = 45037285671  # a real GITHUB_RUN_ID: past 2**32, so the field must not be a 32-bit int
 
 
 def record(**overrides: Any) -> dict[str, Any]:
     data: dict[str, Any] = {"script_id": "sample-65s", "script_sha": SHA, "claimed_at": CLAIMED,
-                            "youtube_video_id": None, "published_at": None}
+                            "youtube_video_id": None, "published_at": None, "run_id": RUN_ID,
+                            "run_attempt": 1}
     data.update(overrides)
     return data
 
@@ -37,6 +39,8 @@ def test_claim_and_published_records_parse() -> None:
     assert done.youtube_video_id == "dQw4w9WgXcQ"
     assert done.published_at is not None and done.published_at.utcoffset() is not None
     parse(record(youtube_video_id="a-b_C9d-E_f", published_at="2026-11-23T14:11:40+00:00"))
+    rerun = parse(record(run_id=1, run_attempt=3))
+    assert (claim.run_id, claim.run_attempt, rerun.run_id, rerun.run_attempt) == (RUN_ID, 1, 1, 3)
 
 
 BAD = [
@@ -60,6 +64,22 @@ BAD = [
     pytest.param({"extra": 1}, id="extra-field"),
 ]
 
+# The run fields are checked by name: before they existed, extra="forbid" rejected any record
+# holding them, so a bare ValidationError would pass for the wrong reason.
+BAD_RUN = [
+    pytest.param({"run_id": 0}, id="run-id-zero"),
+    pytest.param({"run_id": -1}, id="run-id-negative"),
+    pytest.param({"run_id": True}, id="run-id-bool"),
+    pytest.param({"run_id": "45037285671"}, id="run-id-string"),
+    pytest.param({"run_id": 1.0}, id="run-id-float"),
+    pytest.param({"run_id": None}, id="run-id-null"),
+    pytest.param({"run_attempt": 0}, id="attempt-zero"),
+    pytest.param({"run_attempt": True}, id="attempt-bool"),
+    pytest.param({"run_attempt": "1"}, id="attempt-string"),
+    pytest.param({"run_attempt": 1.0}, id="attempt-float"),
+    pytest.param({"run_attempt": None}, id="attempt-null"),
+]
+
 
 @pytest.mark.parametrize("overrides", BAD)
 def test_bad_record_is_rejected(overrides: dict[str, Any]) -> None:
@@ -67,13 +87,22 @@ def test_bad_record_is_rejected(overrides: dict[str, Any]) -> None:
         parse(record(**overrides))
 
 
+@pytest.mark.parametrize("overrides", BAD_RUN)
+def test_bad_run_field_is_rejected(overrides: dict[str, Any]) -> None:
+    [field] = overrides
+    with pytest.raises(ValidationError) as caught:
+        parse(record(**overrides))
+    assert [(e["loc"], e["type"] == "extra_forbidden") for e in caught.value.errors()] == [((field,), False)]
+
+
 @pytest.mark.parametrize("field", ["script_id", "script_sha", "claimed_at", "youtube_video_id",
-                                   "published_at"])
+                                   "published_at", "run_id", "run_attempt"])
 def test_every_field_is_required(field: str) -> None:
     data = record()
     del data[field]
-    with pytest.raises(ValidationError):
+    with pytest.raises(ValidationError) as caught:
         parse(data)
+    assert [(e["loc"], e["type"]) for e in caught.value.errors()] == [((field,), "missing")]
 
 
 def test_youtube_constants() -> None:
@@ -114,6 +143,8 @@ def test_acceptance() -> None:
     test_claim_and_published_records_parse()
     for param in BAD:
         test_bad_record_is_rejected(*param.values)
+    for param in BAD_RUN:
+        test_bad_run_field_is_rejected(*param.values)
     test_youtube_constants()
     test_credit_line_passes_the_published_field_rules()
     test_description_with_credit_fits_youtube_bytes()

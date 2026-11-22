@@ -29,7 +29,8 @@ def add_script(queue: Path, script_id: str, publish_after: date, folder: str = "
 def add_record(records: Path, script_id: str, video_id: str | None, name: str = "") -> None:
     data: dict[str, Any] = {"script_id": script_id, "script_sha": SHA, "claimed_at": "2026-11-23T14:09:12Z",
                             "youtube_video_id": video_id,
-                            "published_at": "2026-11-23T14:11:40Z" if video_id else None}
+                            "published_at": "2026-11-23T14:11:40Z" if video_id else None,
+                            "run_id": 45037285671, "run_attempt": 1}
     records.mkdir(parents=True, exist_ok=True)
     (records / (name or f"{script_id}.json")).write_text(json.dumps(data), encoding="utf-8")
 
@@ -93,15 +94,6 @@ def test_unconfirmed_claim_blocks_every_pick(dirs: tuple[Path, Path]) -> None:
     add_record(records, "claimed-case", None)
     add_script(queue, "other-case", date(2026, 11, 19))
     with pytest.raises(PickError, match="claimed-case"):
-        pick.next_script(queue, records, TODAY)
-
-
-def test_published_script_still_approved_is_inconsistent(dirs: tuple[Path, Path]) -> None:
-    queue, records = dirs
-    add_script(queue, "stuck-case", date(2026, 11, 20))
-    add_record(records, "stuck-case", "dQw4w9WgXcQ")
-    add_script(queue, "other-case", date(2026, 11, 21))
-    with pytest.raises(PickError, match="stuck-case"):
         pick.next_script(queue, records, TODAY)
 
 

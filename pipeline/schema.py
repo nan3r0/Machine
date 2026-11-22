@@ -147,13 +147,16 @@ class LineVerdict(_Strict):
 
 
 class PublishRecord(_Strict):
-    """One video in the publish ledger, stored as data/published/<script_id>.json (PRD R16.3).
+    """One video in the publish ledger, stored as data/published/<script_id>.json on the orphan
+    `ledger` branch (PRD R16.3); the script itself stays in queue/approved/ unchanged.
     Parse with `PublishRecord.model_validate_json(text)`; every field must be present, nulls included.
 
     The claim job writes it with no video id before the upload: such a record means an upload may
     have reached YouTube unrecorded, so nothing is published until the owner resolves it. The
     record job then sets `youtube_video_id` and `published_at` together. `script_sha` is the git
-    blob SHA of the approved script file, which moves unchanged to queue/published/. Times are UTC.
+    blob SHA of the approved script file. `run_id` and `run_attempt` are the GITHUB_RUN_ID and
+    GITHUB_RUN_ATTEMPT of the run that wrote the claim, so a later run or attempt cannot upload
+    against it. Times are UTC.
     """
 
     script_id: ScriptId
@@ -161,6 +164,8 @@ class PublishRecord(_Strict):
     claimed_at: AwareDatetime
     youtube_video_id: Annotated[str, Field(pattern=r"^[A-Za-z0-9_-]{11}$")] | None
     published_at: AwareDatetime | None
+    run_id: Annotated[int, Field(gt=0)]
+    run_attempt: Annotated[int, Field(ge=1)]
 
     @model_validator(mode="after")
     def _utc_and_complete(self) -> "PublishRecord":
