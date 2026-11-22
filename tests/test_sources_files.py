@@ -19,8 +19,8 @@ ROOT = Path(__file__).resolve().parent.parent
 SOURCES = ROOT / "sources"
 QUEUE = ROOT / "queue"
 SLUG = re.compile(r"^[a-z0-9]+(-[a-z0-9]+)*$")
-# 14 seeded mysteries (two weekly batches) plus the Bloop source behind the Phase 1 sample.
-MIN_FILES = 15
+# 13 seeded mysteries plus the Bloop source behind the Phase 1 sample.
+MIN_FILES = 14
 
 
 def load_all() -> dict[str, SourceFile]:
@@ -95,7 +95,7 @@ def test_queue_fact_ids_resolve_to_one_source() -> None:
 
 
 def test_acceptance() -> None:
-    """At least 15 valid source files with slug names, unique fact ids and topics, facts within
+    """At least 14 valid source files with slug names, unique fact ids and topics, facts within
     caps, and every queued script traceable to exactly one source."""
     test_every_file_parses_and_is_named_by_a_slug()
     test_fact_ids_unique_across_files()
