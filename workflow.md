@@ -92,9 +92,9 @@ Locked by p1-contracts. Every task's acceptance test is `test_acceptance` in its
 | R13.6 | Handoffs of p2-qa-lead, p2-cso, p2-audit; owner approves |
 | R13.7 | `tests/test_weekly_hardening.py` (P2-1, P2-2, P2-4, P2-6), `tests/script/test_validate_urls.py` (P2-3), `tests/script/test_gemini_redirect.py` (P2-5) |
 | R7.3 triggers (p2d-ci-triggers) | `tests/test_ci_triggers.py` |
-| R14.1 to R14.3 | tests/publish/test_pick.py (p4-contracts writes it) |
-| R15.1 to R15.4 | tests/publish/test_youtube.py (p4-contracts writes it) |
-| R16.1 to R16.4 | tests/test_daily_publish_workflow.py and tests/test_published_records.py (p4-contracts writes them) |
+| R14.1 to R14.3 | `tests/publish/test_pick.py` |
+| R15.1 to R15.4 | `tests/publish/test_youtube.py`, `tests/test_schema_publish.py` (constants, credit line) |
+| R16.1 to R16.4 | `tests/test_daily_publish_workflow.py`, `tests/test_published_records.py`, `tests/test_schema_publish.py` (PublishRecord), `tests/test_workflow_safety.py` (allowlists, environment) |
 | R17 | Manual, owner, first dispatch of Workflow B |
 | R18 | Handoffs of p4-cso, p4-audit; owner approves |
 
@@ -234,7 +234,7 @@ Specialist reviews: security for p4-youtube and p4-daily-workflow. No visual QA:
 
 | Task | Status | Notes |
 |---|---|---|
-| p4-contracts | planned | waits for owner decisions O1 to O3 |
+| p4-contracts | built, awaiting review | O1 (b), O2 true, O3 default; youtube environment rule |
 | p4-pick | planned | |
 | p4-youtube | planned | |
 | p4-daily-workflow | planned | |
