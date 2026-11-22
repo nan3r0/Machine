@@ -368,3 +368,11 @@ How it was caught: the orchestrator read the PR state after pushing the round 2 
 Fix: round 1 and 2 fixes carried by #118; the test patch went through an independent Opus test author (PR #117).
 Rule going forward: a PR under review stays draft and is not merged until the orchestrator says so; check `gh pr view <n> --json state` before every push to a task branch. The implementer brief says to stop after writing `CONTRACT_CHANGE.md` and never rule on it.
 Test added: none, process rule.
+
+### 2026-11-22: mutmut reports job failed because a new test reads data/published
+What happened: the CI reports job stopped at "Mutation report": `tests/test_published_records.py::test_acceptance` failed inside mutmut's `mutants/` copy because `data/published/` was not there.
+Why it happened (root cause, not symptom): `also_copy` in pyproject.toml lists every root folder the tests read, and p4-contracts added a test that reads `data/` without anyone adding the folder to the list.
+How it was caught: the orchestrator dispatched the reports job for the Phase 4 QA lead and read the failed step log.
+Fix: `data/` added to `[tool.mutmut] also_copy`.
+Rule going forward: a task that adds a test reading a new root folder or file adds it to `also_copy` in the same change; the reports job is dispatched once per phase, so check it before the phase-end tasks.
+Test added: none, CI config; the reports job itself is the check.
