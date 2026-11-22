@@ -94,7 +94,7 @@ Locked by p1-contracts. Every task's acceptance test is `test_acceptance` in its
 | R7.3 triggers (p2d-ci-triggers) | `tests/test_ci_triggers.py` |
 | R14.1 to R14.3 | `tests/publish/test_pick.py`, tests/publish/test_pick_ledger.py (records on the ledger branch) |
 | R15.1 to R15.4 | `tests/publish/test_youtube.py`, `tests/test_schema_publish.py` (constants, credit line), tests/publish/test_youtube_placement.py (paid placement, access token characters) |
-| R16.1 to R16.4 | `tests/test_daily_publish_workflow.py`, `tests/test_schema_publish.py` (PublishRecord), `tests/test_workflow_safety.py` (allowlists, environment) |
+| R16.1 to R16.4 | `tests/test_daily_publish_workflow.py`, tests/test_daily_publish_ledger.py (ledger branch, task p4b-ledger-workflow), `tests/test_schema_publish.py` (PublishRecord), `tests/test_workflow_safety.py` (allowlists, environment) |
 | R17 | Manual, owner, first dispatch of Workflow B |
 | R18 | Handoffs of p4-cso, p4-audit; owner approves |
 
