@@ -1,9 +1,20 @@
 name: ci
 
 on:
+  # Task and docs branches get CI from their PR (a draft is enough), so a push there no longer
+  # runs the check twice. scripts/** stays on push: Workflow A opens that PR with GITHUB_TOKEN,
+  # whose pull_request runs wait for approval, and the owner's edits on it must still get CI.
   push:
+    branches: [main, "scripts/**"]
   pull_request:
   workflow_dispatch:
+
+# One group per PR, where a newer update cancels the older run. Every other run gets its own
+# group: GitHub cancels a pending run in a shared group even without cancel-in-progress, so a
+# main push must never replace a queued reports dispatch.
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 permissions:
   contents: read
