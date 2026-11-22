@@ -10,7 +10,7 @@ The process (roles, lifecycle, gates, escalation, handoffs, learning loop) is de
    - Git Bash: `LOOM_TASK=p1-align claude --model sonnet`
    - Use `--model opus` for `test_author`, `architect` and `reviewer` tasks.
 3. Tell the session: "Do task p1-align. Follow CLAUDE.md." It reads the task YAML and its `context_files`.
-4. Gate 1: `ruff check .`, `mypy --strict pipeline/`, `pytest --cov=pipeline`, and check that changed files stay inside `paths_allowed` (the hook does not see Bash writes). Heavy tests skip locally, so for kokoro, align, compose, qa and render-cli, Gate 1 is a green CI run on the `task/<task-id>` branch. The session hands off as `partial` ("awaiting CI"); you push the branch, and if CI fails you paste the failure into the same session (a resume, not a new attempt) until it is green.
+4. Gate 1: `ruff check .`, `mypy --strict pipeline/`, `pytest --cov=pipeline`, and check that changed files stay inside `paths_allowed` (the hook does not see Bash writes). Heavy tests skip locally, so for kokoro, align, compose, qa and render-cli, Gate 1 is a green CI run on the task branch's PR (a draft PR is enough; a push alone no longer starts CI). The session hands off as `partial` ("awaiting CI"); you push the branch, and if CI fails you paste the failure into the same session (a resume, not a new attempt) until it is green.
 5. The implementer writes `.harness/handoffs/<task-id>.md` from the HARNESS.md section 7 template.
 6. Gate 2: save the diff where the reviewer can read it (`git diff main... > .harness/reviews/<task-id>.diff`), then start a fresh read-only Opus session with no task set: `claude --model opus --disallowedTools "Edit,Write,MultiEdit,NotebookEdit,Bash"` and ask it to review the task as the `reviewer` agent (`.claude/agents/reviewer.md`). Blocking issues go back to step 2, at most 2 rounds, then Opus fixes (HARNESS.md section 6). If the task's changed files match `specialist_reviews` in `.harness/config.yaml`, run that specialist too, the same way (`security-reviewer` or `visual-qa` agent). In Phase 1 that means security for p1-contracts (`ci.yml`), p1-compose and p1-actions-workflow, and visual-qa for p1-captions-ass, p1-compose and p1-qa. Visual-qa reads the golden-render frames from the CI artifact, downloaded to `out/frames/`.
 7. Gate 3: add the task id to `done` in `.harness/status.yaml`, merge to main, and check that CI is green on main.
@@ -177,7 +177,7 @@ Specialist reviews: security for p2-validate, p2-gemini, p2-batch, p2-weekly-wor
 | p2b-qa-tests-factcheck | done, merged 2026-11-21 (PR #92) | Gate 2 approved; tests in the task YAML |
 | p2c-gemini-escapes | done, merged 2026-11-22 (PR #97) | Gate 2 and security review approved; tests in `tests/script/test_gemini_errors.py` |
 | p2c-survivor-tests | done, merged 2026-11-22 (PR #98) | Gate 2 approved; tests in `tests/script/test_survivors.py` |
-| p2d-ci-triggers | planned | locked test `tests/test_ci_triggers.py`; plan in the Architect's Phase 4 plan handoff, part A |
+| p2d-ci-triggers | done, merged 2026-11-22 (PR #102) | Gate 2 and security approved, CI green; locked test `tests/test_ci_triggers.py`; plan in the Architect's Phase 4 plan handoff, part A |
 
 ## Phase 2b module order
 
@@ -238,7 +238,7 @@ Specialist reviews: security for p4-youtube and p4-daily-workflow. No visual QA:
 | p4-pick | planned | |
 | p4-youtube | planned | |
 | p4-daily-workflow | planned | |
-| p4-licences | planned | audit A1 and A3 |
+| p4-licences | done, merged 2026-11-22 (PR #101) | audit A1 and A3 |
 | p4-cso | planned | threat model version 3 |
 | p4-audit | planned | |
 | p4-qa-lead | planned | |
