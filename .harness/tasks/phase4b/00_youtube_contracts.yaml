@@ -1,0 +1,59 @@
+id: p4b-youtube-contracts
+title: Contract change for the YouTube upload - paid product placement declared false, access token characters, reworded credit line
+depends_on: []
+role: test_author
+notes: |
+  Audit F1 and F4, QA lead's token note, phase review T1 (plan: .harness/handoffs/p4b-plan.md).
+  Locked tests merge on a docs/* branch first; p4b-youtube implements them.
+  - pipeline/constants.py: add YOUTUBE_PAID_PRODUCT_PLACEMENT = False (the channel never takes paid
+    placements). Since the 2026-11-16 API revision an unset value means "not declared free of paid
+    placement", so it is sent on every insert. Reword YOUTUBE_CREDIT_LINE to
+    "Sources: Wikipedia (CC BY-SA 4.0) or public records. Narrated with a synthetic voice."
+    (owner, 2026-11-22: the first video credits NOAA, a public record). Keep the second sentence.
+  - tests/test_schema_publish.py: update the credit-line literal in place and pin
+    YOUTUBE_PAID_PRODUCT_PLACEMENT is False. These hold as soon as this PR merges.
+  - New tests/publish/test_youtube_placement.py (owned by p4b-youtube, so it skips on main until
+    then), through tests/publish/youtube_fakes.py, no network:
+    1. The init request's query has part exactly "snippet,status,paidProductPlacementDetails"
+       (parse the query, compare the comma-split list in order) and uploadType=resumable.
+    2. The init body equals the full expected dict built from literals and constants, including
+       {"paidProductPlacementDetails": {"hasPaidProductPlacement": false}} (JSON false, not absent,
+       not null).
+    3. An access token that is not entirely printable ASCII without spaces (^[\x21-\x7e]+$): with an
+       embedded newline, an otherwise valid token ending in one trailing "\n" (re.match with $
+       wrongly accepts it; fullmatch does not), a space, a tab, a carriage return, a non-ASCII
+       letter. Each
+       raises UploadError(sent=False), stdout holds no "::add-mask::" line, exactly one request was
+       made (the token refresh), and the message does not contain the token. Write each "blocked"
+       case so it fails on today's youtube.py first (lessons.md 2026-11-15).
+    4. test_acceptance runs 1 to 3.
+  - tests/publish/test_youtube.py (owned by p4-youtube, done, so it runs on main): any assertion
+    that pins part=snippet,status or the exact init body without the new part fails once
+    p4b-youtube lands. Loosen it in this PR so it holds before and after (for example: assert the
+    keys it already checks, not equality of the whole query or body). The exact form moves to the
+    new file. Do not list test_youtube.py under tests: here (conftest maps a file to the last task
+    that lists it, and that would skip it on main).
+  - workflow.md criterion-to-test map, R15 row: add the new file in plain text (no backticks) until
+    p4b-youtube is done; backtick it at close-out.
+  - Main stays green: run pytest without LOOM_TASK, and with LOOM_TASK=p4b-youtube expect only the
+    new file to fail. The docs/* PR's Linux CI run must be green before merge.
+# Owns no new test file: its changes live in files owned by done tasks and must pass on merge.
+paths_allowed:
+  - pipeline/constants.py
+  - tests/test_schema_publish.py
+  - tests/publish/test_youtube.py
+  - tests/publish/test_youtube_placement.py
+  - workflow.md
+tests: []
+acceptance: tests/test_schema_publish.py::test_acceptance
+context_files:
+  - .harness/handoffs/p4b-plan.md
+  - .harness/handoffs/p4-audit.md
+  - .harness/handoffs/p4-qa-lead.md
+  - pipeline/constants.py
+  - pipeline/publish/youtube.py
+  - tests/publish/test_youtube.py
+  - tests/publish/youtube_fakes.py
+  - tests/test_schema_publish.py
+  - lessons.md
+max_turns: 30

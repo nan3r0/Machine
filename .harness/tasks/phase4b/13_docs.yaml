@@ -1,0 +1,32 @@
+id: p4b-docs
+title: Phase 4 docs owed - PRD, PLAN, spec, architecture, CLAUDE.md, workflow.md
+depends_on: [p4b-ledger-workflow, p4b-youtube, p4b-weekly-audit, p4b-render-lock, p4b-runbook]
+role: architect
+notes: |
+  The docs owed list from .harness/handoffs/p4-phase-review.md "Docs", plus the Phase 4b design
+  and decisions. The exact list is in .harness/handoffs/p4b-plan.md, "Docs owed"; apply every item,
+  check each against the merged code, and say in the handoff which ones were already done.
+  Docs only: no code, no test, no threat model (the CSO owns docs/threat-model.md, task p4b-cso).
+  In CLAUDE.md Status do not name a phase4b task id that has no YAML; prefer plain words.
+  Run python tests/docs_check.py before handing off.
+paths_allowed:
+  - PRD.md
+  - PLAN.md
+  - spec.md
+  - architecture.md
+  - CLAUDE.md
+  - workflow.md
+tests: []
+acceptance: tests/test_docs_check.py::test_acceptance
+context_files:
+  - .harness/handoffs/p4b-plan.md
+  - .harness/handoffs/p4-phase-review.md
+  - .harness/handoffs/p4-audit.md
+  - .harness/handoffs/p4-cso.md
+  - .github/workflows/daily_publish.yml
+  - PRD.md
+  - PLAN.md
+  - spec.md
+  - architecture.md
+  - workflow.md
+max_turns: 35

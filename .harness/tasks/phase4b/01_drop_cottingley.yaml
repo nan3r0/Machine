@@ -1,0 +1,22 @@
+id: p4b-drop-cottingley
+title: Drop the Cottingley Fairies source before the next Workflow A run
+depends_on: []
+role: test_author
+notes: |
+  Audit F6, owner decision 2026-11-22: the story names two children, so the source goes.
+  - Delete sources/cottingley-fairies.yaml. No script in queue/ cites it (check with grep first;
+    if one does, stop and report).
+  - tests/test_sources_files.py: MIN_FILES 15 becomes 14 and its comment says 13 seeded mysteries
+    plus the Bloop source. PRD R8.2 ("at least 14 sources") still holds.
+  - Must merge before the owner's first manual weekly-scripts run (R13.5).
+  - Test author role because tests/test_sources_files.py is locked.
+paths_allowed:
+  - sources/cottingley-fairies.yaml
+  - tests/test_sources_files.py
+tests: []
+acceptance: tests/test_sources_files.py::test_acceptance
+context_files:
+  - .harness/handoffs/p4b-plan.md
+  - tests/test_sources_files.py
+  - PRD.md
+max_turns: 10

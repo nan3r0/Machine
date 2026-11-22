@@ -1,0 +1,30 @@
+id: p4b-youtube
+title: Send the paid product placement flag and refuse an access token with unsafe characters
+depends_on: [p4b-youtube-contracts]
+role: implementer
+notes: |
+  Audit F1 and the token check (plan: .harness/handoffs/p4b-plan.md). Small change to
+  pipeline/publish/youtube.py:
+  - Init request: part=snippet,status,paidProductPlacementDetails and the body part
+    {"paidProductPlacementDetails": {"hasPaidProductPlacement": constants.YOUTUBE_PAID_PRODUCT_PLACEMENT}}.
+    Read the constant at call time like the other flags.
+  - _refresh_access_token: after the scope check and before the ::add-mask:: print, the access
+    token must match ^[\x21-\x7e]+$ (fullmatch), else UploadError(sent=False) with a message that
+    does not contain the token. Reason: a newline in it would end the add-mask line and leave the
+    rest unmasked or inject a workflow command.
+  - Update the upload() docstring (steps 1 and 2) to match. No other change, no new helper.
+  Security specialist review runs (pipeline/publish/** is a trigger).
+paths_allowed:
+  - pipeline/publish/youtube.py
+tests:
+  - tests/publish/test_youtube_placement.py
+acceptance: tests/publish/test_youtube_placement.py::test_acceptance
+context_files:
+  - .harness/handoffs/p4b-plan.md
+  - pipeline/publish/youtube.py
+  - pipeline/constants.py
+  - tests/publish/test_youtube_placement.py
+  - tests/publish/test_youtube.py
+  - tests/publish/youtube_fakes.py
+  - lessons.md
+max_turns: 20

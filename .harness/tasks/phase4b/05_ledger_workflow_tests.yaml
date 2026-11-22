@@ -1,0 +1,66 @@
+id: p4b-ledger-workflow-tests
+title: Locked tests for Workflow B on the ledger branch, bound to the run attempt, with shell tests of the upload guards
+depends_on: [p4b-ledger-contracts]
+role: test_author
+notes: |
+  CSO P1-2, P4-1 and P4-2, QA rank 3. The design is in .harness/handoffs/p4b-plan.md, section
+  "P1-2 design"; the job-by-job spec there is the contract. Shell tests in the style of
+  tests/test_daily_publish_workflow.py: a bare local remote seeded with `main` and an orphan
+  `ledger` branch, independently of the code under test (lessons.md 2026-11-22).
+  New tests/test_daily_publish_ledger.py (owned by p4b-ledger-workflow):
+  - Structure: render checks out the ledger branch at path `ledger` without credentials and runs
+    `python -m pipeline.publish.pick queue ledger/data/published`; claim checks out main without
+    credentials and the ledger at `ledger` with credentials; upload checks out main (ref: main) and
+    the ledger, both without credentials, and the "Require this run's claim" step comes before the
+    one step holding the YOUTUBE_* secrets (P4-2); record checks out only the ledger, with
+    credentials. No job pushes to main; every push names `ledger`. GITHUB_RUN_ID and
+    GITHUB_RUN_ATTEMPT come from the runner's default environment, never `${{ }}` in run.
+  - claim: writes data/published/<id>.json on the ledger with run_id and run_attempt as JSON numbers
+    from the job's own run, commits and pushes to ledger; refuses (non-zero, ledger head unchanged)
+    when the ledger already holds a record for the script, when main's script blob differs from
+    the rendered one, when main lacks the script, on a bad id or blob, on a non-numeric run id or
+    attempt. One rejected push gets one pull --rebase and one retry.
+  - upload guard (QA rank 3): run the guard step and the upload step with fake `python` and `pip`
+    on PATH that record their argv. No record, a record with a video id, another script_sha,
+    another run_id, another run_attempt (the re-run case, P4-1), a record that is a symlink, a bad
+    SCRIPT_ID (`../x`, `x;touch pwned`) and a main blob mismatch each exit non-zero with python
+    never called; a good claim calls exactly `python -m pipeline.publish.youtube
+    queue/approved/<id>.json <runner.temp>/artifact/final.mp4 <GITHUB_OUTPUT>`.
+  - record: with a valid video id, fills youtube_video_id and published_at on the ledger and leaves
+    main untouched (the script stays in queue/approved/); with sent=false deletes the claim; with no
+    or bad output keeps the claim and fails; refuses when the record's run_id is not this run's
+    (run_attempt may differ: a re-run of only record must still complete a good upload); refuses a
+    record that already has a video id. Git hooks are off in every write job.
+  - test_acceptance.
+  tests/test_daily_publish_workflow.py (owned by p4-daily-workflow, done, runs on main):
+  p4b-ledger-contracts already removed the shell tests that parse records. Delete any remaining
+  main-ledger test (record on main, git mv to queue/published/, push to main) and keep only tests that hold for both the current and
+  the ledger workflow (triggers, concurrency, four jobs, secret/write split, environment, write jobs
+  run no pipeline code, hooks off). Keep its test_acceptance true on both sides. Never list it
+  under tests: here. tests/workflow_rules.py needs no change (claim and record keep contents:
+  write only); if it does, say why in the handoff.
+  workflow.md criterion-to-test map, R16 row: add tests/test_daily_publish_ledger.py in plain text.
+  Main stays green: pytest without LOOM_TASK; with LOOM_TASK=p4b-ledger-workflow only the new file
+  fails. Shell tests skip on Windows like the existing ones, so the docs/* PR's Linux CI run must be
+  green before merge (with LOOM_TASK unset the new file skips; also run it once in CI with
+  LOOM_TASK=p4b-ledger-workflow and expect only the new file to fail).
+# Owns no new test file: its new file belongs to p4b-ledger-workflow.
+paths_allowed:
+  - tests/test_daily_publish_ledger.py
+  - tests/test_daily_publish_workflow.py
+  - tests/workflow_rules.py
+  - workflow.md
+tests: []
+acceptance: tests/test_daily_publish_workflow.py::test_acceptance
+context_files:
+  - .harness/handoffs/p4b-plan.md
+  - .harness/handoffs/p4-cso.md
+  - .harness/handoffs/p4-qa-lead.md
+  - .github/workflows/daily_publish.yml
+  - tests/test_daily_publish_workflow.py
+  - tests/workflow_rules.py
+  - tests/test_workflow_safety.py
+  - tests/test_weekly_hardening.py
+  - pipeline/schema.py
+  - lessons.md
+max_turns: 40

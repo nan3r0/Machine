@@ -1,0 +1,36 @@
+id: p4b-ledger-workflow
+title: Workflow B writes its claim and record to the bot-only ledger branch, bound to the run attempt
+depends_on: [p4b-ledger-workflow-tests, p4b-pick-ledger]
+role: implementer
+notes: |
+  CSO P1-2 and P4-1. Change .github/workflows/daily_publish.yml to the job-by-job spec in
+  .harness/handoffs/p4b-plan.md, section "P1-2 design". In short:
+  - render: second checkout `ref: ledger`, `path: ledger`, persist-credentials false; pick reads
+    ledger/data/published.
+  - claim: main at the root without credentials (blob check), ledger at `ledger` with credentials;
+    the record gets run_id and run_attempt (regex ^[0-9]+$ first, written with jq --argjson); all git
+    writes run inside `ledger/` and push to `ledger`, never main.
+  - upload: main (ref: main) and ledger, both without credentials. The claim check refuses a
+    symlinked or missing record and anything but: video id null, script_sha equal to the rendered
+    blob, run_id and run_attempt equal to its own GITHUB_RUN_ID and GITHUB_RUN_ATTEMPT. Still no
+    sent=false from the guards (owner decision 2026-11-22).
+  - record: ledger only. Requires a claim-only record whose run_id equals this run's (not the
+    attempt). Video id: fill it in, one commit, push to ledger; nothing moves on main. sent=false:
+    delete the claim. Anything else: keep the claim and fail.
+  - Hooks off and values through env as today. Keep the comments in the file true.
+  Before handing off, the owner or orchestrator must have created the orphan ledger branch (plan,
+  "Bootstrap"); the shell tests do not need it.
+  Security specialist review runs (.github/workflows/** is a trigger).
+paths_allowed:
+  - .github/workflows/daily_publish.yml
+tests:
+  - tests/test_daily_publish_ledger.py
+acceptance: tests/test_daily_publish_ledger.py::test_acceptance
+context_files:
+  - .harness/handoffs/p4b-plan.md
+  - .github/workflows/daily_publish.yml
+  - tests/test_daily_publish_ledger.py
+  - tests/test_daily_publish_workflow.py
+  - tests/workflow_rules.py
+  - lessons.md
+max_turns: 35

@@ -1,0 +1,39 @@
+id: p4b-youtube-survivors
+title: Locked tests for the YouTube client's mutation survivors (QA ranks 1, 2, 4 to 9)
+depends_on: [p4b-youtube]
+role: test_author
+notes: |
+  Tests only, from .harness/handoffs/p4-qa-lead.md "Next step". Runs after p4b-youtube so the
+  request and log assertions match the new part and the token check. Confirm the top mutant ids
+  with `mutmut show <id>` only if a local mutmut run exists; otherwise test the behaviour.
+  - Rank 1: session URL and upload_id redaction at the PUT; a session URL without upload_id uploads.
+  - Rank 2: URL-encoded and JSON-escaped secret forms are redacted; a hypothesis property over
+    secret, prefix length and form.
+  - Rank 4: read failure after a good stat gives sent=False, two requests, message names the type.
+  - Rank 5: BadStatusLine at each step (the PUT gives sent=True), IncompleteRead after the PUT gives
+    sent=True, unreadable error body, non-UTF-8 error body, deeply nested JSON answer.
+  - Rank 6: "<step> failed: HTTP <code>" for the three steps, the 200-character excerpt, the
+    invalid_grant hint only with invalid_grant, URLError and OSError messages name the type, and
+    the exact log records.
+  - Rank 7: the PUT redirect against a real local http.server on 127.0.0.1 for 301, 302, 303, 307,
+    308 (sent=True, the target never hit). The host check needs the session host patched; patch the
+    constant, not the code.
+  - Rank 8 (youtube part): youtube.main reading sys.argv and writing exactly one key=value line.
+  - Rank 9: host-check edges ("https://[www.googleapis.com/x", ":443", uppercase host),
+    12-character and newline video ids, unicode metadata.
+  Expected values from the docstring contract and literals, never from the code (lessons.md
+  2026-11-16). A test that fails on current code is a bug: stop and report it in the handoff; the
+  Architect opens an implementer task. Never bend a test to pass.
+paths_allowed:
+  - tests/publish/test_youtube_survivors.py
+tests:
+  - tests/publish/test_youtube_survivors.py
+acceptance: tests/publish/test_youtube_survivors.py::test_acceptance
+context_files:
+  - .harness/handoffs/p4-qa-lead.md
+  - pipeline/publish/youtube.py
+  - tests/publish/test_youtube.py
+  - tests/publish/test_youtube_placement.py
+  - tests/publish/youtube_fakes.py
+  - lessons.md
+max_turns: 35
