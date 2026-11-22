@@ -1,0 +1,27 @@
+id: p4-pick
+title: Pick the next approved script to publish, refusing an unconfirmed claim
+depends_on: [p4-contracts]
+role: implementer
+notes: |
+  PLAN.md section 7 Workflow B step 1, PRD R14. Pure file logic, no network, no secret.
+  - Oldest approved script (by publish_after, then id) whose publish_after is on or before today
+    (UTC, passed in by the caller) and that has no record in data/published/.
+  - A record with no video id means an earlier upload may have reached YouTube: raise PickError
+    naming the script and never pick anything that run (at most once beats a duplicate video).
+  - A record with a video id whose script is still in queue/approved/ is an inconsistent ledger:
+    PickError.
+  - Nothing due: PickError("queue empty ..."). The CLI exits 1 with the reason, which makes the
+    scheduled run red and GitHub emails the owner (the Phase 4 alert, owner decision O6).
+  - The CLI prints only the script id on success, so the workflow can regex-check it.
+paths_allowed:
+  - pipeline/publish/pick.py
+tests:
+  - tests/publish/test_pick.py
+acceptance: tests/publish/test_pick.py::test_acceptance
+context_files:
+  - .harness/handoffs/p4-plan.md
+  - pipeline/publish/pick.py
+  - pipeline/schema.py
+  - tests/publish/test_pick.py
+  - lessons.md
+max_turns: 20

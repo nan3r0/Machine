@@ -1,0 +1,68 @@
+id: p4-contracts
+title: Phase 4 contracts - publish record, YouTube constants, publish module stubs, locked tests
+depends_on: [p2d-ci-triggers]
+role: test_author
+notes: |
+  Starts only after the owner answers O1 to O3 in .harness/handoffs/p4-plan.md (secrets home,
+  synthetic-media flag, description credit line). The plan's "Contracts" section is the spec;
+  follow it, and record any deviation in the handoff.
+  - pipeline/schema.py: PublishRecord (script_id, script_sha, claimed_at, youtube_video_id or
+    null, published_at or null), stored as data/published/<script_id>.json. Video id pattern
+    ^[A-Za-z0-9_-]{11}$, script_sha 40 lowercase hex (git blob SHA of the approved file).
+  - pipeline/constants.py: YouTube token and upload endpoints, the youtube.upload scope string,
+    category id, privacy "public", made-for-kids false, the synthetic-media flag (O2), the credit
+    line (O3), connect and upload timeouts, the allowed upload host. The credit line itself must
+    pass validate's published-field rules, and DESCRIPTION_MAX_CHARS plus the joined credit line
+    must stay under YouTube's 5000-byte description limit (assert it in a test).
+  - Stubs with docstring contracts: pipeline/publish/__init__.py, pick.py (next_script, PickError,
+    CLI), youtube.py (upload, UploadError with a `sent` flag, CLI). Signatures only, raising
+    NotImplementedError, so tests collect (a missing module fails collection before conftest
+    can skip it).
+  - Locked tests: tests/publish/test_pick.py (owned by p4-pick), tests/publish/test_youtube.py
+    (owned by p4-youtube, fake OpenerDirector like tests/script/gemini_fakes.py, no network),
+    tests/test_daily_publish_workflow.py (owned by p4-daily-workflow, structure and shell tests
+    in the style of tests/test_weekly_workflow.py and tests/test_weekly_hardening.py),
+    tests/test_published_records.py (no owner, always runs: every data/published/*.json
+    validates, file name equals script_id, and a record with a video id has its script under
+    queue/published/ and none under queue/approved/).
+  - tests/workflow_rules.py allowlists, per O1: WRITE_JOBS += daily_publish.yml claim and record
+    ({"contents": "write"} only); SECRET_JOBS += daily_publish.yml upload
+    ({YOUTUBE_CLIENT_ID, YOUTUBE_CLIENT_SECRET, YOUTUBE_REFRESH_TOKEN}). If O1 is option (b),
+    also allow `environment:` on that job and require it.
+  - Show every new rule failing on a bad case first (lessons.md 2026-11-15). Main stays green:
+    run pytest without LOOM_TASK before handing off.
+  - Update workflow.md criterion-to-test map rows R14 to R16 (plain text until the files exist).
+paths_allowed:
+  - pipeline/schema.py
+  - pipeline/constants.py
+  - pipeline/publish/__init__.py
+  - pipeline/publish/pick.py
+  - pipeline/publish/youtube.py
+  - tests/publish/**
+  - tests/test_daily_publish_workflow.py
+  - tests/test_published_records.py
+  - tests/test_schema_publish.py
+  - tests/workflow_rules.py
+  - tests/test_workflow_safety.py
+  - data/published/.gitkeep
+  - workflow.md
+  - .harness/locks.yaml
+tests:
+  - tests/test_schema_publish.py
+acceptance: tests/test_schema_publish.py::test_acceptance
+context_files:
+  - .harness/handoffs/p4-plan.md
+  - PLAN.md#7
+  - PRD.md
+  - spec.md
+  - docs/threat-model.md
+  - pipeline/schema.py
+  - pipeline/constants.py
+  - pipeline/script/gemini.py
+  - pipeline/script/validate.py
+  - tests/script/gemini_fakes.py
+  - tests/workflow_rules.py
+  - tests/test_weekly_workflow.py
+  - tests/test_weekly_hardening.py
+  - lessons.md
+max_turns: 40

@@ -1,0 +1,26 @@
+id: p4-cso
+title: Threat model version 3 - YouTube publishing, OAuth token, bot commits to main
+depends_on: [p4-daily-workflow]
+role: cso
+notes: |
+  HARNESS.md section 6b; required because Phase 4 adds a new external integration and the first
+  token that can post on the owner's channel. Owner sign-off of version 3 is a go-live gate.
+  Turn the section 5 Phase 4 seeds into section 4 rows with file:line controls. Check against the
+  code: where the YouTube secrets live and who can reach them (owner decision O1, CSO P1-1); P1-2
+  (direct pushes to main now publish); P1-4 heavy half (the secret job installs hashed packages
+  only; the unhashed render job can still alter the video it hands over); P1-5 (p2d-ci-triggers
+  adds CI concurrency: confirm and close the row, and record the minutes budget as an asset); the claim, upload and record jobs (at-most-once, the artifact carries only
+  the mp4, the session URL host check, no redirects); the OAuth scope is youtube.upload only;
+  logs carry status codes and video ids only. New gaps become proposed tasks in the handoff.
+paths_allowed:
+  - docs/threat-model.md
+tests: []
+acceptance: null
+context_files:
+  - .harness/handoffs/p4-plan.md
+  - HARNESS.md#6b
+  - docs/threat-model.md
+  - .github/workflows/
+  - pipeline/publish/
+  - tests/workflow_rules.py
+max_turns: 30

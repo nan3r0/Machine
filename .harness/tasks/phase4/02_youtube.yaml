@@ -1,0 +1,41 @@
+id: p4-youtube
+title: YouTube Data API v3 resumable upload over the standard library
+depends_on: [p4-contracts]
+role: implementer
+notes: |
+  PRD R15. The only file that talks to YouTube. Standard library only (urllib, json), like
+  pipeline/script/gemini.py; no Google client library (new dependency, not approved).
+  - Credentials only from env at call time: YOUTUBE_CLIENT_ID, YOUTUBE_CLIENT_SECRET,
+    YOUTUBE_REFRESH_TOKEN. Exchange the refresh token for an access token at the token endpoint
+    in constants. invalid_grant says the refresh token was revoked or expired and must be made
+    again (plan, Phase 0 steps). No token or secret in any message or log, redacted before
+    clipping, as in gemini.py.
+  - Metadata from the committed Script: title, description plus the constants credit line (O3),
+    tags, categoryId, privacyStatus public, selfDeclaredMadeForKids false, containsSyntheticMedia
+    from constants (O2). Send all three status flags explicitly.
+  - Resumable upload: init POST with the JSON metadata and the upload length and type, then one
+    PUT of the bytes to the session URL. Refuse a session URL that is not https on the allowed
+    host (the access token goes with it). Refuse every redirect (gemini.py _NoRedirect pattern).
+    Check the mp4 size against MIN_FILE_BYTES and MAX_FILE_BYTES before any request.
+  - No retry in Phase 4 (YAGNI): a failed day is retried by the next scheduled run.
+  - UploadError carries sent=False when no byte of the video went out (token refresh or init
+    failed), sent=True otherwise. The record job releases the claim only for sent=False.
+  - Returns the 11-character video id from the final response, checked against the pattern.
+  - CLI writes `video_id=<id>` or `sent=<true|false>` to the output file it is given and exits 1
+    on failure. Logs status codes and the video id only.
+  Security specialist review runs (pipeline/publish/** is a trigger).
+paths_allowed:
+  - pipeline/publish/youtube.py
+tests:
+  - tests/publish/test_youtube.py
+acceptance: tests/publish/test_youtube.py::test_acceptance
+context_files:
+  - .harness/handoffs/p4-plan.md
+  - pipeline/publish/youtube.py
+  - pipeline/script/gemini.py
+  - pipeline/constants.py
+  - pipeline/schema.py
+  - tests/publish/test_youtube.py
+  - tests/script/gemini_fakes.py
+  - lessons.md
+max_turns: 35

@@ -21,7 +21,7 @@ Non-goals:
 
 ## 3. Phasing
 
-Phases and their done-when lines are in PLAN.md section 11. Current phase: **Phase 2, scripts and fact-check** (Phase 1 closed 2026-11-16; the Phase 2 plan waits for owner approval). Phase 0 (admin: Google Cloud project, YouTube audit, Meta and TikTok apps, Cloudflare) runs in parallel and is done by the owner.
+Phases and their done-when lines are in PLAN.md section 11. Current phase: **Phase 2, scripts and fact-check** (Phase 1 closed 2026-11-16); Phase 4 (publishing) is planned and waits for owner decisions O1 to O3. Phase 0 (admin: Google Cloud project, YouTube audit, Meta and TikTok apps, Cloudflare) runs in parallel and is done by the owner.
 
 ## 4. Functional requirements and acceptance criteria
 
@@ -103,6 +103,31 @@ Goal: Workflow A opens a real pull request of 7 fact-checked scripts, with flags
 - R13.5 Manual: the owner runs Workflow A; a PR with 7 scripts opens and its flags read well on the GitHub mobile app.
 - R13.6 Phase-end QA Lead, CSO and Auditor reviews are done, `docs/threat-model.md` covers Phase 2, and the owner has approved the audit report.
 - R13.7 CSO P2-1 to P2-6 are closed before the first live run of Workflow A: the key job installs only hash-checked packages, the PR adds only new id-named scripts, a read-only job re-checks the queue before the PR opens, runs never overlap, published fields reject bare domains and look-alike URL forms, and the Gemini client refuses redirects.
+
+### Phase 4: publishing (YouTube first)
+
+Goal: Workflow B publishes one approved script a day to YouTube with the owner's PC off, at $0. Planned 2026-11-21 (`.harness/handoffs/p4-plan.md`); Instagram and TikTok are deferred to a Phase 4b if the owner accepts O5. Kept minimal: no in-upload retry, no try-next on QA failure, no alert channel beyond GitHub's failed-run email.
+
+**R14. Pick.**
+- R14.1 The next script is the oldest in `queue/approved/` whose `publish_after` is on or before today (UTC) and that has no record in `data/published/`.
+- R14.2 With nothing due, the run fails with "queue empty" (owner decision O6).
+- R14.3 A record with no video id (an unconfirmed upload) stops the run and names the script; nothing is uploaded that day.
+
+**R15. YouTube upload.**
+- R15.1 Uses YouTube Data API v3 `videos.insert` (resumable) with the `youtube.upload` scope only, over the standard library.
+- R15.2 Title, description (plus the fixed credit line, O3) and tags come from the committed script; privacy public, made-for-kids false and the synthetic-media flag (O2) are always sent.
+- R15.3 Credentials come only from the environment of the upload job and never appear in a log, message, artifact or commit. Redirects are refused and the upload session URL must be https on the allowed host.
+- R15.4 A failure says whether any video bytes were sent.
+
+**R16. Workflow B (`daily_publish.yml`).**
+- R16.1 Runs daily in the 14:00 UTC slot and by hand; runs never overlap.
+- R16.2 Jobs render (no secret, read-only), claim (write, no secret), upload (YouTube secrets, read-only) and record (write, no secret). No job holds both a secret and a write token, and every workflow file passes the safety rules (R13.3).
+- R16.3 The claim is committed before the upload; after it, the record holds the video id and the script moves unchanged to `queue/published/`. A claim whose upload sent nothing is released. Records and `queue/published/` are append-only.
+- R16.4 The upload job reads only the mp4 from the render artifact, extracted outside the checkout.
+
+**R17. Manual first live run.** The owner adds the secrets (after O1) and dispatches Workflow B once: the video is public on the channel, carries the expected disclosure, and the record and queue move are on `main`.
+
+**R18. Go-live** (leaving the schedule on unattended): threat model version 3 signed off, the Phase 4 Auditor report approved (A1 to A3 closed), O1 implemented, and the source refill decided (O4).
 
 ### Later phases
 
@@ -191,5 +216,6 @@ Assumed by Claude (owner can overrule):
 
 - **[Decision needed]** Average view duration target for 65 s videos (PLAN.md section 12), to be set by the owner after the first 30 days of data.
 - **[Decision needed before Phase 4]** How `sources/` is refilled: 14 seeded sources last two weekly batches.
-- To verify in Phase 4: one test upload confirms an unaudited YouTube project's uploads and `publishAt` schedules go public (official docs say yes since 2 Nov 2026, but no example covers an unaudited project).
+- To verify in Phase 4: one test upload confirms an unaudited YouTube project's uploads go public. Answered on paper 2026-11-21: the `videos.insert` reference says "Videos uploaded from unverified API projects are not restricted to private viewing mode"; R17 confirms it live. `publishAt` is not used in Phase 4.
+- **[Decision needed before Phase 4 contracts]** O1 (where the YouTube tokens live), O2 (synthetic-media flag) and O3 (description credit line) in `.harness/handoffs/p4-plan.md`; O4 to O8 there have defaults.
 - To verify in Phase 2: Gemini free-tier limits for the chosen models in the owner's AI Studio dashboard (published figures come from third parties). Each model's free daily limit must cover 28 requests, since a run can make up to 28 HTTP requests per model (CSO P2-6).

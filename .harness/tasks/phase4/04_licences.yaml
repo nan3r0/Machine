@@ -1,0 +1,26 @@
+id: p4-licences
+title: Model and package licence records before the first public publish (audit A1, A3)
+depends_on: []
+role: architect
+notes: |
+  Phase 1 audit findings A1 and A3 (.harness/handoffs/p1-audit.md), due before the first public
+  publish. Docs only; needs web access to the upstream pages. open_task_window.ps1 disallows
+  WebFetch and WebSearch, so run it as an architect agent with web tools (as p2-seed-sources).
+  - A1: a "Models" table in assets/LICENSES.md: hexgrad/Kokoro-82M at VOICE_REPO_REVISION
+    (weights and the af_heart voice), whisper small.en for alignment. Repo, pinned revision,
+    licence, link to the licence file or model card at that revision.
+  - A3: espeakng-loader 0.2.4 licence and whether it bundles espeak-ng (GPL) data. One row in
+    spec.md section 7 with the finding. Nothing is distributed, so a GPL answer is a note, not a
+    blocker; say so.
+  If a licence forbids commercial use, stop and report it in the handoff: that blocks go-live.
+paths_allowed:
+  - assets/LICENSES.md
+  - spec.md
+tests: []
+acceptance: null
+context_files:
+  - .harness/handoffs/p1-audit.md
+  - assets/LICENSES.md
+  - spec.md
+  - pipeline/constants.py
+max_turns: 15

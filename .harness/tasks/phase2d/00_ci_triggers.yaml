@@ -1,0 +1,49 @@
+id: p2d-ci-triggers
+title: CI runs once per PR update and once per push to main, superseded PR runs cancelled (CSO P1-5)
+depends_on: []
+role: test_author
+notes: |
+  The free Actions allowance ($12, about 2,000 Linux minutes) ran out on 2026-11-21. ci.yml has
+  bare `push:` and `pull_request:`, so every push to a PR branch runs the 6 to 7 minute check job
+  twice, and every push to a branch without a PR runs it once for nothing. Plan and numbers:
+  .harness/handoffs/p4-plan.md, part A.
+  Role is test_author, not implementer: .github/workflows/ci.yml is locked (.harness/locks.yaml),
+  so the scope check refuses it from any role that does not own contracts (as for p2-entry-ci).
+  Change only the top of ci.yml:
+  - on: push limited to `branches: [main, "scripts/**"]`; pull_request with no filter;
+    workflow_dispatch kept. scripts/** stays because Workflow A opens that PR with GITHUB_TOKEN:
+    its pull_request runs wait for approval, and the docs do not say whether the owner's own
+    mobile edit commits escape that, so push keeps R12.3 (queue checked on every edit) certain.
+    The bot's own push there starts no run.
+  - workflow-level concurrency: group keyed on the PR number for pull_request and on
+    github.run_id for everything else (for example
+    `ci-${{ github.event.pull_request.number || github.run_id }}`), and
+    `cancel-in-progress: ${{ github.event_name == 'pull_request' }}`. GitHub cancels a pending run
+    in the same group even with cancel-in-progress false, so main pushes and the reports dispatch
+    must never share a group.
+  Keep everything else byte for byte: hash-pinned actions, permissions, the BRANCH and BASE_REF
+  env, fetch-depth 0, the scope check (it runs on the PR event, where BRANCH is head_ref and
+  BASE_REF is the PR base; on a main push it skips as before), the docs check, the LOOM_TASK
+  step, the reports job and its `if`. No `paths-ignore`: docs-only PRs still need the docs check
+  and the status-driven tests. No new steps, no new caching (pip and model caches already exist).
+  Check with actionlint locally if you have it; CI runs it in make check.
+  Security specialist review runs (.github/workflows/** is a trigger).
+  Docs owed at close-out (list them in the handoff, do not edit outside paths_allowed):
+  CLAUDE.md Commands line on heavy tests ("awaiting CI" now needs a PR, a draft is enough),
+  workflow.md Stage 0 step 4, .harness/handoffs/orchestrator.md How to run a task steps 4 and 6,
+  PRD.md R7.3 ("on every push" becomes "on every PR update and every push to main"),
+  docs/threat-model.md section 1 and the P1-5 rows (CSO-owned; the next CSO run closes P1-5).
+paths_allowed:
+  - .github/workflows/ci.yml
+tests:
+  - tests/test_ci_triggers.py
+acceptance: tests/test_ci_triggers.py::test_acceptance
+context_files:
+  - .harness/handoffs/p4-plan.md
+  - .github/workflows/ci.yml
+  - tests/test_ci_triggers.py
+  - tests/test_ci_workflow.py
+  - tests/workflow_rules.py
+  - tests/scope_check.py
+  - lessons.md
+max_turns: 15

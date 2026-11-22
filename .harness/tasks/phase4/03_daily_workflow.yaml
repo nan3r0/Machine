@@ -1,0 +1,44 @@
+id: p4-daily-workflow
+title: Workflow B - daily render and YouTube publish with claim, upload and record jobs
+depends_on: [p4-pick, p4-youtube]
+role: implementer
+notes: |
+  PRD R16. New file .github/workflows/daily_publish.yml. Shape fixed by the locked rule that no
+  job holds both a secret and a write token (tests/test_workflow_safety.py):
+  1. render: contents read, no secret, checkout without credentials. Heavy install as render.yml
+     (torch from the CPU index first, model cache). `python -m pipeline.publish.pick queue
+     data/published` gives the id (regex-checked before use); `python -m pipeline.render_one`
+     renders and runs QA (it validates the script first). Uploads only final.mp4 as an artifact,
+     retention 1 day. Job output: the script id.
+  2. claim: contents write, no secret, no pipeline code, git hooks off for every git call (as
+     weekly_scripts.yml open-pr). Writes data/published/<id>.json with jq (script_sha from
+     `git hash-object`, claimed_at, nulls), commits, pushes with github.token (starts no CI run).
+     On a rejected push: one `git pull --rebase` and one more push.
+  3. upload: contents read, the three YOUTUBE_* secrets in the one step's env, checkout without
+     credentials, hashed install only (`--require-hashes -r requirements-generate.txt`, it covers
+     pydantic and pyyaml). Downloads the artifact to runner.temp, never over the checkout
+     (lessons.md 2026-11-18). Reads the script from its own checkout, never from the artifact.
+     Outputs video_id or sent, each regex-checked.
+  4. record: contents write, no secret, `if: always() && needs.claim.result == 'success'`. With a
+     video id: set youtube_video_id and published_at, `git mv` the script to queue/published/
+     unchanged, one commit. With sent=false: delete the claim, one commit. Otherwise leave the
+     claim and fail, so the next run's pick refuses and the owner checks the channel.
+  - on: schedule `7 14 * * *` (14:00 UTC slot; off the full hour, which GitHub delays and drops
+    most) and workflow_dispatch. Workflow-level concurrency group daily-publish, no cancel.
+  - Every value from a job output reaches `run:` through env, never `${{ }}` inside run.
+  - If O1 is option (b), the upload job names its environment as the contracts test requires.
+  Security specialist review runs (.github/workflows/** is a trigger).
+paths_allowed:
+  - .github/workflows/daily_publish.yml
+tests:
+  - tests/test_daily_publish_workflow.py
+acceptance: tests/test_daily_publish_workflow.py::test_acceptance
+context_files:
+  - .harness/handoffs/p4-plan.md
+  - .github/workflows/weekly_scripts.yml
+  - .github/workflows/render.yml
+  - tests/test_daily_publish_workflow.py
+  - tests/workflow_rules.py
+  - tests/test_weekly_hardening.py
+  - lessons.md
+max_turns: 35
