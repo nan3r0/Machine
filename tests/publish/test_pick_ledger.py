@@ -63,16 +63,23 @@ def test_claim_only_record_stops_the_run_first(dirs: tuple[Path, Path], queue_ho
     assert not str(caught.value).startswith("queue empty")
 
 
-@pytest.mark.parametrize("field", ["run_id", "run_attempt"])
+def add_record_without(records: Path, script_id: str, video_id: str | None, *fields: str) -> None:
+    add_record(records, script_id, video_id)
+    path = records / f"{script_id}.json"
+    data = json.loads(path.read_text(encoding="utf-8"))
+    for field in fields:
+        del data[field]
+    path.write_text(json.dumps(data), encoding="utf-8")
+
+
+@pytest.mark.parametrize("fields", [("run_id",), ("run_attempt",), ("run_id", "run_attempt")])
 @pytest.mark.parametrize("video_id", [VIDEO, None])
-def test_record_without_run_fields_fails(dirs: tuple[Path, Path], field: str, video_id: str | None) -> None:
+def test_record_without_run_fields_fails(dirs: tuple[Path, Path], fields: tuple[str, ...],
+                                         video_id: str | None) -> None:
+    """Both missing is what the main-ledger claim job wrote: a stale record, not a new one."""
     queue, records = dirs
     add_script(queue, "due-case", date(2026, 11, 21))
-    add_record(records, "old-case", video_id)
-    path = records / "old-case.json"
-    data = json.loads(path.read_text(encoding="utf-8"))
-    del data[field]
-    path.write_text(json.dumps(data), encoding="utf-8")
+    add_record_without(records, "old-case", video_id, *fields)
     with pytest.raises(PickError, match="old-case.json"):
         pick.next_script(queue, records, TODAY)
 
@@ -140,6 +147,6 @@ def test_acceptance(tmp_path: Path) -> None:
     (records / "claimed-case.json").unlink()
     add_script(queue, "due-case", date(2026, 11, 21))
     assert pick.next_script(queue, records, TODAY) == "due-case"
-    (records / "bad-case.json").write_text('{"script_id": "bad-case"}', encoding="utf-8")
-    with pytest.raises(PickError, match="bad-case.json"):
+    add_record_without(records, "stale-case", VIDEO, "run_id", "run_attempt")
+    with pytest.raises(PickError, match="stale-case.json"):
         pick.next_script(queue, records, TODAY)
