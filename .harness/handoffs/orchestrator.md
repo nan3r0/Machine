@@ -24,6 +24,12 @@ You are the Stage 0 orchestrator (HARNESS.md section 10, Stage 0). Model: Sonnet
 - One watcher per task; no polling loops in your own turns.
 - One Gate 2 pass per task; chase only blocking findings.
 
+## State (2026-11-22, end of twentieth orchestrator session)
+- Phase 4 code done and merged: p4-daily-workflow (#114, #118), phase-end reviews p4-cso (#120), p4-audit and p4-qa-lead (#122), p4-phase-review (this close-out, `docs/p4-closeout-2`). Reports CI re-run done (run 45037285671, `data/` added to mutmut also_copy in #121).
+- The follow-up task list T1 to T11, waves and docs owed are in `.harness/handoffs/p4-phase-review.md`. Start with wave 1 (T1 test_author, T3) once the owner has decided F1 and F2/O4; T1 needs an Architect contract round. Phase review says PRD R18 gates are not yet in PRD: apply the docs list at the next docs branch.
+- URGENT owner items: `gh workflow disable daily-publish` (cron live, sample-65s due 2026-11-23), then R17 by hand; approve the audit; sign off threat model v3; decide F1, F2, F3, F4, F6, F7, F9, F10, P1-2 and the P1-4 lock tool; F8 retention; agent deny rules. Remind: `trial-lean` back to `baseline`.
+- Process: a PR under review stays draft; check `gh pr view <n> --json state` before pushing. Read-only agents cannot write handoffs, so the orchestrator saves their reports (done this session for cso, audit, qa-lead, phase-review). The auditor agent has no web tools; use general-purpose for audits that need them.
+
 ## State (2026-11-22, end of nineteenth orchestrator session)
 - Merged: p4-daily-workflow (#114 early, fixes in #118, test patch #117). Close-out on `docs/p4-daily-closeout-1`. Gate 2 and security approved on round 3.
 - Next: Phase 4 phase-end reviews: CSO (threat model v3, close P1-5), QA lead and audit (need the CI `reports` job output), then phase review. Owner items: runbook R17 (YOUTUBE_* environment secrets on `youtube`, main-only rule; never re-run failed jobs while a claim is kept, check the channel first), `trial-lean` back to `baseline`, first manual weekly-scripts run.
