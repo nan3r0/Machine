@@ -352,3 +352,11 @@ How it was caught: Gate 2 review, with a concrete scenario.
 Fix: round 1 added a locked shell test that seeds main independently (existing claim-only record, record with a video id, script missing from `queue/approved/`) and asserts a non-zero exit, an unchanged head and an unchanged record.
 Rule going forward: for every at-most-once or append-only rule in a plan, a locked test must show the refusal case against state seeded outside the code under test, not only the success path.
 Test added: `tests/test_daily_publish_workflow.py` (task p4-contracts).
+
+### 2026-11-22: outcome log took the profile from the worktree, so trial runs logged as baseline
+What happened: `log_outcome.py` read `.harness/config.yaml` from the current folder. The owner flips the routing profile in the main checkout only, so a log written from a worktree recorded `baseline` while `trial-lean` was active. The first two entries of the trial (p4-pick, p4-youtube) were wrong until the orchestrator saw the mismatch.
+Why it happened (root cause, not symptom): `model_for.py` and `run_review.sh` read the main checkout's config, but `log_outcome.py` was written to read its own folder, and its tests only used a single plain folder.
+How it was caught: the orchestrator checked the profile field of the first logged entries against the config.
+Fix: `log_outcome.py` reads the config through `model_for.main_root()`.
+Rule going forward: anything that depends on a setting the owner changes in the main checkout reads it from there, and its test runs from a real worktree.
+Test added: `.harness/tests/test_log_outcome.py::test_worktree_run_records_the_main_checkouts_profile`.

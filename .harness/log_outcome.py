@@ -9,8 +9,7 @@ import json
 from datetime import datetime, timezone
 from pathlib import Path
 
-import yaml
-from model_for import active_profile, model_for
+from model_for import active_profile, load_config, main_root, model_for
 
 RESULTS = ["passed", "tests_failed", "review_changes", "escalated", "blocked", "rotated", "usage_limit"]
 CATEGORIES = ["wrong_api_usage", "env_or_dependency", "spec_misread", "flaky_test",
@@ -35,10 +34,11 @@ parser.add_argument("--handoff-quality", choices=["agent", "fallback"], default=
 parser.add_argument("--auto-compacted", action="store_true")
 args = parser.parse_args()
 
-cfg = yaml.safe_load(Path(".harness/config.yaml").read_text(encoding="utf-8"))
+root = main_root()  # the owner flips the profile in the main checkout, so a worktree must read it there
+cfg = load_config(root)
 record = {
     "task_id": args.task_id, "attempt": args.attempt, "role": args.role,
-    "model": model_for(args.role, root=Path.cwd()), "profile": active_profile(cfg),
+    "model": model_for(args.role, root=root), "profile": active_profile(cfg),
     "started": datetime.now(timezone.utc).isoformat(timespec="seconds"),
     "duration_s": args.duration, "turns": args.turns,
     "result": args.result, "failing_tests": args.failing, "escalated": args.escalated,

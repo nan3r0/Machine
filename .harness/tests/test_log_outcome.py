@@ -74,3 +74,21 @@ def test_missing_profile_means_baseline(tmp_path: Path) -> None:
     subprocess.run([sys.executable, str(SCRIPT), "p1-qa", "--result", "passed"], cwd=tmp_path, check=True)
     record = json.loads((tmp_path / ".harness" / "log" / "outcomes.jsonl").read_text(encoding="utf-8"))
     assert record["profile"] == "baseline"
+
+
+def test_worktree_run_records_the_main_checkouts_profile(tmp_path: Path) -> None:
+    main, wt = tmp_path / "main", tmp_path / "wt"
+    config = main / ".harness" / "config.yaml"
+    config.parent.mkdir(parents=True)
+    config.write_text("roles:\n  implementer: claude-opus-5-5\n"
+                      "profiles:\n  trial:\n    roles:\n      implementer: claude-sonnet-5-5\n",
+                      encoding="utf-8")
+    git = ["git", "-c", "user.name=t", "-c", "user.email=t@t"]
+    for cmd in (["init", "-q"], ["add", "."], ["commit", "-q", "-m", "x"]):
+        subprocess.run(git + cmd, cwd=main, check=True)
+    subprocess.run(git + ["worktree", "add", "-q", str(wt)], cwd=main, check=True)
+    config.write_text("profile: trial\n" + config.read_text(encoding="utf-8"), encoding="utf-8")
+    subprocess.run([sys.executable, str(SCRIPT), "p1-qa", "--result", "passed"], cwd=wt, check=True)
+    record = json.loads((wt / ".harness" / "log" / "outcomes.jsonl").read_text(encoding="utf-8"))
+    assert record["profile"] == "trial"
+    assert record["model"] == "claude-sonnet-5-5"
