@@ -54,3 +54,23 @@ def test_rejects_unknown_result(tmp_path: Path) -> None:
     result = subprocess.run([sys.executable, str(SCRIPT), "p1-x", "--result", "meh"],
                             cwd=tmp_path, capture_output=True)
     assert result.returncode != 0
+
+
+def test_records_active_profile_and_its_model(tmp_path: Path) -> None:
+    (tmp_path / ".harness").mkdir()
+    (tmp_path / ".harness" / "config.yaml").write_text(
+        "profile: trial\nroles:\n  implementer: claude-opus-5-5\n"
+        "profiles:\n  trial:\n    roles:\n      implementer: claude-sonnet-5-5\n", encoding="utf-8")
+    subprocess.run([sys.executable, str(SCRIPT), "p1-qa", "--result", "passed"], cwd=tmp_path, check=True)
+    record = json.loads((tmp_path / ".harness" / "log" / "outcomes.jsonl").read_text(encoding="utf-8"))
+    assert record["profile"] == "trial"
+    assert record["model"] == "claude-sonnet-5-5"
+
+
+def test_missing_profile_means_baseline(tmp_path: Path) -> None:
+    (tmp_path / ".harness").mkdir()
+    (tmp_path / ".harness" / "config.yaml").write_text(
+        "roles:\n  implementer: claude-sonnet-5-5\n", encoding="utf-8")
+    subprocess.run([sys.executable, str(SCRIPT), "p1-qa", "--result", "passed"], cwd=tmp_path, check=True)
+    record = json.loads((tmp_path / ".harness" / "log" / "outcomes.jsonl").read_text(encoding="utf-8"))
+    assert record["profile"] == "baseline"

@@ -1,3 +1,7 @@
+# Active routing profile (TRIAL.md). baseline = the roles block below, unchanged.
+# To trial: set to trial-lean. To roll back: set back to baseline. Nothing else changes.
+profile: baseline
+
 # Role to model routing (HARNESS.md section 3). Retrospectives may propose changes here;
 # every change is logged and measured. Fable is deliberately absent: manual break-glass only.
 roles:
@@ -38,3 +42,12 @@ escalation:                          # HARNESS.md section 6
   total_attempts: 5
   lock_violations: 2
   opus_attempts_before_blocked: 2
+
+# Routing trials (TRIAL.md). A profile lists only the roles it changes; every other role uses `roles`.
+# Reviews keep the baseline model for contracts/tests tasks and for diffs touching security paths.
+profiles:
+  trial-lean:
+    roles:
+      reviewer: claude-sonnet-5-5      # Gate 2 for ordinary implementation tasks
+      visual_qa: claude-sonnet-5-5     # rendered-frame checks
+    shadow_review_every: 3             # about 1 in 3 downgraded reviews also runs on Opus, for comparison
