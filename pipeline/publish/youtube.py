@@ -24,6 +24,7 @@ _LOG = logging.getLogger(__name__)
 _EXCERPT_CHARS = 200
 _CREDENTIAL_NAMES = ("YOUTUBE_CLIENT_ID", "YOUTUBE_CLIENT_SECRET", "YOUTUBE_REFRESH_TOKEN")
 _VIDEO_ID = re.compile(r"[A-Za-z0-9_-]{11}")
+_TOKEN_CHARS = re.compile(r"[\x21-\x7e]+")
 
 
 class _NoRedirect(urllib.request.HTTPRedirectHandler):
@@ -62,17 +63,21 @@ def upload(script: Script, video_path: Path) -> str:
        client_id, client_secret, refresh_token and grant_type=refresh_token, timeout
        `YOUTUBE_CONNECT_TIMEOUT_S`. The JSON answer must hold a non-empty `access_token` and a
        `scope` whose space-separated set is exactly {`YOUTUBE_SCOPE`}. An `invalid_grant` error
-       says the refresh token was revoked or expired and must be made again. Right after a good
-       answer, before the init request, print `::add-mask::<access token>` and a newline to
-       stdout, so GitHub masks the derived token in the job log.
+       says the refresh token was revoked or expired and must be made again. The access token must
+       hold only printable ASCII characters from "!" to "~" (no space or control character), else
+       UploadError(sent=False) without the token in the message. Right after a good answer, before
+       the init request, print `::add-mask::<access token>` and a newline to stdout, so GitHub
+       masks the derived token in the job log.
     2. Init: POST `YOUTUBE_UPLOAD_ENDPOINT` with the query `uploadType=resumable` and
-       `part=snippet,status`, timeout `YOUTUBE_CONNECT_TIMEOUT_S`, headers
+       `part=snippet,status,paidProductPlacementDetails`, timeout `YOUTUBE_CONNECT_TIMEOUT_S`, headers
        `Authorization: Bearer <access token>`, `Content-Type: application/json; charset=UTF-8`,
        `X-Upload-Content-Length: <file size>` and `X-Upload-Content-Type: video/mp4`, and the body
        {"snippet": {"title": title, "description": description + YOUTUBE_CREDIT_SEPARATOR +
        YOUTUBE_CREDIT_LINE, "tags": tags, "categoryId": YOUTUBE_CATEGORY_ID},
         "status": {"privacyStatus": YOUTUBE_PRIVACY, "selfDeclaredMadeForKids":
-       YOUTUBE_MADE_FOR_KIDS, "containsSyntheticMedia": YOUTUBE_SYNTHETIC_MEDIA}}.
+       YOUTUBE_MADE_FOR_KIDS, "containsSyntheticMedia": YOUTUBE_SYNTHETIC_MEDIA},
+        "paidProductPlacementDetails": {"hasPaidProductPlacement":
+       YOUTUBE_PAID_PRODUCT_PLACEMENT}}.
        The `Location` header is the session URL: it must be https on exactly
        `YOUTUBE_UPLOAD_HOST`, with no user info and no port other than 443.
     3. Upload: PUT the file's bytes to the session URL, timeout `YOUTUBE_UPLOAD_TIMEOUT_S`, headers
@@ -141,6 +146,9 @@ def _refresh_access_token(credentials: dict[str, str], stored: list[str]) -> str
         raise UploadError("token refresh answer has no access token", sent=False)
     if not isinstance(scope, str) or set(scope.split()) != {constants.YOUTUBE_SCOPE}:
         raise UploadError("token refresh answer has a scope other than the upload scope", sent=False)
+    # A newline would end the add-mask line and leave the rest unmasked or inject a workflow command.
+    if not _TOKEN_CHARS.fullmatch(access):
+        raise UploadError("token refresh answer has an access token with unsafe characters", sent=False)
     # GitHub masks the derived token in the job log only when told to.
     print(f"::add-mask::{access}", flush=True)
     return access
@@ -160,8 +168,13 @@ def _start_session(script: Script, size: int, access: str, stored: list[str]) ->
             "selfDeclaredMadeForKids": constants.YOUTUBE_MADE_FOR_KIDS,
             "containsSyntheticMedia": constants.YOUTUBE_SYNTHETIC_MEDIA,
         },
+        "paidProductPlacementDetails": {
+            "hasPaidProductPlacement": constants.YOUTUBE_PAID_PRODUCT_PLACEMENT,
+        },
     }
-    query = urllib.parse.urlencode({"uploadType": "resumable", "part": "snippet,status"}, safe=",")
+    query = urllib.parse.urlencode(
+        {"uploadType": "resumable", "part": "snippet,status,paidProductPlacementDetails"}, safe=","
+    )
     request = urllib.request.Request(
         f"{constants.YOUTUBE_UPLOAD_ENDPOINT}?{query}",
         data=json.dumps(metadata).encode("utf-8"),
