@@ -16,6 +16,7 @@ concurrency:
 
 jobs:
   # No secret and a read-only token. Heavy installs run here, so it only hands over final.mp4.
+  # The ledger branch is read as data for the pick; nothing in it runs.
   render:
     # A branch run would render a script main may not hold, so only main publishes.
     if: github.ref == 'refs/heads/main'
@@ -27,6 +28,12 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          persist-credentials: false
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ledger
+          path: ledger
           persist-credentials: false
 
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
@@ -55,7 +62,7 @@ jobs:
       - name: Pick the next script
         id: pick
         run: |
-          script_id="$(python -m pipeline.publish.pick queue data/published)"
+          script_id="$(python -m pipeline.publish.pick queue ledger/data/published)"
           if [[ ! "$script_id" =~ ^[a-z0-9]+(-[a-z0-9]+)*$ ]]; then
             echo "pick gave an unexpected script id"
             exit 1
@@ -80,8 +87,10 @@ jobs:
           if-no-files-found: error
           retention-days: 1
 
-  # Has the write token and no other credential. It runs no code from the repo. The record is
-  # committed before the upload, so a run that dies mid-upload leaves a claim the next pick refuses.
+  # Has the write token and no other credential. It runs no code from the repo. Main is checked out
+  # without credentials, only to compare the script's blob; the token goes to the ledger checkout
+  # alone, so this job can write nothing but the ledger. The record is committed before the upload,
+  # so a run that dies mid-upload leaves a claim the next pick refuses.
   claim:
     needs: render
     runs-on: ubuntu-latest
@@ -92,6 +101,12 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: main
+          persist-credentials: false
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ledger
+          path: ledger
           persist-credentials: true
 
       # The GIT_CONFIG_* variables are `-c core.hooksPath=/dev/null` for every git call in the step.
@@ -111,10 +126,15 @@ jobs:
             echo "unexpected script hash"
             exit 1
           fi
+          # The run numbers come from the runner; the record stores them as JSON numbers.
+          if [[ ! "$GITHUB_RUN_ID" =~ ^[1-9][0-9]*$ ]] || [[ ! "$GITHUB_RUN_ATTEMPT" =~ ^[1-9][0-9]*$ ]]; then
+            echo "unexpected run id or attempt"
+            exit 1
+          fi
           script="queue/approved/$SCRIPT_ID.json"
           record="data/published/$SCRIPT_ID.json"
-          if [ -e "$record" ]; then
-            echo "main already holds a record for this script"
+          if [ -e "ledger/$record" ] || [ -L "ledger/$record" ]; then
+            echo "the ledger already holds a record for this script"
             exit 1
           fi
           # The script on main must be the exact version that was rendered.
@@ -122,21 +142,19 @@ jobs:
             echo "main no longer holds the approved script that was rendered"
             exit 1
           fi
-          mkdir -p data/published
+          mkdir -p ledger/data/published
           jq -n --arg id "$SCRIPT_ID" --arg sha "$SCRIPT_BLOB" \
             --arg at "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
-            '{script_id: $id, script_sha: $sha, claimed_at: $at, youtube_video_id: null, published_at: null}' > "$record"
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -- "$record"
-          git commit -m "Claim $SCRIPT_ID for upload"
-          if ! git push origin main; then
-            git pull --rebase origin main
-            if [ ! -f "$script" ] || [ "$(git hash-object -- "$script")" != "$SCRIPT_BLOB" ]; then
-              echo "main changed while claiming, nothing pushed"
-              exit 1
-            fi
-            git push origin main
+            --argjson run "$GITHUB_RUN_ID" --argjson attempt "$GITHUB_RUN_ATTEMPT" \
+            '{script_id: $id, script_sha: $sha, claimed_at: $at, youtube_video_id: null, published_at: null, run_id: $run, run_attempt: $attempt}' > "ledger/$record"
+          git -C ledger config user.name "github-actions[bot]"
+          git -C ledger config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git -C ledger add -- "$record"
+          git -C ledger commit -m "Claim $SCRIPT_ID for upload"
+          # A rebase onto a ledger that claimed the same script meanwhile conflicts and fails here.
+          if ! git -C ledger push origin ledger; then
+            git -C ledger pull --rebase origin ledger
+            git -C ledger push origin ledger
           fi
 
   # Holds the YouTube tokens and a read-only token. It installs only hash-checked packages, reads
@@ -150,11 +168,18 @@ jobs:
       video_id: ${{ steps.upload.outputs.video_id }}
       sent: ${{ steps.upload.outputs.sent }}
     steps:
-      # main, not github.sha: the claim commit is only on main, and a re-run of failed jobs does
-      # not re-run claim, so the claim must be checked here.
+      # main, not github.sha: the script is read from main's current head. The claim is on the
+      # ledger, and a re-run of failed jobs does not re-run claim, so it must be checked here.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: main
+          persist-credentials: false
+
+      # Data only: the claim check reads one file from it with jq, nothing in it is run.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ledger
+          path: ledger
           persist-credentials: false
 
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
@@ -169,7 +194,7 @@ jobs:
           name: final-video
           path: ${{ runner.temp }}/artifact
 
-      - name: Require this run's claim on main
+      - name: Require this run's claim on the ledger
         env:
           SCRIPT_ID: ${{ needs.render.outputs.script_id }}
           SCRIPT_BLOB: ${{ needs.render.outputs.script_blob }}
@@ -178,10 +203,15 @@ jobs:
             echo "unexpected script id"
             exit 1
           fi
-          record="data/published/$SCRIPT_ID.json"
-          if [ ! -f "$record" ] \
-              || ! jq -e --arg sha "$SCRIPT_BLOB" '.youtube_video_id == null and .script_sha == $sha' "$record" > /dev/null; then
-            echo "main holds no claim for this run, nothing sent"
+          if [[ ! "$GITHUB_RUN_ID" =~ ^[1-9][0-9]*$ ]] || [[ ! "$GITHUB_RUN_ATTEMPT" =~ ^[1-9][0-9]*$ ]]; then
+            echo "unexpected run id or attempt"
+            exit 1
+          fi
+          record="ledger/data/published/$SCRIPT_ID.json"
+          if [ ! -f "$record" ] || [ -L "$record" ] \
+              || ! jq -e --arg sha "$SCRIPT_BLOB" --argjson run "$GITHUB_RUN_ID" --argjson attempt "$GITHUB_RUN_ATTEMPT" \
+                '.youtube_video_id == null and .script_sha == $sha and .run_id == $run and .run_attempt == $attempt' "$record" > /dev/null; then
+            echo "the ledger holds no claim from this run and attempt, nothing sent"
             exit 1
           fi
 
@@ -204,9 +234,11 @@ jobs:
           fi
           python -m pipeline.publish.youtube "queue/approved/$SCRIPT_ID.json" "$RUNNER_TEMP/artifact/final.mp4" "$GITHUB_OUTPUT"
 
-  # Has the write token and no other credential. A video id completes the record and moves the
-  # script. sent=false releases the claim. Anything else, a missing output included, keeps the
-  # claim and fails, so the next pick refuses and the owner checks the channel.
+  # Has the write token and no other credential, and checks out only the ledger. A video id
+  # completes the record. sent=false releases the claim. Anything else, a missing output included,
+  # keeps the claim and fails, so the next pick refuses and the owner checks the channel. It needs
+  # the claim to come from this run, not this attempt: a re-run of only this job after a failed
+  # push still records the upload the earlier attempt made.
   record:
     needs: [render, claim, upload]
     if: always() && needs.claim.result == 'success'
@@ -217,7 +249,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: main
+          ref: ledger
           persist-credentials: true
 
       - name: Complete or release the claim
@@ -233,9 +265,14 @@ jobs:
             echo "unexpected script id"
             exit 1
           fi
+          if [[ ! "$GITHUB_RUN_ID" =~ ^[1-9][0-9]*$ ]]; then
+            echo "unexpected run id"
+            exit 1
+          fi
           record="data/published/$SCRIPT_ID.json"
-          if [ ! -f "$record" ] || ! jq -e '.youtube_video_id == null' "$record" > /dev/null; then
-            echo "main holds no claim-only record for this script"
+          if [ ! -f "$record" ] || [ -L "$record" ] \
+              || ! jq -e --argjson run "$GITHUB_RUN_ID" '.youtube_video_id == null and .run_id == $run' "$record" > /dev/null; then
+            echo "the ledger holds no claim from this run for this script"
             exit 1
           fi
           git config user.name "github-actions[bot]"
@@ -245,16 +282,9 @@ jobs:
               echo "unexpected video id, claim kept"
               exit 1
             fi
-            if [ ! -f "queue/approved/$SCRIPT_ID.json" ] \
-              || [ "$(git hash-object -- "queue/approved/$SCRIPT_ID.json")" != "$(jq -r '.script_sha' "$record")" ]; then
-              echo "the script differs from the claimed version, claim kept"
-              exit 1
-            fi
             jq --arg v "$VIDEO_ID" --arg at "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
               '.youtube_video_id = $v | .published_at = $at' "$record" > "$RUNNER_TEMP/record.json"
             mv -- "$RUNNER_TEMP/record.json" "$record"
-            mkdir -p queue/published
-            git mv -- "queue/approved/$SCRIPT_ID.json" "queue/published/$SCRIPT_ID.json"
             git add -- "$record"
             git commit -m "Record $SCRIPT_ID as published"
           elif [ "$SENT" = "false" ]; then
@@ -264,7 +294,7 @@ jobs:
             echo "the upload outcome is unknown, claim kept: check the channel"
             exit 1
           fi
-          if ! git push origin main; then
-            git pull --rebase origin main
-            git push origin main
+          if ! git push origin ledger; then
+            git pull --rebase origin ledger
+            git push origin ledger
           fi
