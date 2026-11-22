@@ -2,7 +2,7 @@
 
     python .harness/model_for.py <role> [--review-out PATH]           # model to use
     python .harness/model_for.py auto --review-out PATH               # role from the review file name
-    python .harness/model_for.py <role> --shadow --review-out PATH    # baseline model if a shadow review is due, else nothing
+    python .harness/model_for.py <role> --shadow --review-out PATH    # baseline model if a shadow is due
 
 `profile: baseline` (or no `profile` key) means the `roles` block, exactly as before.
 Any other profile overrides roles from `profiles.<name>.roles`, with two safety rules for reviews:

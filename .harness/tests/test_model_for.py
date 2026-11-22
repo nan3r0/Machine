@@ -100,6 +100,7 @@ def test_unknown_profile_fails_loudly(root) -> None:
 
 @pytest.mark.parametrize("name,role", [("p1-compose-g2.json", "reviewer"), ("p1-align.json", "reviewer"),
                                        ("p1-compose-sec.json", "security_reviewer"),
-                                       ("p1-qa-vq.json", "visual_qa"), ("p1-captions-ass-vqa.json", "visual_qa")])
+                                       ("p1-qa-vq.json", "visual_qa"),
+                                       ("p1-captions-ass-vqa.json", "visual_qa")])
 def test_role_from_existing_review_names(name: str, role: str) -> None:
     assert role_from_review_out(name) == role
