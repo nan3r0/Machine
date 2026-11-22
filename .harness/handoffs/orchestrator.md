@@ -24,9 +24,15 @@ You are the Stage 0 orchestrator (HARNESS.md section 10, Stage 0). Model: Sonnet
 - One watcher per task; no polling loops in your own turns.
 - One Gate 2 pass per task; chase only blocking findings.
 
+## State (2026-11-22, end of fifteenth orchestrator session)
+- Merged: p2d-ci-triggers #102 (Gate 2 and security approved, CI green), p4-licences #101, Phase 2c close-out #100. Close-out for p2d and p4-licences is on `docs/p2d-closeout-1`.
+- CI now starts from a PR (a draft is enough), not from a branch push. Open a draft PR right after pushing a task branch. Step 4 and 6 of "How to run a task" read that way.
+- Next: p4-contracts (test_author, Opus), then p4-pick and p4-youtube, p4-daily-workflow, CSO (close P1-5), QA lead, audit, phase review. Plan: `.harness/handoffs/p4-plan.md`.
+- Owner still to do: branch protection on `main` requiring the `check` job, fork-run approval for all outside collaborators, YouTube Cloud setup, first manual weekly-scripts run. To-do artifact https://claude.ai/artifact/SWmEoSUtr7XwZ5v3o9pPFQ is stale, refresh.
+- The fourteenth-session block below is history; its in-flight items are done.
+
 ## State (2026-11-22, end of fourteenth orchestrator session)
 - Merged: p2c-gemini-escapes #97, p2c-survivor-tests #98, Phase 4 plan #99. Close-out on `docs/p2c-closeout-1`. The repo is PUBLIC (owner decision O1 b, 2026-11-21); the free Actions allowance ($12) had run out, public repos are unmetered, CI works again.
-- IN FLIGHT at rotation: (1) p2d-ci-triggers, Opus test author window on branch `task/p2d-ci-triggers` in `.claude/worktrees/p2d-ci-triggers` (start sha 020c3ff, watcher `wait_task.sh` was running; if its window has closed, check the branch for a commit and handoff, then Gate 1, Gate 2 and the security review; ci.yml is locked and Opus test_author may change it). (2) p4-licences done by an Architect agent, PR #101 open (docs only, docs and scope check pass, no go-live blocker: Kokoro Apache-2.0, whisper MIT, espeakng-loader 0.2.4 has no licence and bundles GPL espeak-ng, a note only). Mark A1 and A3 closed at close-out. PR #100 (Phase 2c close-out) awaits the owner.
 - After p2d merges: close-out for p2d and p4-licences (status.yaml, workflow.md rows into the Phase 2 table, outcome log), then p4-contracts (test_author, Opus). Refresh the to-do artifact.
 - Next waves (see `.harness/handoffs/p4-plan.md`): wave 1 p2d-ci-triggers (test_author, Opus; ci.yml is locked, security review applies) and p4-licences (architect agent with web tools, audit A1 and A3); then p4-contracts (test_author), p4-pick and p4-youtube, p4-daily-workflow, CSO, QA lead, audit, phase review. Owner decisions O1 to O8 are made (defaults, repo public).
 - Owner still to do: branch protection on `main` and fork-run approval, YouTube Cloud setup (8 steps in the plan, no code), first manual weekly-scripts run, descriptions credit F2 decided (O3). Refresh the to-do artifact https://claude.ai/artifact/SWmEoSUtr7XwZ5v3o9pPFQ.
