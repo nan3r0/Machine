@@ -4,7 +4,7 @@
 Contract change for the YouTube upload (audit F1 and F4, QA lead's token note, phase review T1): declare paid product placement false on every insert, refuse an access token outside `^[\x21-\x7e]+$` before `::add-mask::`, and reword the credit line.
 
 ## Status
-partial: every edit is written and committed; no check could run (see ENV_ISSUE.md). Awaiting local checks and the docs/* PR's Linux CI.
+partial: every edit is written and committed; ruff and the full suite pass. Two checks were blocked (ENV_ISSUE.md): the run with LOOM_TASK=p4b-youtube and `python tests/docs_check.py`. Awaiting those and the docs/* PR's Linux CI.
 
 ## What changed (and why)
 - `pipeline/constants.py`: new `YOUTUBE_PAID_PRODUCT_PLACEMENT = False` (F1: since the 2026-11-16 API revision an unset value means "not declared free of paid placement"). `YOUTUBE_CREDIT_LINE` now reads "Sources: Wikipedia (CC BY-SA 4.0) or public records. Narrated with a synthetic voice." (F4, owner 2026-11-22).
@@ -13,7 +13,7 @@ partial: every edit is written and committed; no check could run (see ENV_ISSUE.
 - New `tests/publish/test_youtube_placement.py` (owned by p4b-youtube, skips on main until it is done):
   1. `part` is exactly `["snippet", "status", "paidProductPlacementDetails"]` in order, `uploadType=resumable`.
   2. The whole init body equals the expected dict from literals and constants, with `paidProductPlacementDetails.hasPaidProductPlacement` checked `is False` (dict equality alone would accept 0).
-  3. Six bad tokens (embedded newline, one trailing `\n`, space, tab, carriage return, `é`): each raises `UploadError(sent=False)`, exactly one request, no `::add-mask::` on stdout, token not in the message. Each case gives the fake enough answers for a full upload, so today's youtube.py returns a video id and the `pytest.raises` fails (lessons.md 2026-11-15).
+  3. Six bad tokens (embedded newline, one trailing `\n`, space, tab, carriage return, `é`): each raises `UploadError(sent=False)`, exactly one request, no `::add-mask::` on stdout, and the token's first 12 characters are not in the message (a prefix, so a repr-escaped or stripped token is caught too). Each case gives the fake enough answers for a full upload, so today's youtube.py returns a video id and the `pytest.raises` fails (lessons.md 2026-11-15).
   4. `test_acceptance` runs 1 to 3.
 - `workflow.md` R15 row: the new file added in plain text.
 
@@ -26,12 +26,13 @@ partial: every edit is written and committed; no check could run (see ENV_ISSUE.
 none
 
 ## Known risks
-- Nothing has been run (ENV_ISSUE.md). Possible failures are lint (line length is close to 110 in test_youtube.py's snippet assertion, counted at 107) or a mistake only a run would show.
+- The new tests were not seen failing on today's youtube.py (blocked). By reading: each case gives the fake a full set of answers, so today's code uploads and `pytest.raises` fails; the part list and body differ from today's.
 - The plan's F1 caveat stands: the insert page does not list `paidProductPlacementDetails` as settable; R17 is the live check.
 
 ## Next step
-1. Run: `ruff check .`, `python tests/docs_check.py`, `pytest -q` without `LOOM_TASK` (expect green, the new file skipped), and `LOOM_TASK=p4b-youtube pytest -q tests/publish` (expect only test_youtube_placement.py to fail: 2 init tests, 6 token cases and test_acceptance).
-2. Open the docs/* PR; its Linux CI must be green before merge. Then p4b-youtube implements against the new file.
+1. Run `python tests/docs_check.py` and `LOOM_TASK=p4b-youtube pytest -q tests/publish` (expect only test_youtube_placement.py to fail: 2 init tests, 6 token cases and test_acceptance).
+2. Delete ENV_ISSUE.md before merge once those pass.
+3. Open the docs/* PR; its Linux CI must be green before merge. Then p4b-youtube implements against the new file.
 
 ## Docs
 - Applied: workflow.md R15 row (new file, plain text).
@@ -39,4 +40,9 @@ none
 
 ## Evidence
 - Read: task YAML, p4b-plan, youtube.py, youtube_fakes.py, test_youtube.py, test_schema_publish.py, constants.py, lessons.md 2026-11-15, 02_youtube.yaml (owns the new file).
-- Commands: `git status --short` (5 files, all inside paths_allowed). pytest, ruff and docs_check could not run: each needed approval in a non-interactive session.
+- Commands, with the worktree's `.venv/Scripts/python.exe -m`:
+  - `pytest -q tests/publish/test_youtube_placement.py tests/publish/test_youtube.py tests/test_schema_publish.py`: 148 passed, 9 skipped (the new file).
+  - `pytest -q -x` (no LOOM_TASK override): 1465 passed, 72 skipped (plan baseline 63 plus the 9 new).
+  - `ruff check .`: passed. `pytest tests/test_docs_check.py`: 34 passed.
+  - Blocked: the LOOM_TASK=p4b-youtube run and `python tests/docs_check.py` (ENV_ISSUE.md).
+- `git status --short`: 5 changed files, all inside paths_allowed, plus this handoff and ENV_ISSUE.md.

@@ -108,7 +108,8 @@ def test_unprintable_access_token_is_refused_before_mask(monkeypatch: pytest.Mon
     assert caught.value.sent is False
     assert len(fake.requests) == 1, "only the token refresh was sent"
     assert "::add-mask::" not in capsys.readouterr().out
-    assert bad not in str(caught.value)
+    # A prefix, so a repr-escaped or stripped token in the message is caught too.
+    assert ACCESS[:12] not in str(caught.value)
 
 
 def test_acceptance(monkeypatch: pytest.MonkeyPatch, mp4: Path,
