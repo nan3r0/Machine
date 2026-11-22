@@ -128,9 +128,12 @@ YOUTUBE_CATEGORY_ID = "27"  # Education; the owner may change it
 YOUTUBE_PRIVACY = "public"
 YOUTUBE_MADE_FOR_KIDS = False
 YOUTUBE_SYNTHETIC_MEDIA = True  # O2: a realistic synthetic voice narrates real events
+# F1: the channel never takes paid placements. Since the API revision of 2026-11-16 an unset value
+# means "not declared free of paid placement", so it is sent on every insert.
+YOUTUBE_PAID_PRODUCT_PLACEMENT = False
 # O3: appended to every description after YOUTUBE_CREDIT_SEPARATOR. Names, not links, so it passes
-# the published-field URL rule.
-YOUTUBE_CREDIT_LINE = ("Sources: Wikipedia (CC BY-SA 4.0) and public records. "
+# the published-field URL rule. F4: "or", since a video may credit only a public record.
+YOUTUBE_CREDIT_LINE = ("Sources: Wikipedia (CC BY-SA 4.0) or public records. "
                        "Narrated with a synthetic voice.")
 YOUTUBE_CREDIT_SEPARATOR = "\n\n"
 YOUTUBE_DESCRIPTION_MAX_BYTES = 5000  # YouTube's limit, in UTF-8 bytes

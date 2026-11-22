@@ -95,7 +95,8 @@ def test_upload_sends_the_three_requests(monkeypatch: pytest.MonkeyPatch, mp4: P
     assert f"{split.scheme}://{split.netloc}{split.path}" == constants.YOUTUBE_UPLOAD_ENDPOINT
     query = urllib.parse.parse_qs(split.query, strict_parsing=True)
     assert query["uploadType"] == ["resumable"]
-    assert set(",".join(query["part"]).split(",")) == {"snippet", "status"}
+    # The exact part list is pinned in test_youtube_placement.py.
+    assert {"snippet", "status"} <= set(",".join(query["part"]).split(","))
     assert init.get_method() == "POST"
     sent = header_map(init)
     assert sent["authorization"] == f"Bearer {ACCESS}"
@@ -117,13 +118,13 @@ def test_metadata_comes_from_the_script_plus_the_fixed_flags(monkeypatch: pytest
     init = fake.requests[1]
     assert isinstance(init.data, bytes)
     expected = script()
-    assert json.loads(init.data) == {
-        "snippet": {"title": expected.title,
-                    "description": f"{expected.description}\n\n{constants.YOUTUBE_CREDIT_LINE}",
-                    "tags": expected.tags, "categoryId": "27"},
-        "status": {"privacyStatus": "public", "selfDeclaredMadeForKids": False,
-                   "containsSyntheticMedia": True},
-    }
+    body = json.loads(init.data)
+    # The exact whole body is pinned in test_youtube_placement.py.
+    assert body["snippet"] == {"title": expected.title,
+                               "description": f"{expected.description}\n\n{constants.YOUTUBE_CREDIT_LINE}",
+                               "tags": expected.tags, "categoryId": "27"}
+    assert body["status"] == {"privacyStatus": "public", "selfDeclaredMadeForKids": False,
+                              "containsSyntheticMedia": True}
 
 
 def test_flags_are_read_from_constants_at_call_time(monkeypatch: pytest.MonkeyPatch, mp4: Path) -> None:
