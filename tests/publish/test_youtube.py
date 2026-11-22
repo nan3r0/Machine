@@ -14,6 +14,7 @@ import urllib.error
 import urllib.parse
 import urllib.request
 from collections.abc import Iterator
+from functools import partial
 from pathlib import Path
 from typing import Any
 
@@ -41,6 +42,7 @@ CLIENT_ID = "1234567890-fakeclient.apps.googleusercontent.com"
 CLIENT_SECRET = "GOCSPX-FAKE-client-secret-0123456789"
 REFRESH = "1//0FAKE-refresh-token-abcdefghijklmnop"
 SECRETS = (CLIENT_SECRET, REFRESH, ACCESS)
+UPLOAD_ID = "xa298sd_f"
 ENV = {"YOUTUBE_CLIENT_ID": CLIENT_ID, "YOUTUBE_CLIENT_SECRET": CLIENT_SECRET,
        "YOUTUBE_REFRESH_TOKEN": REFRESH}
 PROXY_VARS = ["http_proxy", "https_proxy", "all_proxy", "HTTP_PROXY", "HTTPS_PROXY", "ALL_PROXY",
@@ -184,9 +186,9 @@ def test_revoked_refresh_token_says_so(monkeypatch: pytest.MonkeyPatch, mp4: Pat
 
 
 TOKEN_FAILURES = [
-    pytest.param(http_error(401), id="http-401"),
-    pytest.param(http_error(500), id="http-500"),
-    pytest.param(http_error(302), id="http-302"),
+    pytest.param(partial(http_error, 401), id="http-401"),
+    pytest.param(partial(http_error, 500), id="http-500"),
+    pytest.param(partial(http_error, 302), id="http-302"),
     pytest.param(TimeoutError(), id="timeout"),
     pytest.param(urllib.error.URLError(TimeoutError()), id="url-timeout"),
     pytest.param(urllib.error.URLError(ConnectionRefusedError()), id="url-error"),
@@ -211,10 +213,10 @@ def test_token_failure_sends_nothing(monkeypatch: pytest.MonkeyPatch, mp4: Path,
 
 
 INIT_FAILURES = [
-    pytest.param(http_error(400), id="http-400"),
-    pytest.param(http_error(403), id="http-403-quota"),
-    pytest.param(http_error(503), id="http-503"),
-    pytest.param(http_error(308), id="http-308"),
+    pytest.param(partial(http_error, 400), id="http-400"),
+    pytest.param(partial(http_error, 403), id="http-403-quota"),
+    pytest.param(partial(http_error, 503), id="http-503"),
+    pytest.param(partial(http_error, 308), id="http-308"),
     pytest.param(TimeoutError(), id="timeout"),
     pytest.param(urllib.error.URLError(OSError()), id="url-error"),
     pytest.param(session(None), id="no-location"),
@@ -238,9 +240,9 @@ def test_init_failure_sends_nothing(monkeypatch: pytest.MonkeyPatch, mp4: Path, 
 
 
 PUT_FAILURES = [
-    pytest.param(http_error(400), id="http-400"),
-    pytest.param(http_error(500), id="http-500"),
-    pytest.param(http_error(301), id="http-301"),
+    pytest.param(partial(http_error, 400), id="http-400"),
+    pytest.param(partial(http_error, 500), id="http-500"),
+    pytest.param(partial(http_error, 301), id="http-301"),
     pytest.param(TimeoutError(), id="timeout"),
     pytest.param(urllib.error.URLError(TimeoutError()), id="url-timeout"),
     pytest.param(ConnectionResetError(), id="os-error"),
@@ -273,9 +275,16 @@ def test_no_secret_in_errors_or_logs(monkeypatch: pytest.MonkeyPatch, mp4: Path,
         messages.append(str(error))
     install(monkeypatch, token(), session(), video())
     youtube.upload(script(), mp4)
+    assert UPLOAD_ID in SESSION
     for text in [*messages, caplog.text]:
-        for secret in SECRETS:
+        for secret in (*SECRETS, UPLOAD_ID):
             assert secret not in text
+
+
+def test_access_token_is_masked_before_init(monkeypatch: pytest.MonkeyPatch, mp4: Path,
+                                            capsys: pytest.CaptureFixture[str]) -> None:
+    failure(monkeypatch, mp4, token(), partial(http_error, 500))
+    assert f"::add-mask::{ACCESS}" in capsys.readouterr().out.splitlines()
 
 
 @pytest.mark.parametrize("offset", range(0, 400, 9))
@@ -365,8 +374,8 @@ def test_cli_appends_the_video_id(monkeypatch: pytest.MonkeyPatch, mp4: Path, tm
 
 
 @pytest.mark.parametrize(("outcomes", "line"), [
-    pytest.param([http_error(500)], "sent=false", id="token-failed"),
-    pytest.param([token(), session(), http_error(500)], "sent=true", id="put-failed"),
+    pytest.param([partial(http_error, 500)], "sent=false", id="token-failed"),
+    pytest.param([token(), session(), partial(http_error, 500)], "sent=true", id="put-failed"),
 ])
 def test_cli_reports_sent_and_fails(monkeypatch: pytest.MonkeyPatch, mp4: Path, tmp_path: Path,
                                     capsys: pytest.CaptureFixture[str], outcomes: list[Any],

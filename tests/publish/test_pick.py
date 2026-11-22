@@ -79,6 +79,13 @@ def test_queue_empty(tmp_path: Path, dirs: tuple[Path, Path], setup: str) -> Non
         pick.next_script(queue, records, TODAY)
 
 
+def test_missing_records_dir_fails(tmp_path: Path, dirs: tuple[Path, Path]) -> None:
+    queue, _ = dirs
+    add_script(queue, "due-case", date(2026, 11, 20))
+    with pytest.raises(PickError, match="no-ledger"):
+        pick.next_script(queue, tmp_path / "no-ledger", TODAY)
+
+
 def test_unconfirmed_claim_blocks_every_pick(dirs: tuple[Path, Path]) -> None:
     """At most once: a claim with no video id may be a video already on YouTube (R14.3)."""
     queue, records = dirs

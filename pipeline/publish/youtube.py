@@ -35,7 +35,9 @@ def upload(script: Script, video_path: Path) -> str:
        client_id, client_secret, refresh_token and grant_type=refresh_token, timeout
        `YOUTUBE_CONNECT_TIMEOUT_S`. The JSON answer must hold a non-empty `access_token` and a
        `scope` whose space-separated set is exactly {`YOUTUBE_SCOPE`}. An `invalid_grant` error
-       says the refresh token was revoked or expired and must be made again.
+       says the refresh token was revoked or expired and must be made again. Right after a good
+       answer, before the init request, print `::add-mask::<access token>` and a newline to
+       stdout, so GitHub masks the derived token in the job log.
     2. Init: POST `YOUTUBE_UPLOAD_ENDPOINT` with the query `uploadType=resumable` and
        `part=snippet,status`, timeout `YOUTUBE_CONNECT_TIMEOUT_S`, headers
        `Authorization: Bearer <access token>`, `Content-Type: application/json; charset=UTF-8`,
@@ -54,7 +56,8 @@ def upload(script: Script, video_path: Path) -> str:
     timeout, a bad answer, a refused session URL) raises UploadError(sent=False); any failure in
     step 3 raises UploadError(sent=True). Messages give the step and HTTP status and at most a short
     body excerpt, with the client secret, refresh token and access token redacted before clipping.
-    Log records hold status codes and the video id only.
+    They name the session host only, never the session URL: its `upload_id` lets anyone holding it
+    write to the session. Log records hold status codes and the video id only.
     """
     raise NotImplementedError
 

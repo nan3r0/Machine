@@ -17,7 +17,9 @@ def next_script(queue_dir: Path, records_dir: Path, today: date) -> str:
     Reads every `queue_dir/approved/*.json` as a Script and every `records_dir/*.json` as a
     PublishRecord (`model_validate_json`). A file that does not parse raises PickError naming the
     file, and so does a record whose file name is not `<script_id>.json`. A missing
-    `queue_dir/approved` counts as empty. The rules, in order:
+    `queue_dir/approved` counts as empty. A missing `records_dir` raises PickError naming it: the
+    folder always exists (`.gitkeep`), and a wrong path would hide an unconfirmed claim. The rules,
+    in order:
 
     1. A record with no `youtube_video_id` means an earlier upload may have reached YouTube: raise
        PickError naming its script_id. Nothing is picked that run, even if other scripts are due.

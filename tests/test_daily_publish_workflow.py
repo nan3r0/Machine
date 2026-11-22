@@ -11,6 +11,10 @@ Contract for the shell steps, beyond the task notes:
 - claim and record run no step-level `if:`; they branch in shell. Their checkouts use `ref: main`,
   since the claim commit lands on main after the run started.
 - claim and record re-check every id they are handed before using it.
+- Records are append-only (R16.3). claim fails, with no push, when main already holds
+  `data/published/<id>.json` or no longer holds `queue/approved/<id>.json`. record fails, with no
+  push, unless main holds a claim-only record for the id. Releasing a claim on `sent=false` exits 0:
+  the upload job has already failed the run.
 """
 
 import os
@@ -18,6 +22,7 @@ import re
 import shutil
 import subprocess
 import sys
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -142,6 +147,8 @@ def test_upload_job() -> None:
     assert {"video_id", "sent"} <= set(job("upload").get("outputs") or {})
     for step in uses("upload", "actions/setup-python"):
         assert "cache" not in (step.get("with") or {}), "the secret job restores no cache"
+    for step in job("upload")["steps"]:
+        assert not str(step.get("uses", "")).startswith("actions/cache"), "the secret job restores no cache"
 
 
 BASH = shutil.which("bash") or "bash"
@@ -226,6 +233,30 @@ def head(remote: Path) -> str:
     return git(remote, "rev-parse", "main").strip()
 
 
+def record_on_main(remote: Path) -> str | None:
+    return show(remote, RECORD) if RECORD in files(remote) else None
+
+
+def change_main(tmp_path: Path, remote: Path, add: dict[str, bytes], remove: tuple[str, ...] = ()) -> None:
+    """Pushes one commit to main from a separate clone, as another run or the owner would."""
+    repo = checkout(tmp_path, remote, "change")
+    for path, data in add.items():
+        put(repo / path, data)
+    for path in remove:
+        git(repo, "rm", "-q", path)
+    git(repo, "add", "-A")
+    git(repo, "commit", "-q", "-m", "change")
+    git(repo, "push", "-q", "origin", "main")
+
+
+def old_record(remote: Path, video_id: str | None) -> bytes:
+    """A record from an earlier run, built without the claim job, with a fixed old claim time."""
+    record = PublishRecord(script_id=ID, script_sha=git(remote, "rev-parse", f"main:{SCRIPT}").strip(),
+                           claimed_at=datetime(2026, 11, 20, 14, 9, tzinfo=UTC), youtube_video_id=video_id,
+                           published_at=datetime(2026, 11, 20, 14, 12, tzinfo=UTC) if video_id else None)
+    return record.model_dump_json().encode("utf-8") + b"\n"
+
+
 def claimed(tmp_path: Path) -> Path:
     remote = remote_with_script(tmp_path)
     assert run_job(tmp_path, checkout(tmp_path, remote, "claim"), "claim", {"render.script_id": ID}) == 0
@@ -271,6 +302,22 @@ def test_claim_refuses_a_bad_script_id(tmp_path: Path, bad: str) -> None:
 
 
 @shell_tools
+@pytest.mark.parametrize("main_holds", ["claim-only-record", "published-record", "no-approved-script"])
+def test_claim_never_rewrites_or_claims_what_main_does_not_offer(tmp_path: Path, main_holds: str) -> None:
+    """At most once: a run queued behind a timed-out upload picked from an older checkout."""
+    remote = remote_with_script(tmp_path)
+    if main_holds == "no-approved-script":
+        change_main(tmp_path, remote, {}, remove=(SCRIPT,))
+    else:
+        video_id = VIDEO if main_holds == "published-record" else None
+        change_main(tmp_path, remote, {RECORD: old_record(remote, video_id)})
+    base, before = head(remote), record_on_main(remote)
+    repo = checkout(tmp_path, remote, "claim")
+    assert run_job(tmp_path, repo, "claim", {"render.script_id": ID}) != 0
+    assert (head(remote), record_on_main(remote)) == (base, before)
+
+
+@shell_tools
 def test_record_publishes_the_video_id_and_moves_the_script(tmp_path: Path) -> None:
     remote = claimed(tmp_path)
     claim = head(remote)
@@ -291,8 +338,24 @@ def test_record_publishes_the_video_id_and_moves_the_script(tmp_path: Path) -> N
 def test_record_releases_a_claim_that_sent_nothing(tmp_path: Path) -> None:
     remote = claimed(tmp_path)
     repo = checkout(tmp_path, remote, "record")
-    run_job(tmp_path, repo, "record", {"render.script_id": ID, "upload.video_id": "", "upload.sent": "false"})
+    outputs = {"render.script_id": ID, "upload.video_id": "", "upload.sent": "false"}
+    assert run_job(tmp_path, repo, "record", outputs) == 0
     assert RECORD not in files(remote) and SCRIPT in files(remote)
+
+
+@shell_tools
+@pytest.mark.parametrize("main_holds", ["no-record", "published-record"])
+@pytest.mark.parametrize(("video_id", "sent"), [(VIDEO, ""), ("", "false")])
+def test_record_needs_a_claim_only_record(tmp_path: Path, main_holds: str, video_id: str, sent: str) -> None:
+    """A published record is never rewritten or deleted, so a late sent=false cannot reopen it."""
+    remote = remote_with_script(tmp_path)
+    if main_holds == "published-record":
+        change_main(tmp_path, remote, {RECORD: old_record(remote, VIDEO)})
+    base, before = head(remote), record_on_main(remote)
+    repo = checkout(tmp_path, remote, "record")
+    outputs = {"render.script_id": ID, "upload.video_id": video_id, "upload.sent": sent}
+    assert run_job(tmp_path, repo, "record", outputs) != 0
+    assert (head(remote), record_on_main(remote)) == (base, before)
 
 
 @shell_tools

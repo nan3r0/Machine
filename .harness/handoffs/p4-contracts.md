@@ -4,7 +4,20 @@
 Write the Phase 4 contracts and locked tests from the Contracts section of `.harness/handoffs/p4-plan.md`, using the owner's answers: O1 option (b) (public repo, environment secrets), O2 true, O3 default credit line, others default.
 
 ## Status
-done. The work is complete on `task/p4-contracts` and not pushed. The owner made the commit with `SKIP_SECRET_SCAN=1`, because the global pre-commit secret scan matches false positives: the token endpoint URL and the fake test secrets (see Tried and abandoned).
+done, review round 1 fixes applied. The work is on `task/p4-contracts` and not pushed. The owner made the first commit with `SKIP_SECRET_SCAN=1`, because the global pre-commit secret scan matches false positives: the token endpoint URL and the fake test secrets (see Tried and abandoned). The round 1 commit passed the pre-commit secret scan with no bypass.
+
+## Review round 1 (`.harness/reviews/p4-contracts-round1.md`)
+- **Blocking, fixed.** `tests/test_daily_publish_workflow.py` gains `test_claim_never_rewrites_or_claims_what_main_does_not_offer`. It seeds main through a separate clone, not through the claim job, with one of three states: a claim-only record, a record with a video id (the script still approved in both), or no approved script. It then asserts that the claim job exits non-zero, that the remote head is unchanged and that the record is byte-equal or still absent. The module docstring's shell contract states the rule (records are append-only, R16.3).
+- **Small items:**
+  - The release on `sent=false` must exit 0, and the test now asserts it.
+  - New `test_record_needs_a_claim_only_record`. It covers {no record, published record} × {a video id, `sent=false`}. The job must exit non-zero with no push, and the record must be unchanged. This also covers a late `sent=false` deleting a published record.
+  - The module-level `HTTPError` params are now `functools.partial(http_error, N)`, and `FakeOpen` calls a callable outcome to build it.
+  - `pick.py`: a missing `records_dir` raises PickError naming it. New test `test_missing_records_dir_fails`.
+  - `youtube.py` contract:
+    - Errors and logs name the session host only, never the session URL. The no-secret test now also forbids the fake `upload_id`.
+    - `::add-mask::<access token>` goes to stdout right after the refresh, before init. New test `test_access_token_is_masked_before_init`.
+  - `test_upload_job` asserts that no upload step uses `actions/cache*`.
+  - The API shapes were **not** checked against Google's docs: this session has no web tool. That check stays with p4-youtube and the owner's first live run (R17), see Known risks.
 
 ## What changed (and why)
 - **`pipeline/schema.py`**
@@ -66,6 +79,9 @@ done. The work is complete on `task/p4-contracts` and not pushed. The owner made
 - **The CLI appends exactly one line**, because the output file is `$GITHUB_OUTPUT`. A script that fails to parse counts as `sent=false`.
 - **The claim and record checkouts use `ref: main`.** The claim commit lands on main after the run started, so a checkout of `github.sha` would not see it.
 - **The claim and record jobs re-check the ids they are handed.** These jobs hold the write token. The record job keeps the claim, and fails, for anything other than a valid id or `sent=false`.
+- **Round 1: releasing a claim exits 0.** The upload job has already failed the run, so the owner still gets the failure email, and the release itself worked.
+- **Round 1: a missing ledger folder is an error, not an empty ledger.** The folder always exists through `.gitkeep`, and a wrong path would hide an unconfirmed claim.
+- **Round 1: the claim and record refusal tests seed main directly**, so they do not depend on the claim job under test.
 - **`locks.yaml` is unchanged.** `tests/**`, `schema.py` and `constants.py` are already locked. The stubs stay unlocked for their implementers.
 
 ## Tried and abandoned
@@ -74,7 +90,7 @@ done. The work is complete on `task/p4-contracts` and not pushed. The owner made
 ## Known risks
 - **The API shapes come from recall, not from docs read this session.** That covers the token form, the `Location` header, the `X-Upload-*` headers and the `scope` field. R17 confirms them, and a mismatch in the token or init step fails safe as `sent=False`.
 - **CI's gitleaks may flag the fake secrets** in `tests/publish/test_youtube.py` and `youtube_fakes.py` (`GOCSPX-...`, `1//...`, `ya29....`) through its generic rule. If it does, the owner decides on an allowlist entry. The values were not reshaped to dodge the scanner.
-- **The shell tests have never run.** They need jq and Linux, and the workflow does not exist yet. They first run in CI on the p4-daily-workflow PR. A bug in them then needs a CONTRACT_CHANGE round (lessons.md 2026-11-18). The YouTube and pick tests were checked against a throwaway reference implementation, which was not committed: 121 and 14 passed. That check found and fixed one test bug: the access token cannot be known at the token step.
+- **The shell tests have never run**, including the round 1 ones (their seed helpers `change_main`, `old_record` and `record_on_main` were run once on Windows git and work). They need jq and Linux, and the workflow does not exist yet. They first run in CI on the p4-daily-workflow PR. A bug in them then needs a CONTRACT_CHANGE round (lessons.md 2026-11-18). The YouTube and pick tests were checked against a throwaway reference implementation, which was not committed: 121 and 14 passed. That check found and fixed one test bug: the access token cannot be known at the token step.
 - **The `sent=false` self-heal is unverified.** It depends on GitHub passing a failed job's `$GITHUB_OUTPUT` lines to `needs.upload.outputs`. I believe it does, but this session had no web access to check. If it does not, a token failure leaves the claim in place, and the owner deletes it by hand. That is safe, at most once, but not self-healing. Confirm it during R17, or have p4-daily-workflow check the docs.
 - **GitHub creates a missing environment automatically, and unprotected.** Before the first run, the owner must:
   - Create the environment `youtube` under Settings → Environments.
@@ -82,7 +98,7 @@ done. The work is complete on `task/p4-contracts` and not pushed. The owner made
   - Store the three `YOUTUBE_*` secrets there, not as repository secrets.
 
 ## Next step
-1. Orchestrator: run Gate 2 review. Then run p4-pick and p4-youtube (wave 3).
+1. Orchestrator: run the Gate 2 re-review (round 2). Then run p4-pick and p4-youtube (wave 3).
 2. p4-daily-workflow: confirm in GitHub's docs that a failed job's step outputs reach `needs.<job>.outputs` (the `sent=false` self-heal), and record the source.
 3. Before R17, the owner sets up the `youtube` environment as above.
 
@@ -94,10 +110,19 @@ done. The work is complete on `task/p4-contracts` and not pushed. The owner made
   - `PRD.md` section 7: O1 implemented as the `youtube` environment rule in `tests/workflow_rules.py`, plus the token scope check decision.
   - The plan's Phase 0 step 6 and orchestrator.md owner items: create the environment first (Known risks).
   - CLAUDE.md Status: p4-contracts done, next p4-pick and p4-youtube.
-  - The CSO (p4-cso) reads the environment rule and the scope check into threat model v3.
+  - The CSO (p4-cso) reads the environment rule and the scope check into threat model v3. From round 1, it also reads the `::add-mask::` of the access token, the rule that errors never carry the session URL, and the append-only claim and record rules.
+  - `architecture.md` (publish flow): from round 1, claim refuses an existing record or a missing approved script, record needs a claim-only record, and a missing ledger folder fails pick.
 
 ## Evidence
-All commands were run with `.venv/Scripts/python.exe`.
+Round 1, all commands run with `.venv/Scripts/python.exe`:
+- `pytest` without LOOM_TASK: 1293 passed, 226 skipped. With `LOOM_TASK=p4-contracts`: 1319 passed, 200 skipped.
+- The red state of the owner tests, with no collection error:
+  - p4-pick: 15 failed on NotImplementedError.
+  - p4-youtube: 122 failed on NotImplementedError.
+  - p4-daily-workflow: 9 failed on the missing file, 24 shell tests skipped (win32).
+- `ruff check .`: passed. `mypy --strict pipeline/`: no issues in 25 files. `python tests/docs_check.py`: passed.
+
+Before round 1, all commands were run with `.venv/Scripts/python.exe`.
 - `pytest` without LOOM_TASK (`env -u LOOM_TASK`): 1293 passed, 217 skipped.
 - `LOOM_TASK=p4-contracts pytest`: 1319 passed, 191 skipped.
 - The red state of the owner tests:

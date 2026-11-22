@@ -73,7 +73,8 @@ def http_error(code: int, body: str = '{"error": {"code": 0, "message": "fake"}}
 
 class FakeOpen:
     """Replaces urllib.request.OpenerDirector.open (set on the class, so it is called without the
-    opener). Each call takes the next outcome: an Answer, or an exception to raise. Records every
+    opener). Each call takes the next outcome: an Answer, an exception to raise, or a function that
+    builds one, so a shared parametrize value never reuses a consumed error body. Records every
     request and its timeout."""
 
     def __init__(self, *outcomes: Any) -> None:
@@ -85,6 +86,8 @@ class FakeOpen:
         self.requests.append(request)
         self.timeouts.append(kwargs.get("timeout", args[1] if len(args) > 1 else None))
         outcome = self.outcomes.pop(0)
+        if callable(outcome):
+            outcome = outcome()
         if isinstance(outcome, BaseException):
             raise outcome
         answer: Answer = outcome
