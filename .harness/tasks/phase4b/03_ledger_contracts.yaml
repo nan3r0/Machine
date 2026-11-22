@@ -1,0 +1,77 @@
+id: p4b-ledger-contracts
+title: Contract change for the bot-only ledger branch - PublishRecord run binding, pick rules, main no longer holds data/published
+depends_on: [p4b-youtube-contracts]
+role: test_author
+notes: |
+  CSO P1-2 and P4-1, phase review T3 to T5 and N1. The design is in .harness/handoffs/p4b-plan.md,
+  section "P1-2 design"; follow it and record any deviation in the handoff.
+  - pipeline/schema.py PublishRecord: add run_id (int, > 0) and run_attempt (int, >= 1), both
+    required, strict ints (no bool, no string). They are the GITHUB_RUN_ID and GITHUB_RUN_ATTEMPT of
+    the run that wrote the claim. Docstring: records live as data/published/<script_id>.json on the
+    orphan `ledger` branch; the script stays in queue/approved/ unchanged.
+  - tests/test_schema_publish.py: extend the record tests in place for the two fields (good, bad,
+    required). Holds on merge.
+  - Pick contract (implemented by p4b-pick-ledger). Rule 1 unchanged. Rule 2 changes: a record with
+    a video id takes its script out of the candidates; it no longer raises. Rule 3 unchanged.
+    New tests/publish/test_pick_ledger.py (owned by p4b-pick-ledger), expected ids from the rules
+    above and literals, never from pick itself:
+    1. A published record whose script is still in approved/: the next due script is returned; with
+       no other due script, "queue empty".
+    2. A published record whose script is in neither folder is ignored.
+    3. A claim-only record still stops the run and names the script (rule 1 before anything else,
+       also when published records exist).
+    4. Records missing run_id or run_attempt make pick raise PickError naming the file.
+    5. QA rank 8 (pick part): main() with sys.argv patched and the UTC date patched (a date where
+       local and UTC differ), stdout is exactly "<id>\n" and the exit code 0; on PickError stdout is
+       empty and the exit code 1.
+    6. QA rank 10 (what survives the redesign): the "Check the channel" text in the claim message,
+       .gitkeep and README.md in approved/ or the records folder are ignored, rule order.
+    7. test_acceptance.
+  - tests/publish/test_pick.py (owned by p4-pick, done, runs on main): delete the test(s) for the old
+    rule 2 ("still in queue/approved" raises), and give every record fixture the two new fields in
+    this PR, or every test that expects a returned id breaks. Keep everything that holds before and
+    after. Do not list it under tests: here.
+  - tests/test_daily_publish_workflow.py (owned by p4-daily-workflow, done): its shell tests build
+    records with PublishRecord (old_record) and parse the current claim job's output with
+    PublishRecord.model_validate_json (lines 275, 296, 382, 387, 436). The current jq writes no run
+    fields, so these fail on Linux CI the moment the schema changes. They test the main ledger,
+    which p4b-ledger-workflow replaces, so delete them here (the claim, record and refusal shell
+    tests that use PublishRecord) and keep the structure tests. p4b-ledger-workflow-tests writes
+    their ledger replacements. Keep the file's test_acceptance true. Grep tests/ for any other
+    PublishRecord or record-building use first.
+  - Delete tests/test_published_records.py and data/published/.gitkeep: main no longer holds the
+    ledger, so the test would check an empty folder. Remove "data/" from [tool.mutmut] also_copy in
+    pyproject.toml in the same change (lessons.md 2026-11-16 and 2026-11-22: a missing also_copy
+    path breaks the reports job). Grep tests/ for any other read of data/ first.
+  - workflow.md criterion-to-test map: R14 row gains tests/publish/test_pick_ledger.py in plain text;
+    R16 row drops tests/test_published_records.py.
+  - Main stays green: pytest without LOOM_TASK; with LOOM_TASK=p4b-pick-ledger only the new file
+    fails. The shell tests skip on Windows, so the docs/* PR's Linux CI run must be green before
+    merge; local pytest is not enough. Show each new refusal failing against today's pick first (lessons.md 2026-11-22: test the
+    refusal against state seeded outside the code under test).
+# Owns no new test file: the schema tests live in a file owned by a done task and pass on merge.
+paths_allowed:
+  - pipeline/schema.py
+  - tests/test_schema_publish.py
+  - tests/publish/test_pick.py
+  - tests/publish/test_pick_ledger.py
+  - tests/test_daily_publish_workflow.py
+  - tests/test_published_records.py
+  - data/published/.gitkeep
+  - pyproject.toml
+  - workflow.md
+tests: []
+acceptance: tests/test_schema_publish.py::test_acceptance
+context_files:
+  - .harness/handoffs/p4b-plan.md
+  - .harness/handoffs/p4-qa-lead.md
+  - .harness/handoffs/p4-cso.md
+  - pipeline/schema.py
+  - pipeline/publish/pick.py
+  - tests/publish/test_pick.py
+  - tests/test_schema_publish.py
+  - tests/test_published_records.py
+  - tests/test_daily_publish_workflow.py
+  - pyproject.toml
+  - lessons.md
+max_turns: 35

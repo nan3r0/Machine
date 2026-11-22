@@ -1,0 +1,24 @@
+id: p4b-pick-ledger
+title: Pick skips scripts that already have a published record
+depends_on: [p4b-ledger-contracts]
+role: implementer
+notes: |
+  Plan: .harness/handoffs/p4b-plan.md, "P1-2 design". In pipeline/publish/pick.py, rule 2 no longer
+  raises: every script_id with a record (claim-only records already stopped the run under rule 1)
+  is left out of the candidates. Update the next_script docstring (rules list, the records folder
+  is the ledger branch's data/published/ checked out by the workflow) and the module docstring.
+  The CLI and its arguments do not change. Keep the diff small.
+  Security specialist review runs (pipeline/publish/** is a trigger).
+paths_allowed:
+  - pipeline/publish/pick.py
+tests:
+  - tests/publish/test_pick_ledger.py
+acceptance: tests/publish/test_pick_ledger.py::test_acceptance
+context_files:
+  - .harness/handoffs/p4b-plan.md
+  - pipeline/publish/pick.py
+  - pipeline/schema.py
+  - tests/publish/test_pick_ledger.py
+  - tests/publish/test_pick.py
+  - lessons.md
+max_turns: 15

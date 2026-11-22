@@ -1,0 +1,43 @@
+id: p4b-render-lock
+title: Hash-checked installs for Workflow B's render job and render.yml
+depends_on: [p4b-render-lock-tests]
+role: implementer
+notes: |
+  CSO P1-4 heavy half. Plan: .harness/handoffs/p4b-plan.md, "P1-4 heavy half".
+  - Make requirements-render-torch.txt (torch +cpu and torchaudio wheels from the PyTorch CPU index)
+    and requirements-render.txt (the full resolved set of requirements.txt plus the rest of
+    requirements-heavy.txt) with the method in requirements-generate.txt's header: `pip download`
+    with the manylinux --platform tags and --python-version 3.12, then `pip hash` per file.
+    Downloading is fine; never install torch or ffmpeg locally. Put the regenerate commands in each
+    file's header.
+  - openai-whisper ships only an sdist. Hash the sdist. If hash mode rejects the build dependencies
+    pip's build isolation pulls in, pin and hash them in the file and install with
+    --no-build-isolation after them; record what you did and why in the handoff.
+  - daily_publish.yml render job and render.yml: replace the install lines with the two
+    --require-hashes installs the tests name. Nothing else in either workflow changes.
+  - pyproject.toml [tool.mutmut] also_copy: add both new files.
+  - Linux proof before review: Gate 1 cannot run the install. Push, then hand off as `partial`,
+    "awaiting install proof". The orchestrator asks the owner to run
+    `gh workflow run render.yml --ref <task branch>` (dispatch-only, no secret, renders the sample);
+    a green run with QA passed is the proof. An install problem not fixed in 2 tries: write
+    ENV_ISSUE.md and stop.
+  Security specialist review runs (.github/workflows/** is a trigger).
+paths_allowed:
+  - requirements-render.txt
+  - requirements-render-torch.txt
+  - .github/workflows/daily_publish.yml
+  - .github/workflows/render.yml
+  - pyproject.toml
+tests:
+  - tests/test_render_lock.py
+acceptance: tests/test_render_lock.py::test_acceptance
+context_files:
+  - .harness/handoffs/p4b-plan.md
+  - requirements.txt
+  - requirements-heavy.txt
+  - requirements-generate.txt
+  - .github/workflows/daily_publish.yml
+  - .github/workflows/render.yml
+  - tests/test_render_lock.py
+  - lessons.md
+max_turns: 35

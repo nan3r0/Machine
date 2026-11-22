@@ -1,0 +1,47 @@
+id: p4b-audit-tests
+title: Locked tests for the weekly audit workflow, and one shared pip-audit command
+depends_on: []
+role: test_author
+notes: |
+  Audit F7 (owner: build it), HARNESS.md section 6b, PRD.md:207. Plan: .harness/handoffs/p4b-plan.md,
+  "Weekly audit". A red run is the alert, so the run must be green on today's main.
+  - Makefile (locked): move the pip-audit line into an `audit` target and have `check` run it
+    (`$(MAKE) audit` in the same place), so the accepted ignores live in one place. Update
+    tests/test_ci_workflow.py's Makefile tests in place so they read the line from wherever it
+    lives and still hold.
+  - New tests/test_weekly_audit_workflow.py (owned by p4b-weekly-audit) for
+    .github/workflows/weekly_audit.yml:
+    - on: a weekly schedule off the full hour, workflow_dispatch, and pull_request limited to paths
+      requirements*.txt, Makefile and the workflow file itself (so a dependency bump is checked on
+      its PR, and the first run happens on the implementer's PR, on Linux, before merge). No push.
+    - permissions contents: read, no secrets, no environment; passes the shared safety rules
+      (tests/workflow_rules.py assert_safe; add no allowlist entry); actions pinned by SHA;
+      checkout without credentials; a concurrency group with no cancel.
+    - Runs `make audit`, and pip-licenses over the runtime set (requirements.txt, then the heavy set
+      installed as ci.yml installs it: torch from the CPU index first) plus pip-licenses itself at
+      its requirements-dev.txt pin, with one fail rule: any GNU GPL or AGPL licence fails, LGPL
+      passes. Check the exact rule against the licenses.md of the last reports artifact so it passes
+      on today's main, and pin the rule string in the test. espeakng-loader has no licence metadata
+      and is accepted (spec.md licence note): the rule must not fail on it.
+    - No `|| true`, no continue-on-error. Every report step runs unless cancelled, so one finding
+      does not hide another (lessons.md 2026-11-16).
+    - actionlint is not run here: it is pinned, so its result changes only when a workflow changes,
+      and every such PR already runs it in Gate 1.
+    - test_acceptance.
+  Main stays green: the new file skips on main until p4b-weekly-audit is done.
+paths_allowed:
+  - Makefile
+  - tests/test_ci_workflow.py
+  - tests/test_weekly_audit_workflow.py
+tests: []
+acceptance: tests/test_ci_workflow.py::test_makefile_check_runs_every_gate_tool
+context_files:
+  - .harness/handoffs/p4b-plan.md
+  - Makefile
+  - .github/workflows/ci.yml
+  - tests/test_ci_workflow.py
+  - tests/workflow_rules.py
+  - tests/test_workflow_safety.py
+  - spec.md
+  - lessons.md
+max_turns: 30

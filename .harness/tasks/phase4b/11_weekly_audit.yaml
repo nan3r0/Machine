@@ -1,0 +1,25 @@
+id: p4b-weekly-audit
+title: Weekly audit workflow - pip-audit and pip-licenses, a red run is the alert
+depends_on: [p4b-audit-tests]
+role: implementer
+notes: |
+  Audit F7. New .github/workflows/weekly_audit.yml to the spec in
+  tests/test_weekly_audit_workflow.py and .harness/handoffs/p4b-plan.md, "Weekly audit". Read-only
+  token, no secret. Install steps copy ci.yml's (setuptools first, torch from the CPU index with
+  --no-deps, then the rest); keep the install of tools to the pinned pip-audit and pip-licenses.
+  The PR's own run of this workflow (pull_request on the workflow path) must be green before
+  review: that is the Linux proof (lessons.md 2026-11-15). Minutes are free on the public repo.
+  Security specialist review runs (.github/workflows/** is a trigger).
+paths_allowed:
+  - .github/workflows/weekly_audit.yml
+tests:
+  - tests/test_weekly_audit_workflow.py
+acceptance: tests/test_weekly_audit_workflow.py::test_acceptance
+context_files:
+  - .harness/handoffs/p4b-plan.md
+  - .github/workflows/ci.yml
+  - Makefile
+  - tests/test_weekly_audit_workflow.py
+  - tests/workflow_rules.py
+  - lessons.md
+max_turns: 25

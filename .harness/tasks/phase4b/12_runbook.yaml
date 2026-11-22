@@ -1,0 +1,27 @@
+id: p4b-runbook
+title: Owner runbook for Workflow B
+depends_on: [p4b-ledger-workflow]
+role: scribe
+notes: |
+  CSO item 5, phase review T10. New docs/runbook.md in plain English, short numbered steps. Content
+  is listed in .harness/handoffs/p4b-plan.md, "Runbook content"; write those sections and nothing
+  else, checking each command and file reference against daily_publish.yml as merged:
+  1. One-time setup: the youtube environment, its three secrets and the main-only deployment rule;
+     the orphan ledger branch bootstrap; the rulesets on main and on ledger; the agent deny rules;
+     failure emails; artifact and log retention (audit F8).
+  2. Daily run went red: how to read which job failed and what each failure means.
+  3. A kept claim: check the channel first, then fill in the video id or delete the record on the
+     ledger branch by hand. Never re-run failed jobs while a claim is kept.
+  4. Token revoke and rotate.
+  5. Refilling sources and the queue at 7 videos a week (owner decision 2026-11-22).
+  No secrets, no personal details, no em dashes.
+paths_allowed:
+  - docs/runbook.md
+tests: []
+acceptance: tests/test_docs_check.py::test_acceptance
+context_files:
+  - .harness/handoffs/p4b-plan.md
+  - .github/workflows/daily_publish.yml
+  - docs/threat-model.md
+  - .harness/handoffs/p4-plan.md
+max_turns: 20

@@ -1,0 +1,24 @@
+id: p4b-cso
+title: Threat model version 3.1 after the ledger branch, run binding, render lock and token check
+depends_on: [p4b-ledger-workflow, p4b-render-lock, p4b-youtube, p4b-weekly-audit]
+role: cso
+notes: |
+  Phase review T11. Re-check P1-2 (ledger branch plus the owner's rulesets), P4-1 (run binding),
+  P4-2 (locked test), P1-4 heavy half (hash-checked render installs) and the token whitespace
+  refusal against the merged code with file:line. New rows for the ledger branch (who can push,
+  what a forged record can and cannot do, symlinked records). Mark owner settings as
+  "Owner setting", not "Mitigated". In section 2 replace "(re-check on Google's pages at audit)"
+  with "confirmed 2026-11-22 (p4-audit)". Version 3.1 needs the owner's sign-off before go-live
+  (R18). After this merges and its close-out lands, the owner dispatches the CI reports job.
+paths_allowed:
+  - docs/threat-model.md
+tests: []
+acceptance: tests/test_docs_check.py::test_acceptance
+context_files:
+  - .harness/handoffs/p4b-plan.md
+  - .harness/handoffs/p4-cso.md
+  - docs/threat-model.md
+  - .github/workflows/daily_publish.yml
+  - pipeline/publish/youtube.py
+  - pipeline/publish/pick.py
+max_turns: 30

@@ -1,0 +1,52 @@
+id: p4b-render-lock-tests
+title: Locked tests for hash-checked installs in the two render paths (daily_publish render job and render.yml)
+depends_on: [p4b-ledger-workflow]
+role: test_author
+notes: |
+  CSO P1-4 heavy half, phase review T6. No new tool (spec.md section 7): the lock is made the way
+  requirements-generate.txt is (pip download for ubuntu-latest x86_64 and CPython 3.12, then
+  `pip hash`). Plan: .harness/handoffs/p4b-plan.md, "P1-4 heavy half". render.yml takes the same
+  lock so a manual render on the task branch proves the install on Linux before merge.
+  New tests/test_render_lock.py (owned by p4b-render-lock):
+  - requirements-render-torch.txt holds exactly torch and torchaudio at the versions in
+    requirements-heavy.txt (torch keeps its +cpu local version), each with at least one
+    --hash=sha256 of 64 hex characters.
+  - requirements-render.txt: every requirement is `name==version` (or the en_core_web_sm direct
+    URL with its #sha256 fragment, exactly as in requirements-heavy.txt) and carries at least one
+    --hash=sha256; every pin of requirements.txt and of requirements-heavy.txt other than torch and
+    torchaudio appears at the same version; no --index-url, --extra-index-url or --find-links.
+    Write it so a Dependabot bump of either source file fails until the lock is regenerated.
+  - daily_publish.yml render job and render.yml: torch is installed with --no-deps and
+    --require-hashes from the PyTorch CPU index alone, from requirements-render-torch.txt, before
+    `--require-hashes -r requirements-render.txt`; no other pip install in those jobs; no
+    `-r requirements-heavy.txt` or `-r requirements.txt` install left.
+  - test_acceptance.
+  Existing locked tests that pin the old install text (tests/workflow_rules.py
+  assert_torch_from_cpu_index_first and TORCH_INDEX_INSTALL, its callers in
+  tests/test_daily_publish_workflow.py and tests/test_workflows.py, and
+  test_installs_ffmpeg_and_heavy_requirements): loosen them in this PR so they hold for both the
+  current and the locked install; ci.yml keeps its unhashed install and its tests do not change.
+  The also_copy entries for the two new files go in with p4b-render-lock, which creates them (a
+  listed path that does not exist yet would break the reports job).
+  Main stays green: the new file skips on main until p4b-render-lock is done.
+paths_allowed:
+  - tests/test_render_lock.py
+  - tests/workflow_rules.py
+  - tests/test_daily_publish_workflow.py
+  - tests/test_workflows.py
+tests: []
+acceptance: tests/test_workflows.py::test_installs_torch_from_cpu_index_only
+context_files:
+  - .harness/handoffs/p4b-plan.md
+  - requirements.txt
+  - requirements-heavy.txt
+  - requirements-generate.txt
+  - .github/workflows/daily_publish.yml
+  - .github/workflows/render.yml
+  - tests/test_ci_workflow.py
+  - tests/test_workflows.py
+  - tests/test_daily_publish_workflow.py
+  - tests/workflow_rules.py
+  - spec.md
+  - lessons.md
+max_turns: 30
