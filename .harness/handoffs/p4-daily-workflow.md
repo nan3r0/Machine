@@ -15,6 +15,7 @@ Review found the ledger could record a script version that was never rendered or
 - Blocker: the locked claim shell tests pass no `render.script_blob`, so they will fail in CI against the strict claim. `CONTRACT_CHANGE.md` written with the test changes needed. The architect must update the tests; the workflow was not loosened.
 - Owner notes for the runbook (R17): a stuck claim with no upload step log means nothing was sent; the YOUTUBE_* secrets must be environment secrets with a main-only deployment rule. A manual dispatch from a branch now skips every job.
 - Still partial: the shell tests and actionlint run in CI only. Awaiting CI.
+- Architect ruling on `CONTRACT_CHANGE.md` (2026-11-22): approved. p4-plan (Ledger) requires the archived blob to equal `script_sha`, so the old tests, which let claim hash main's copy, were wrong against the plan. No workflow defect found. The test patch is written out in `CONTRACT_CHANGE.md` but not applied: the ruling session ran as `LOOM_TASK=p4-daily-workflow` and the lock hook blocked it. A `LOOM_TASK=p4-contracts` (test_author) session applies it on this branch and deletes `CONTRACT_CHANGE.md`.
 
 ## What changed (and why)
 - New file `.github/workflows/daily_publish.yml` only.
