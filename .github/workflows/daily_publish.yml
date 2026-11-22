@@ -1,0 +1,226 @@
+name: daily-publish
+
+on:
+  # 14:00 UTC slot, moved off the full hour because GitHub delays and drops those most.
+  schedule:
+    - cron: "7 14 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Two runs would race for the same script and the same ledger.
+concurrency:
+  group: daily-publish
+  cancel-in-progress: false
+
+jobs:
+  # No secret and a read-only token. Heavy installs run here, so it only hands over final.mp4.
+  render:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    outputs:
+      script_id: ${{ steps.pick.outputs.script_id }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements*.txt
+
+      - name: Install system packages
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y -q --no-install-recommends ffmpeg espeak-ng
+
+      - name: Install torch from the PyTorch CPU index only
+        run: |
+          grep -E '^torch(audio)?==' requirements-heavy.txt > "$RUNNER_TEMP/torch.txt"
+          python -m pip install -q --no-deps --index-url https://download.pytorch.org/whl/cpu -r "$RUNNER_TEMP/torch.txt"
+          python -m pip install -q -r requirements.txt -r requirements-heavy.txt
+
+      - name: Cache model weights
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .cache/models
+          key: models-${{ hashFiles('requirements-heavy.txt', 'pipeline/constants.py') }}
+
+      - name: Pick the next script
+        id: pick
+        run: |
+          script_id="$(python -m pipeline.publish.pick queue data/published)"
+          if [[ ! "$script_id" =~ ^[a-z0-9]+(-[a-z0-9]+)*$ ]]; then
+            echo "pick gave an unexpected script id"
+            exit 1
+          fi
+          echo "script_id=$script_id" >> "$GITHUB_OUTPUT"
+
+      - name: Render
+        env:
+          SCRIPT_ID: ${{ steps.pick.outputs.script_id }}
+        run: python -m pipeline.render_one "queue/approved/$SCRIPT_ID.json" out/render --cache-dir .cache/models
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: final-video
+          path: out/render/final.mp4
+          if-no-files-found: error
+          retention-days: 1
+
+  # Has the write token and no other credential. It runs no code from the repo. The record is
+  # committed before the upload, so a run that dies mid-upload leaves a claim the next pick refuses.
+  claim:
+    needs: render
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+          persist-credentials: true
+
+      # The GIT_CONFIG_* variables are `-c core.hooksPath=/dev/null` for every git call in the step.
+      - name: Commit the claim
+        env:
+          SCRIPT_ID: ${{ needs.render.outputs.script_id }}
+          GIT_CONFIG_COUNT: "1"
+          GIT_CONFIG_KEY_0: core.hooksPath
+          GIT_CONFIG_VALUE_0: /dev/null
+        run: |
+          if [[ ! "$SCRIPT_ID" =~ ^[a-z0-9]+(-[a-z0-9]+)*$ ]]; then
+            echo "unexpected script id"
+            exit 1
+          fi
+          script="queue/approved/$SCRIPT_ID.json"
+          record="data/published/$SCRIPT_ID.json"
+          if [ -e "$record" ]; then
+            echo "main already holds a record for this script"
+            exit 1
+          fi
+          if [ ! -f "$script" ]; then
+            echo "main no longer holds the approved script"
+            exit 1
+          fi
+          mkdir -p data/published
+          jq -n --arg id "$SCRIPT_ID" --arg sha "$(git hash-object -- "$script")" \
+            --arg at "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            '{script_id: $id, script_sha: $sha, claimed_at: $at, youtube_video_id: null, published_at: null}' > "$record"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -- "$record"
+          git commit -m "Claim $SCRIPT_ID for upload"
+          if ! git push origin main; then
+            git pull --rebase origin main
+            if [ ! -f "$script" ]; then
+              echo "main no longer holds the approved script"
+              exit 1
+            fi
+            git push origin main
+          fi
+
+  # Holds the YouTube tokens and a read-only token. It installs only hash-checked packages, reads
+  # the script from its own checkout and takes only final.mp4 from the artifact.
+  upload:
+    needs: [render, claim]
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: youtube
+    outputs:
+      video_id: ${{ steps.upload.outputs.video_id }}
+      sent: ${{ steps.upload.outputs.sent }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.12"
+
+      - name: Install light requirements
+        run: python -m pip install -q --require-hashes -r requirements-generate.txt
+
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: final-video
+          path: ${{ runner.temp }}/artifact
+
+      - name: Upload to YouTube
+        id: upload
+        env:
+          SCRIPT_ID: ${{ needs.render.outputs.script_id }}
+          YOUTUBE_CLIENT_ID: ${{ secrets.YOUTUBE_CLIENT_ID }}
+          YOUTUBE_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
+          YOUTUBE_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
+        run: |
+          if [[ ! "$SCRIPT_ID" =~ ^[a-z0-9]+(-[a-z0-9]+)*$ ]]; then
+            echo "unexpected script id"
+            exit 1
+          fi
+          python -m pipeline.publish.youtube "queue/approved/$SCRIPT_ID.json" "$RUNNER_TEMP/artifact/final.mp4" "$GITHUB_OUTPUT"
+
+  # Has the write token and no other credential. A video id completes the record and moves the
+  # script. sent=false releases the claim. Anything else, a missing output included, keeps the
+  # claim and fails, so the next pick refuses and the owner checks the channel.
+  record:
+    needs: [render, claim, upload]
+    if: always() && needs.claim.result == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+          persist-credentials: true
+
+      - name: Complete or release the claim
+        env:
+          SCRIPT_ID: ${{ needs.render.outputs.script_id }}
+          VIDEO_ID: ${{ needs.upload.outputs.video_id }}
+          SENT: ${{ needs.upload.outputs.sent }}
+          GIT_CONFIG_COUNT: "1"
+          GIT_CONFIG_KEY_0: core.hooksPath
+          GIT_CONFIG_VALUE_0: /dev/null
+        run: |
+          if [[ ! "$SCRIPT_ID" =~ ^[a-z0-9]+(-[a-z0-9]+)*$ ]]; then
+            echo "unexpected script id"
+            exit 1
+          fi
+          record="data/published/$SCRIPT_ID.json"
+          if [ ! -f "$record" ] || ! jq -e '.youtube_video_id == null' "$record" > /dev/null; then
+            echo "main holds no claim-only record for this script"
+            exit 1
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if [ -n "$VIDEO_ID" ]; then
+            if [[ ! "$VIDEO_ID" =~ ^[A-Za-z0-9_-]{11}$ ]]; then
+              echo "unexpected video id, claim kept"
+              exit 1
+            fi
+            jq --arg v "$VIDEO_ID" --arg at "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+              '.youtube_video_id = $v | .published_at = $at' "$record" > "$RUNNER_TEMP/record.json"
+            mv -- "$RUNNER_TEMP/record.json" "$record"
+            mkdir -p queue/published
+            git mv -- "queue/approved/$SCRIPT_ID.json" "queue/published/$SCRIPT_ID.json"
+            git add -- "$record"
+            git commit -m "Record $SCRIPT_ID as published"
+          elif [ "$SENT" = "false" ]; then
+            git rm -q -- "$record"
+            git commit -m "Release the claim on $SCRIPT_ID"
+          else
+            echo "the upload outcome is unknown, claim kept: check the channel"
+            exit 1
+          fi
+          if ! git push origin main; then
+            git pull --rebase origin main
+            git push origin main
+          fi
