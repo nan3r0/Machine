@@ -24,6 +24,12 @@ You are the Stage 0 orchestrator (HARNESS.md section 10, Stage 0). Model: Sonnet
 - One watcher per task; no polling loops in your own turns.
 - One Gate 2 pass per task; chase only blocking findings.
 
+## State (2026-11-22, start of twenty-first orchestrator session)
+- Phase 4b plan merged (#124): 15 task YAMLs in `.harness/tasks/phase4b/`, plan and waves in `.harness/handoffs/p4b-plan.md`. Owner decisions: F1 accepted, cadence stays 7 a week (no T7), P1-2 = orphan `ledger` branch, no bot bypass.
+- NEXT: launch wave 1: `p4b-youtube-contracts` and `p4b-drop-cottingley` (both test_author, Opus, branches `docs/<id>`, no shared paths; drop-cottingley must merge before the first weekly-scripts run). Worktrees via EnterWorktree then ExitWorktree from the main checkout. Verify each (ruff, pytest with LOOM_TASK, scope_check, docs_check), push, open PR, wait for CI on Linux (shell tests skip locally), tell the owner to merge. Then wave 2.
+- Owner items open: disable `daily-publish` (cron fires 14:07 UTC from 2026-11-23); hold R17 until wave 4 has merged; confirm the credit line text (the Architect kept "Narrated with a synthetic voice." after the sources line); create the `ledger` branch before wave 4 merges and turn on the rulesets and deny rules after; approve the audit and sign off threat model v3 (v3.1 after p4b-cso); F8 retention; `trial-lean` back to `baseline`.
+- Rotated at the start of the wave because this session had grown long.
+
 ## State (2026-11-22, end of twentieth orchestrator session)
 - Phase 4 code done and merged: p4-daily-workflow (#114, #118), phase-end reviews p4-cso (#120), p4-audit and p4-qa-lead (#122), p4-phase-review (this close-out, `docs/p4-closeout-2`). Reports CI re-run done (run 45037285671, `data/` added to mutmut also_copy in #121).
 - The follow-up task list T1 to T11, waves and docs owed are in `.harness/handoffs/p4-phase-review.md`. Start with wave 1 (T1 test_author, T3) once the owner has decided F1 and F2/O4; T1 needs an Architect contract round. Phase review says PRD R18 gates are not yet in PRD: apply the docs list at the next docs branch.
