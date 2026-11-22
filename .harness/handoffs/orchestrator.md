@@ -24,6 +24,14 @@ You are the Stage 0 orchestrator (HARNESS.md section 10, Stage 0). Model: Sonnet
 - One watcher per task; no polling loops in your own turns.
 - One Gate 2 pass per task; chase only blocking findings.
 
+## State (2026-11-22, end of seventeenth orchestrator session)
+- Merged: p4-pick #107, p4-youtube #106 (Opus Gate 2 and security approved, CI green), Dependabot #108 to #112 (the pydantic-core bump was needed: pydantic 2.14.3 pins it exactly). Close-out on `docs/p4-pick-youtube-closeout-1`.
+- Routing trial `trial-lean` is ACTIVE (owner edited `profile:` in the main checkout, uncommitted). Remind the owner to switch back to `baseline` after 8 to 10 tasks or at the end of Phase 4, with `python .harness/compare_profiles.py` numbers. Phase 4 tasks mostly touch `pipeline/publish/**` or `.github/workflows/**` (security paths) so Gate 2 stays on Opus; the trial saves little here. Save `.harness/reviews/<id>.diff` before each review or `model_for` falls back to Opus.
+- Next: p4-daily-workflow (Sonnet implementer, security review), then CSO (close P1-5), QA lead, audit, phase review. Carry into p4-daily-workflow: no `actions/cache` step in the upload job; the record job treats a missing `video_id` and `sent` line as sent=true and keeps the claim; add a token-character check before `::add-mask::` only via an Architect task if wanted.
+- Follow-ups for the Architect (non-blocking): locked test for the encoded and JSON-escaped secret redaction in youtube.py; file name equals id check in pick.py `_load_approved`; duplicate approved ids; log real HTTP status (201 vs 200); docstring of `_send_video` vs read_bytes sent flag.
+- Usage limit hit once (5-hour, resets 3:10am London) mid-review; a retry after the reset worked.
+- Harness fix: `log_outcome.py` now reads the profile from the main checkout (lessons 2026-11-22).
+
 ## State (2026-11-22, end of sixteenth orchestrator session)
 - Merged: p4-contracts #104 (round 1 blocked on a missing claim-refusal test, round 2 and security approved, CI green). Close-out on `docs/p4-contracts-closeout-1`.
 - Next: wave 3, p4-pick and p4-youtube in parallel (Sonnet implementers, worktrees `task/p4-pick`, `task/p4-youtube`; security review for p4-youtube). Then p4-daily-workflow, CSO (close P1-5), QA lead, audit, phase review.
