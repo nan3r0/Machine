@@ -24,6 +24,14 @@ You are the Stage 0 orchestrator (HARNESS.md section 10, Stage 0). Model: Sonnet
 - One watcher per task; no polling loops in your own turns.
 - One Gate 2 pass per task; chase only blocking findings.
 
+## State (2026-11-22, end of sixteenth orchestrator session)
+- Merged: p4-contracts #104 (round 1 blocked on a missing claim-refusal test, round 2 and security approved, CI green). Close-out on `docs/p4-contracts-closeout-1`.
+- Next: wave 3, p4-pick and p4-youtube in parallel (Sonnet implementers, worktrees `task/p4-pick`, `task/p4-youtube`; security review for p4-youtube). Then p4-daily-workflow, CSO (close P1-5), QA lead, audit, phase review.
+- Carry into the p4-youtube brief: mask the derived access token with `::add-mask::` after the refresh, error messages name the host only and never the full session URL, check the token `scope` field and the `Location` and `X-Upload-*` shapes against Google's docs (the contract came from recall; use an agent with web tools if the implementer has none). Carry into p4-daily-workflow: no `actions/cache` step in the upload job.
+- A commit can be blocked by the owner's global secret scan (false positives on token constants and fake tokens). The owner approves `SKIP_SECRET_SCAN=1` by running the commit with `!`. Task sessions must stop and say so, not bypass.
+- `.harness/reviews/` is gitignored: round files stay in the worktree only.
+- Rotate now: fresh session, "continue as orchestrator".
+
 ## State (2026-11-22, end of fifteenth orchestrator session)
 - Merged: p2d-ci-triggers #102 (Gate 2 and security approved, CI green), p4-licences #101, Phase 2c close-out #100. Close-out for p2d and p4-licences is on `docs/p2d-closeout-1`.
 - CI now starts from a PR (a draft is enough), not from a branch push. Open a draft PR right after pushing a task branch. Step 4 and 6 of "How to run a task" read that way.

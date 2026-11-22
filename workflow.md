@@ -234,7 +234,7 @@ Specialist reviews: security for p4-youtube and p4-daily-workflow. No visual QA:
 
 | Task | Status | Notes |
 |---|---|---|
-| p4-contracts | built, awaiting review | O1 (b), O2 true, O3 default; youtube environment rule |
+| p4-contracts | done, merged 2026-11-22 (PR #104) | Gate 2 round 2 and security approved, CI green; O1 (b), O2 true, O3 default; youtube environment rule |
 | p4-pick | planned | |
 | p4-youtube | planned | |
 | p4-daily-workflow | planned | |

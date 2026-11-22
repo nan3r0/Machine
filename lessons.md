@@ -344,3 +344,11 @@ How it was caught: GitHub stopped running workflows; the owner traced it to the 
 Fix: task p2d-ci-triggers (push on main and scripts/** only, PR runs cancel superseded ones). Phase plans now estimate CI minutes per task and per daily run.
 Rule going forward: treat Actions minutes as a budget. Every workflow trigger change states its minutes per run and per week, and a plan whose development pace exceeds the allowance says so before it starts.
 Test added: `tests/test_ci_triggers.py` (task p2d-ci-triggers).
+
+### 2026-11-22: contract tests covered the happy path of an at-most-once claim, not the refusal
+What happened: the first p4-contracts tests for the daily publish claim job checked the id format, the commit shape and the rebase retry, but nothing made the claim refuse when a record for that script already existed on main.
+Why it happened (root cause, not symptom): the tests were written from the flow's steps, not from its safety property (a script is uploaded at most once). A queued second run with a stale checkout could have rewritten the claim and uploaded the same video twice.
+How it was caught: Gate 2 review, with a concrete scenario.
+Fix: round 1 added a locked shell test that seeds main independently (existing claim-only record, record with a video id, script missing from `queue/approved/`) and asserts a non-zero exit, an unchanged head and an unchanged record.
+Rule going forward: for every at-most-once or append-only rule in a plan, a locked test must show the refusal case against state seeded outside the code under test, not only the success path.
+Test added: `tests/test_daily_publish_workflow.py` (task p4-contracts).

@@ -61,7 +61,7 @@ In Stage 0 the "orchestrator" is one long-running Claude Code session acting as 
 
 **Claude Fable 5.2:** deliberately not in the routing. The work isn't hard enough to justify it, and it would use up plan limits quickly. If your plan includes it, keep it as a manual break-glass option for a task that fails even after Opus escalation. Never route to it automatically.
 
-**Rule:** routing lives in `.harness/config.yaml`, so the retrospective can propose changes like "move test-writing for render tasks to Sonnet". Every change is logged and measured.
+**Rule:** routing lives in `.harness/config.yaml`, so the retrospective can propose changes like "move test-writing for render tasks to Sonnet". Every change is logged and measured. Routing trials run as named profiles in the same file (`profile:` at the top, `baseline` = this table); see `TRIAL.md` for the current trial, its safety rules and the one-line rollback.
 
 ---
 
