@@ -1,6 +1,7 @@
 """Pick the next approved script to publish (task p4-pick, PRD R14, PLAN.md section 7 Workflow B).
 
 Pure file logic: no network, no secret. Contract written by p4-contracts; p4-pick implements it.
+The publish records come from the ledger branch's `data/published/`; a script that has one is skipped.
 """
 
 import argparse
@@ -22,13 +23,14 @@ def next_script(queue_dir: Path, records_dir: Path, today: date) -> str:
     PublishRecord (`model_validate_json`). A file that does not parse raises PickError naming the
     file, and so does a record whose file name is not `<script_id>.json`. A missing
     `queue_dir/approved` counts as empty. A missing `records_dir` raises PickError naming it: the
-    folder always exists (`.gitkeep`), and a wrong path would hide an unconfirmed claim. The rules,
-    in order:
+    folder always exists (`.gitkeep`), and a wrong path would hide an unconfirmed claim. The records
+    folder is the ledger branch's `data/published/`, checked out by the workflow. The rules, in
+    order:
 
     1. A record with no `youtube_video_id` means an earlier upload may have reached YouTube: raise
        PickError naming its script_id. Nothing is picked that run, even if other scripts are due.
-    2. A record with a video id whose script is still in `queue_dir/approved/` is an inconsistent
-       ledger: raise PickError naming the script.
+    2. A script with a record is already published and is left out, even while it is still in
+       `queue_dir/approved/`.
     3. Candidates are approved scripts with no record and `publish_after` on or before `today`.
        Return the first by (`publish_after`, `id`). With none, raise PickError whose message starts
        with "queue empty".
@@ -44,10 +46,7 @@ def next_script(queue_dir: Path, records_dir: Path, today: date) -> str:
             )
     approved = _load_approved(queue_dir / "approved")
     recorded = {record.script_id for record in records}
-    for script in approved:
-        if script.id in recorded:
-            raise PickError(f"{script.id} is published but still in queue/approved/")
-    due = [s for s in approved if s.publish_after <= today]
+    due = [s for s in approved if s.id not in recorded and s.publish_after <= today]
     if not due:
         raise PickError("queue empty: no approved script is due")
     return min(due, key=lambda s: (s.publish_after, s.id)).id
