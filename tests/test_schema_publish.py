@@ -85,8 +85,9 @@ def test_youtube_constants() -> None:
     assert constants.YOUTUBE_PRIVACY == "public"
     assert constants.YOUTUBE_MADE_FOR_KIDS is False
     assert constants.YOUTUBE_SYNTHETIC_MEDIA is True  # owner decision O2
-    assert constants.YOUTUBE_CREDIT_LINE == ("Sources: Wikipedia (CC BY-SA 4.0) and public records. "
-                                             "Narrated with a synthetic voice.")  # owner decision O3
+    assert constants.YOUTUBE_PAID_PRODUCT_PLACEMENT is False  # audit F1
+    assert constants.YOUTUBE_CREDIT_LINE == ("Sources: Wikipedia (CC BY-SA 4.0) or public records. "
+                                             "Narrated with a synthetic voice.")  # O3, reworded by F4
     assert constants.YOUTUBE_DESCRIPTION_MAX_BYTES == 5000
     for timeout in (constants.YOUTUBE_CONNECT_TIMEOUT_S, constants.YOUTUBE_UPLOAD_TIMEOUT_S):
         assert isinstance(timeout, int) and 0 < timeout
