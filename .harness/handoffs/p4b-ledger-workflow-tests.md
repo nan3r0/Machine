@@ -4,7 +4,7 @@
 Locked tests for Workflow B on the bot-only `ledger` branch (CSO P1-2, P4-1, P4-2; QA lead rank 3), per the job-by-job spec in `.harness/handoffs/p4b-plan.md`, "P1-2 design". Trim `tests/test_daily_publish_workflow.py` to tests that hold for both the current and the ledger workflow.
 
 ## Status
-done (tests and docs). The shell tests have never run: they skip on Windows, and the new file skips until p4b-ledger-workflow is done or is LOOM_TASK. See Known risks.
+partial, awaiting CI. All edits are committed; the task is done once the Linux CI runs in Next step are as expected. The shell tests have never run: they skip on Windows, and the new file skips until p4b-ledger-workflow is done or is LOOM_TASK. The new file is locked by the `tests/**` glob in `.harness/locks.yaml`.
 
 ## What changed (and why)
 - New `tests/test_daily_publish_ledger.py` (owned by p4b-ledger-workflow, so it skips on main until that task is done).
@@ -28,12 +28,15 @@ done (tests and docs). The shell tests have never run: they skip on Windows, and
 none
 
 ## Known risks
-- The shell harness has never executed (Windows skips it). First real run: Linux CI. With LOOM_TASK unset the new file skips; run CI once with `LOOM_TASK=p4b-ledger-workflow` and expect every new-file test to fail on an assertion (not a harness error) against today's workflow. A harness error there means a test bug to fix before the implementer starts.
+- The shell harness has never executed (Windows skips it). First real run: Linux CI. With LOOM_TASK unset the new file skips. With `LOOM_TASK=p4b-ledger-workflow`, against today's workflow:
+  - Expected to fail: the six structure tests (so `test_acceptance` too), claim success, claim retry, claim against a concurrent claim, claim when the ledger holds a record, the claim run-number cases, upload success, record complete (both), record release, and the record hooks case.
+  - Expected to pass trivially (today's workflow finds nothing under `ledger/`): the other refusal cases and the claim hooks case.
+  - A test bug, to fix before the implementer starts: any setup error, such as a `CalledProcessError` from git in `seeded`, `workspace` or `change`, or a `ValueError` from unpacking.
 - The old file's hooks check requires hooks off through `GIT_CONFIG_*` step env, as today. A ledger workflow that turns hooks off another way (`git -c core.hooksPath=...`) would fail it; the plan says "as today", so the implementer should keep the env form.
 - During the window before p4b-ledger-workflow merges, nothing on main runs the claim and record steps under bash (the old shell tests are gone, the new ones skip). Accepted in the plan's coverage window; `daily-publish` is disabled.
 
 ## Next step
-Orchestrator: push on a `docs/*` branch, open the PR, and check the Linux CI run is green (new file skipped). Then one CI run with `LOOM_TASK=p4b-ledger-workflow` to see only the new file fail. Then p4b-ledger-workflow can start.
+Orchestrator: push on a `docs/*` branch, open the PR, and check the Linux CI run is green (new file skipped). Then one CI run with `LOOM_TASK=p4b-ledger-workflow`: only new-file tests fail, and exactly the ones listed under Known risks. Then p4b-ledger-workflow can start.
 
 ## Docs
 - workflow.md R16 row: done in this task.
