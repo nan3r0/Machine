@@ -49,9 +49,8 @@ jobs:
 
       - name: Install torch from the PyTorch CPU index only
         run: |
-          grep -E '^torch(audio)?==' requirements-heavy.txt > "$RUNNER_TEMP/torch.txt"
-          python -m pip install -q --no-deps --index-url https://download.pytorch.org/whl/cpu -r "$RUNNER_TEMP/torch.txt"
-          python -m pip install -q -r requirements.txt -r requirements-heavy.txt
+          python -m pip install -q --no-deps --require-hashes --index-url https://download.pytorch.org/whl/cpu -r requirements-render-torch.txt
+          python -m pip install -q --require-hashes -r requirements-render.txt
 
       - name: Cache model weights
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0

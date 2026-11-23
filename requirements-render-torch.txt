@@ -1,0 +1,11 @@
+# Hash-checked pins for torch and torchaudio in the render jobs (daily_publish.yml render, render.yml).
+# Versions equal requirements-heavy.txt. Installed first, from the PyTorch CPU index alone, with
+# --no-deps; requirements-render.txt carries their dependencies. Regenerate after a bump of either pin:
+#   pip download torch==<version> torchaudio==<version> --no-deps --index-url https://download.pytorch.org/whl/cpu \
+#     --platform manylinux_2_28_x86_64 --platform manylinux_2_17_x86_64 --platform manylinux2014_x86_64 \
+#     --python-version 3.12 --only-binary=:all: -d <empty dir>
+# then put the sha256 of each downloaded wheel on its package's line (`pip hash <wheel>`).
+torch==2.11.0+cpu \
+    --hash=sha256:f82e2ae20c1545bb03997d1cc3143d94e14b800038669ee1aca45808a9acc338
+torchaudio==2.11.1 \
+    --hash=sha256:fc050a1aeb556f8a7f5ee01531e6ae9f130aed81452da6d9052d3429e3a68d9e
