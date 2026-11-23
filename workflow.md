@@ -92,9 +92,9 @@ Locked by p1-contracts. Every task's acceptance test is `test_acceptance` in its
 | R13.6 | Handoffs of p2-qa-lead, p2-cso, p2-audit; owner approves |
 | R13.7 | `tests/test_weekly_hardening.py` (P2-1, P2-2, P2-4, P2-6), `tests/script/test_validate_urls.py` (P2-3), `tests/script/test_gemini_redirect.py` (P2-5) |
 | R7.3 triggers (p2d-ci-triggers) | `tests/test_ci_triggers.py` |
-| R14.1 to R14.3 | `tests/publish/test_pick.py`, tests/publish/test_pick_ledger.py (records on the ledger branch) |
-| R15.1 to R15.4 | `tests/publish/test_youtube.py`, `tests/test_schema_publish.py` (constants, credit line), tests/publish/test_youtube_placement.py (paid placement, access token characters) |
-| R16.1 to R16.4 | `tests/test_daily_publish_workflow.py`, tests/test_daily_publish_ledger.py (ledger branch, task p4b-ledger-workflow), `tests/test_schema_publish.py` (PublishRecord), `tests/test_workflow_safety.py` (allowlists, environment) |
+| R14.1 to R14.3 | `tests/publish/test_pick.py`, `tests/publish/test_pick_ledger.py` (records on the ledger branch) |
+| R15.1 to R15.4 | `tests/publish/test_youtube.py`, `tests/test_schema_publish.py` (constants, credit line), `tests/publish/test_youtube_placement.py` (paid placement, access token characters) |
+| R16.1 to R16.4 | `tests/test_daily_publish_workflow.py`, `tests/test_daily_publish_ledger.py` (ledger branch, task p4b-ledger-workflow), `tests/test_schema_publish.py` (PublishRecord), `tests/test_workflow_safety.py` (allowlists, environment) |
 | R17 | Manual, owner, first dispatch of Workflow B |
 | R18 | Handoffs of p4-cso, p4-audit; owner approves |
 
@@ -243,3 +243,21 @@ Specialist reviews: security for p4-youtube and p4-daily-workflow. No visual QA:
 | p4-audit | done, merged 2026-11-22 (PR #122) | owner approval pending; F1 paid placement flag, F2 cadence, F7 weekly audit |
 | p4-qa-lead | done, merged 2026-11-22 (PR #122) | ten ranked tests, no code bug found |
 | p4-phase-review | done 2026-11-22 | Phase 4 code can close; R17 not run, go-live gates and follow-up tasks T1 to T11 in the handoff |
+
+## Phase 4b module order
+
+Planned 2026-11-22 by the Architect (`.harness/handoffs/p4b-plan.md`): the Phase 4 phase-end review follow-ups and the owner's decisions up to go-live (PRD R18). Task files: `.harness/tasks/phase4b/00_*.yaml` to `14_*.yaml`. At most two at once; no two tasks in a wave share a path.
+
+```
+wave 1: p4b-youtube-contracts, p4b-drop-cottingley   (drop-cottingley merges before the first weekly-scripts run)
+wave 2: p4b-youtube, p4b-ledger-contracts
+wave 3: p4b-pick-ledger, p4b-ledger-workflow-tests
+wave 4: p4b-ledger-workflow, p4b-youtube-survivors
+owner: ledger bootstrap (before wave 4 merges), rulesets and deny rules (after), R17 by hand
+wave 5: p4b-render-lock-tests, p4b-audit-tests
+wave 6: p4b-render-lock, p4b-weekly-audit            (owner dispatches render.yml on the render-lock branch as the Linux proof)
+wave 7: p4b-runbook, p4b-cso
+wave 8: p4b-docs
+```
+
+Specialist reviews: security for p4b-youtube, p4b-pick-ledger, p4b-ledger-workflow, p4b-render-lock and p4b-weekly-audit. No visual QA: no render code changes, only how it is installed. Status rows for these tasks go in the `### Phase 4 status` table above.
