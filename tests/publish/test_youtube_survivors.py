@@ -23,7 +23,7 @@ from pathlib import Path
 from typing import Any
 
 import pytest
-from hypothesis import HealthCheck, given, settings
+from hypothesis import HealthCheck, example, given, settings
 from hypothesis import strategies as st
 
 from pipeline import constants
@@ -213,6 +213,8 @@ SECRET_CHARS = st.characters(min_codepoint=0x21, max_codepoint=0x7E)
           suppress_health_check=[HealthCheck.function_scoped_fixture])
 @given(secret=st.text(SECRET_CHARS, min_size=12, max_size=60), prefix=st.integers(0, 260),
        form=st.sampled_from(sorted(FORMS)))
+# The raw secret sits inside its own JSON-escaped form here, offset by the doubled backslashes.
+@example(secret="\\" * 12 + "x", prefix=0, form="json-escaped")
 def test_property_no_secret_form_survives(monkeypatch: pytest.MonkeyPatch, mp4: Path, secret: str,
                                           prefix: int, form: str) -> None:
     """Whatever the secret, the filler length before it and the form it is echoed in, neither the
