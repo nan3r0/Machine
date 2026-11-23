@@ -97,24 +97,48 @@ def test_report_findings_fail_the_job_without_losing_the_reports() -> None:
         assert "|| true" not in str(step.get("run", ""))
 
 
+def makefile_recipes() -> dict[str, list[str]]:
+    """Each target's recipe lines (the tab-indented lines under it)."""
+    recipes: dict[str, list[str]] = {}
+    target = ""
+    for line in (ROOT / "Makefile").read_text(encoding="utf-8").splitlines():
+        if line.startswith("\t") and target:
+            recipes[target].append(line.strip())
+        elif match := re.match(r"^([\w-]+):", line):
+            target = match.group(1)
+            recipes[target] = []
+    return recipes
+
+
 def test_makefile_check_runs_every_gate_tool() -> None:
-    makefile = (ROOT / "Makefile").read_text(encoding="utf-8")
+    """pip-audit lives only in `audit`, which `check` runs in its old place, so the weekly audit
+    workflow (p4b-weekly-audit) and Gate 1 share one command and one set of ignores."""
+    recipes = makefile_recipes()
+    check = recipes["check"]
+    gate = "\n".join(check + recipes["audit"])
     for tool in GATE_TOOLS:
-        assert tool in makefile, tool
+        assert tool in gate, tool
+    assert not any("pip-audit" in line for line in check), "pip-audit runs only through `audit`"
+    assert check.index("$(MAKE) audit") == check.index("gitleaks git --redact --no-banner .") + 1
+    assert check[-1] == "actionlint"
+    assert re.search(r"^\.PHONY:.*\baudit\b", (ROOT / "Makefile").read_text(encoding="utf-8"), re.MULTILINE)
 
 
 def test_makefile_audits_only_project_requirements() -> None:
+    [audit] = makefile_recipes()["audit"]
+    assert "sed 's/+cpu//' requirements-heavy.txt > " in audit
+    assert "pip-audit -r requirements.txt -r $$audit " in audit
     makefile = (ROOT / "Makefile").read_text(encoding="utf-8")
-    assert "sed 's/+cpu//' requirements-heavy.txt > " in makefile
-    assert "pip-audit -r requirements.txt -r $$audit " in makefile
     assert "-r requirements-heavy.txt" not in makefile
     assert "requirements-dev" not in makefile
 
 
 def test_makefile_ignores_only_the_known_advisories() -> None:
-    makefile = (ROOT / "Makefile").read_text(encoding="utf-8")
-    ignored = re.findall(r"--ignore-vuln (\S+)", makefile)
+    [audit] = makefile_recipes()["audit"]
+    ignored = re.findall(r"--ignore-vuln (\S+)", audit)
     assert sorted(ignored) == ["GHSA-xmj3-9gf7-h52w", "PYSEC-2025-194", "PYSEC-2026-3447"]
+    makefile = (ROOT / "Makefile").read_text(encoding="utf-8")
+    assert makefile.count("--ignore-vuln") == 3, "the ignores live in one place"
 
 
 def test_ci_upgrades_setuptools_before_any_install() -> None:

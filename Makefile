@@ -7,7 +7,8 @@
 # ignore when a torchaudio for torch 2.13+ ships and both pins move.
 # pip-audit resolves from PyPI, where the +cpu local versions do not exist, so it audits a copy
 # of requirements-heavy.txt without the suffix (same release, same advisories).
-.PHONY: check
+# `audit` is its own target so the weekly audit workflow runs the same command and ignores.
+.PHONY: check audit
 
 check:
 	python tests/docs_check.py
@@ -18,5 +19,8 @@ check:
 	bandit -q -r pipeline --severity-level high
 	semgrep scan --config p/python --severity ERROR --error --metrics off --quiet pipeline tests
 	gitleaks git --redact --no-banner .
-	audit=$$(mktemp) && sed 's/+cpu//' requirements-heavy.txt > $$audit && pip-audit -r requirements.txt -r $$audit --ignore-vuln PYSEC-2026-3447 --ignore-vuln PYSEC-2025-194 --ignore-vuln GHSA-xmj3-9gf7-h52w
+	$(MAKE) audit
 	actionlint
+
+audit:
+	audit=$$(mktemp) && sed 's/+cpu//' requirements-heavy.txt > $$audit && pip-audit -r requirements.txt -r $$audit --ignore-vuln PYSEC-2026-3447 --ignore-vuln PYSEC-2025-194 --ignore-vuln GHSA-xmj3-9gf7-h52w
