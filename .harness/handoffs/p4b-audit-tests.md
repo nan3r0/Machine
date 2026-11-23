@@ -22,7 +22,8 @@ done
     - Install: setuptools first, then torch from the CPU index (`assert_torch_from_cpu_index_first`), then `-r requirements.txt` and pip-licenses at its pin. No requirements-dev and no pip-audit.
     - The pinned `RULE` regex is in its run text.
     - The `pip-licenses` line has no pipe, no `--fail-on` and no `--allow-only`, and `--ignore-packages` names exactly `phonemizer-fork:3.3.2`.
-  - Steps: in every job, each step after the first report step has `!cancelled()`. No step has `continue-on-error` or `|| true`.
+  - Steps: no job has `needs` (a red audit job must not skip the licence check). In every job, each step after the first report step has `!cancelled()`. No step has `continue-on-error` or `|| true`.
+  - Each job has exactly one `actions/setup-python` at ci.yml's Python version (read from ci.yml), since pip-audit's resolution and the installed set depend on the interpreter.
   - `test_rule_fails_gpl_and_agpl_only` checks the regex against the licenses.md strings and SPDX forms. GPL and AGPL fail; LGPL, `UNKNOWN` (espeakng-loader), MIT and similar pass.
 
 ## Decisions made
@@ -40,9 +41,9 @@ done
 
 ## Next step
 - Architect or owner: confirm the phonemizer-fork exception now that the repo is public.
-- p4b-weekly-audit. A shape that passes every test here:
-  - job `audit`: checkout (no credentials), `pip install pip-audit==2.10.1`, then `make audit`.
-  - job `licences`: checkout, then one install step: setuptools, torch `--no-deps` from the CPU index, then `-r requirements.txt -r requirements-heavy.txt pip-licenses==5.5.5`.
+- p4b-weekly-audit. A shape that passes every test here (no `needs` between the jobs):
+  - job `audit`: checkout (no credentials), setup-python at ci.yml's version, `pip install pip-audit==2.10.1`, then `make audit`.
+  - job `licences`: checkout, setup-python at ci.yml's version, then one install step: setuptools, torch `--no-deps` from the CPU index, then `-r requirements.txt -r requirements-heavy.txt pip-licenses==5.5.5`.
   - `pip-licenses --format=json --ignore-packages phonemizer-fork:3.3.2 --output-file "$RUNNER_TEMP/licenses.json"`.
   - A rule step with `if: ${{ !cancelled() }}` running a Python heredoc with the pinned regex, printing all offenders.
   - Concurrency group `weekly-audit-${{ github.event.pull_request.number || github.run_id }}`.
@@ -55,7 +56,8 @@ done
 - All for p4b-docs; none are inside this task's paths_allowed.
 
 ## Evidence
-- `pytest -q --tb=short tests .harness/tests`: 1537 passed, 243 skipped (the new file collects and its 9 tests skip until p4b-weekly-audit is done).
+- `pytest -q --tb=short tests .harness/tests`: 1537 passed, 244 skipped (the new file collects and its 10 tests skip until p4b-weekly-audit is done).
 - `pytest tests/test_ci_workflow.py` before the Makefile change: 3 failed (KeyError 'audit'); after: all pass.
 - Temporary sample and mutation run (removed): 17 passed. The cases were: a clean sample; cron on the hour; push trigger; missing PR path; cancel-in-progress; a constant group; a missing `!cancelled()`; `|| true`; an extra ignore; an unpinned ignore; a weakened regex; the dev set; an unpinned pip-audit; `--fail-on`; a pipe; an install before setuptools; `continue-on-error`.
+- Second temporary run after adding the `needs` and setup-python checks (removed): 4 passed. The cases were a clean sample with setup-python; `needs: audit` on the licence job; Python 3.13; setup-python removed.
 - `ruff check .`: all passed. `mypy --strict pipeline/`: no issues.

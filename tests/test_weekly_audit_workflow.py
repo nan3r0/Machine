@@ -89,6 +89,21 @@ def test_concurrency_never_cancels() -> None:
     assert not concurrency.get("cancel-in-progress")
 
 
+def test_every_job_uses_ci_python() -> None:
+    """pip-audit's resolution and the installed set depend on the interpreter, so both jobs use
+    the Python version Gate 1 runs on."""
+    def python_versions(wf: dict[str, Any]) -> list[str]:
+        return [str(step["with"]["python-version"]) for job in wf["jobs"].values() for step in job["steps"]
+                if str(step.get("uses", "")).startswith("actions/setup-python@")]
+
+    [ci_version, *_] = python_versions(rules.load("ci.yml"))
+    wf = workflow()
+    assert python_versions(wf) == [ci_version] * len(wf["jobs"])
+    for job in wf["jobs"].values():
+        setups = [s for s in job["steps"] if str(s.get("uses", "")).startswith("actions/setup-python@")]
+        assert len(setups) == 1
+
+
 def test_runs_the_shared_pip_audit_command() -> None:
     job = only_job_running(workflow(), "make audit")
     run = job_run(job)
@@ -125,6 +140,7 @@ def test_no_finding_hides_another() -> None:
     """lessons.md 2026-11-16: every step after the first report runs unless cancelled, and
     nothing hides an exit code."""
     for job in workflow()["jobs"].values():
+        assert "needs" not in job, "a red audit job must not skip the licence check"
         steps = job["steps"]
         reports = [i for i, s in enumerate(steps) if any(c in str(s.get("run", "")) for c in
                                                          ("make audit", "pip-licenses --", RULE))]
@@ -145,6 +161,7 @@ def test_acceptance() -> None:
     test_triggers()
     test_safe_read_only_and_without_secrets()
     test_concurrency_never_cancels()
+    test_every_job_uses_ci_python()
     test_runs_the_shared_pip_audit_command()
     test_licence_check_installs_the_runtime_set_only()
     test_licence_rule_is_pinned_and_exact()
