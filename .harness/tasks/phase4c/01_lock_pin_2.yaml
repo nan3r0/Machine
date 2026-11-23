@@ -1,0 +1,60 @@
+id: p4c-lock-pin-2
+title: Make the generate and render locks resolvable again after the Dependabot bumps and group pydantic with pydantic-core
+depends_on: []
+role: implementer
+notes: |
+  Bug: Dependabot merged three bumps that leave pins pip cannot resolve (wheel METADATA
+  Requires-Dist is the source for each requirement):
+  - PR #151, pydantic 2.14.4 in requirements.txt and both locks. pydantic 2.14.4 requires exactly
+    pydantic-core 2.50.5; both locks still pin 2.50.4, because the `ignore: pydantic-core` that
+    p4c-lock-pin added blocked the matching core bump. `pip install --require-hashes -r
+    requirements-generate.txt` fails with ResolutionImpossible (weekly-scripts run 45253643834).
+  - PR #150, thinc 8.3.14 to 10.0.0 in requirements-render.txt. spacy 3.8.18 requires
+    thinc>=8.3.12,<8.4.0.
+  - PR #152, curated-transformers 0.1.1 to 2.0.1 in requirements-render.txt.
+    spacy-curated-transformers 0.3.1 requires curated-transformers>=0.1.0,<0.2.0.
+  This task supersedes p4c-lock-pin.
+
+  Hash lines are always copied from git history, never invented or downloaded. Keep every hash line
+  of the copied block. Nothing else in the files changes.
+  - requirements-generate.txt and requirements-render.txt: set pydantic-core to 2.50.5 with the 140
+    --hash lines it has in `git show ba7bbd0:requirements-generate.txt` (found with
+    `git log -S "pydantic-core==2.50.5" -- requirements-generate.txt`).
+  - requirements-render.txt: thinc back to 8.3.14 with its block from
+    `git show 9aca65d^:requirements-render.txt` (9aca65d is "Bump thinc from 8.3.14 to 10.0.0"), and
+    curated-transformers back to 0.1.1 with its block from `git show e2f92bb^:requirements-render.txt`
+    (e2f92bb is "Bump curated-transformers from 0.1.1 to 2.0.1").
+  - .github/dependabot.yml, pip entry: remove the pydantic-core ignore and add
+        ignore:
+          - dependency-name: thinc
+            update-types: ["version-update:semver-major"]
+          - dependency-name: curated-transformers
+            update-types: ["version-update:semver-major"]
+        groups:
+          pydantic:
+            patterns:
+              - pydantic
+              - pydantic-core
+    so a pydantic bump and its pydantic-core bump come in one PR. Nothing else changes.
+  - Install proof on Linux: CI's Gate 1 installs neither lock. After push, hand off as `partial`,
+    "awaiting install proof"; the orchestrator asks the owner for a weekly-scripts dispatch
+    (requirements-generate.txt) and a render.yml dispatch (requirements-render.txt) on main after
+    merge, or on the task branch. Mark p4c-lock-pin done with this task, since it is superseded.
+  - A later Dependabot bump of a package listed in CONSTRAINTS fails the locked test until a row is
+    added (test_author work, not this task).
+  No security trigger in .harness/config.yaml matches these paths; the orchestrator may ask for the
+  security review by hand, since this is a supply-chain lock.
+paths_allowed:
+  - requirements-generate.txt
+  - requirements-render.txt
+  - .github/dependabot.yml
+tests:
+  - tests/test_lock_consistency.py
+acceptance: tests/test_lock_consistency.py::test_acceptance
+context_files:
+  - requirements-generate.txt
+  - requirements-render.txt
+  - .github/dependabot.yml
+  - tests/test_lock_consistency.py
+  - lessons.md
+max_turns: 15

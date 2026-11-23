@@ -1,20 +1,37 @@
-"""Hashed lock files agree with each other (task p4c-lock-pin).
+"""Hashed lock files agree with each other (tasks p4c-lock-pin, p4c-lock-pin-2).
 
-Dependabot bumped pydantic-core alone in requirements-generate.txt (commit ba7bbd0), but pydantic pins
-an exact pydantic-core, so `pip install --require-hashes` failed with ResolutionImpossible. Which
-pydantic-core a pydantic release needs is only in its wheel metadata, so offline the tests check that
-every package pinned in more than one hashed lock has one version across all of them, and that
-Dependabot leaves pydantic-core to pydantic.
+pip installs a hashed lock only if every pin satisfies what the other pins require, or it fails with
+ResolutionImpossible. Dependabot broke that by bumping one package without the one that constrains
+it: pydantic-core alone (commit ba7bbd0), then pydantic alone (PR #151) while an ignore held
+pydantic-core back, and thinc (PR #150) and curated-transformers (PR #152) past what spaCy allows.
+The tests check that every package pinned in more than one hashed lock has one version across all
+of them, that pins satisfy the known requirements in CONSTRAINTS, and that Dependabot bumps pydantic
+and pydantic-core together and leaves the spaCy pins' majors alone.
 """
 
 from pathlib import Path
 
 import yaml
+from packaging.specifiers import SpecifierSet
 
 from tests.test_render_lock import normalise, requirements
 
 ROOT = Path(__file__).resolve().parent.parent
 DEPENDABOT = ROOT / ".github" / "dependabot.yml"
+
+# (package, version, dependency, specifier): that release requires the dependency within the
+# specifier. Each row is copied from the `Requires-Dist:` line in that wheel's METADATA on PyPI,
+# since an offline test cannot read it. Bumping a listed package needs its new row.
+CONSTRAINTS = [
+    ("pydantic", "2.14.3", "pydantic-core", "==2.50.4"),  # pydantic-2.14.3 wheel METADATA
+    ("pydantic", "2.14.4", "pydantic-core", "==2.50.5"),  # pydantic-2.14.4 wheel METADATA
+    ("spacy", "3.8.18", "thinc", ">=8.3.12,<8.4.0"),  # spacy-3.8.18 wheel METADATA
+    # spacy_curated_transformers-0.3.1 wheel METADATA
+    ("spacy-curated-transformers", "0.3.1", "curated-transformers", ">=0.1.0,<0.2.0"),
+]
+
+# Dependabot may not take these past a major: spaCy caps them, and they are only transitive pins.
+SPACY_CAPPED = ("thinc", "curated-transformers")
 
 
 def hashed_locks(root: Path) -> list[Path]:
@@ -32,6 +49,37 @@ def split_pins(locks: list[Path]) -> dict[str, dict[str, str]]:
     return {name: files for name, files in seen.items() if len(set(files.values())) > 1}
 
 
+def constraint_problems(locks: list[Path]) -> list[str]:
+    """One message per lock pin that breaks a CONSTRAINTS row, or per pinned package version that
+    CONSTRAINTS lists other versions of but not this one."""
+    problems = []
+    for lock in locks:
+        pins = requirements(lock, hashed=True)
+        for package in sorted({row[0] for row in CONSTRAINTS} & pins.keys()):
+            rows = [row for row in CONSTRAINTS if row[0] == package and row[1] == pins[package]]
+            if not rows:
+                problems.append(
+                    f"{lock.name}: {package} {pins[package]} has no row in CONSTRAINTS "
+                    "(tests/test_lock_consistency.py); add one from that wheel's METADATA Requires-Dist")
+            for _, version, dependency, spec in rows:
+                pinned = pins.get(dependency)
+                if pinned is None or pinned not in SpecifierSet(spec):
+                    problems.append(
+                        f"{lock.name}: {package} {version} requires {dependency}{spec}, lock pins {pinned}")
+    return problems
+
+
+def write_lock(path: Path, *pins: str) -> None:
+    path.write_text("".join(f"{pin} \\\n    --hash=sha256:{'a' * 64}\n" for pin in pins), encoding="utf-8")
+
+
+def pip_updates() -> list[dict]:
+    config = yaml.safe_load(DEPENDABOT.read_text(encoding="utf-8"))
+    pip = [u for u in config["updates"] if u.get("package-ecosystem") == "pip"]
+    assert pip, "dependabot.yml has no pip entry"
+    return pip
+
+
 def test_generate_and_render_locks_are_both_checked() -> None:
     names = {p.name for p in hashed_locks(ROOT)}
     assert {"requirements-generate.txt", "requirements-render.txt"} <= names
@@ -39,7 +87,13 @@ def test_generate_and_render_locks_are_both_checked() -> None:
 
 def test_pydantic_core_is_pinned_in_both_light_and_render_locks() -> None:
     for name in ("requirements-generate.txt", "requirements-render.txt"):
-        assert "pydantic-core" in requirements(ROOT / name, hashed=True), f"{name} lost pydantic-core"
+        pins = requirements(ROOT / name, hashed=True)
+        assert {"pydantic", "pydantic-core"} <= pins.keys(), f"{name} lost pydantic or pydantic-core"
+
+
+def test_render_lock_pins_spacy_and_what_it_caps() -> None:
+    pins = requirements(ROOT / "requirements-render.txt", hashed=True)
+    assert {"spacy", "spacy-curated-transformers", *SPACY_CAPPED} <= pins.keys()
 
 
 def test_shared_packages_have_one_version_across_hashed_locks() -> None:
@@ -47,12 +101,14 @@ def test_shared_packages_have_one_version_across_hashed_locks() -> None:
     assert not split, f"packages pinned at different versions across hashed locks: {split}"
 
 
+def test_pins_satisfy_the_known_requirements() -> None:
+    problems = constraint_problems(hashed_locks(ROOT))
+    assert not problems, "lock pins pip cannot resolve:\n" + "\n".join(problems)
+
+
 def test_the_check_flags_a_package_bumped_in_one_lock_only(tmp_path: Path) -> None:
-    line = "{} \\\n    --hash=sha256:" + "a" * 64 + "\n"
-    (tmp_path / "requirements-a.txt").write_text(
-        line.format("pydantic==2.14.3") + line.format("pydantic-core==2.50.4"), encoding="utf-8")
-    (tmp_path / "requirements-b.txt").write_text(
-        line.format("pydantic==2.14.3") + line.format("Pydantic_Core==2.50.5"), encoding="utf-8")
+    write_lock(tmp_path / "requirements-a.txt", "pydantic==2.14.3", "pydantic-core==2.50.4")
+    write_lock(tmp_path / "requirements-b.txt", "pydantic==2.14.3", "Pydantic_Core==2.50.5")
     (tmp_path / "requirements-c.txt").write_text("pydantic-core==9.9.9\n", encoding="utf-8")
     locks = hashed_locks(tmp_path)
     assert [p.name for p in locks] == ["requirements-a.txt", "requirements-b.txt"]
@@ -60,17 +116,45 @@ def test_the_check_flags_a_package_bumped_in_one_lock_only(tmp_path: Path) -> No
         "pydantic-core": {"requirements-a.txt": "2.50.4", "requirements-b.txt": "2.50.5"}}
 
 
-def test_dependabot_never_bumps_pydantic_core_on_its_own() -> None:
-    config = yaml.safe_load(DEPENDABOT.read_text(encoding="utf-8"))
-    pip = [u for u in config["updates"] if u.get("package-ecosystem") == "pip"]
-    assert pip, "dependabot.yml has no pip entry"
-    for update in pip:
+def test_the_check_flags_pins_outside_a_requirement(tmp_path: Path) -> None:
+    write_lock(tmp_path / "requirements-ok.txt",
+               "pydantic==2.14.4", "pydantic-core==2.50.5", "spacy==3.8.18", "thinc==8.3.14")
+    write_lock(tmp_path / "requirements-core.txt", "pydantic==2.14.4", "pydantic-core==2.50.4")
+    write_lock(tmp_path / "requirements-thinc.txt", "spacy==3.8.18", "thinc==10.0.0")
+    write_lock(tmp_path / "requirements-gone.txt", "spacy==3.8.18")
+    write_lock(tmp_path / "requirements-new.txt", "pydantic==99.0.0", "pydantic-core==99.0.0")
+    write_lock(tmp_path / "requirements-other.txt", "pyyaml==6.0.2")
+    problems = constraint_problems(hashed_locks(tmp_path))
+    assert [p.split(":")[0] for p in problems] == [
+        "requirements-core.txt", "requirements-gone.txt", "requirements-new.txt", "requirements-thinc.txt"]
+    assert "add one" in problems[2]
+
+
+def test_dependabot_bumps_pydantic_and_pydantic_core_together() -> None:
+    for update in pip_updates():
+        where = update.get("directory")
         ignored = {normalise(i.get("dependency-name", "")) for i in update.get("ignore") or []}
-        assert "pydantic-core" in ignored, f"pip update for {update.get('directory')} may bump pydantic-core"
+        assert "pydantic-core" not in ignored, f"pip update for {where} ignores pydantic-core"
+        groups = [{normalise(p) for p in g.get("patterns") or []}
+                  for g in (update.get("groups") or {}).values()]
+        assert any({"pydantic", "pydantic-core"} <= g for g in groups), (
+            f"pip update for {where} has no group with both pydantic and pydantic-core")
+
+
+def test_dependabot_never_takes_spacy_capped_pins_past_a_major() -> None:
+    for update in pip_updates():
+        majors_ignored = {
+            normalise(i.get("dependency-name", "")) for i in update.get("ignore") or []
+            if "version-update:semver-major" in (i.get("update-types") or ["version-update:semver-major"])}
+        missing = set(SPACY_CAPPED) - majors_ignored
+        assert not missing, f"pip update for {update.get('directory')} may bump {sorted(missing)} a major"
 
 
 def test_acceptance() -> None:
     test_generate_and_render_locks_are_both_checked()
     test_pydantic_core_is_pinned_in_both_light_and_render_locks()
+    test_render_lock_pins_spacy_and_what_it_caps()
     test_shared_packages_have_one_version_across_hashed_locks()
-    test_dependabot_never_bumps_pydantic_core_on_its_own()
+    test_pins_satisfy_the_known_requirements()
+    test_dependabot_bumps_pydantic_and_pydantic_core_together()
+    test_dependabot_never_takes_spacy_capped_pins_past_a_major()
