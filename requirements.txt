@@ -1,5 +1,5 @@
 # Light runtime dependencies. Safe to install anywhere, including the owner's Windows machine.
-pydantic==2.14.3
+pydantic==2.14.4
 pyyaml==6.0.3
 soundfile==0.14.0
 numpy==2.4.6
