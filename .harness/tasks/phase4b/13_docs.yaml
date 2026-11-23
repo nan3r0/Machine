@@ -1,32 +1,38 @@
 id: p4b-docs
-title: Phase 4 docs owed - PRD, PLAN, spec, architecture, CLAUDE.md, workflow.md
+title: Phase 4 go-live docs - PRD, spec, CLAUDE.md, workflow.md (the rest is in .harness/backlog.md)
 depends_on: [p4b-ledger-workflow, p4b-youtube, p4b-weekly-audit, p4b-render-lock, p4b-runbook]
-role: architect
+role: implementer
 notes: |
-  The docs owed list from .harness/handoffs/p4-phase-review.md "Docs", plus the Phase 4b design
-  and decisions. The exact list is in .harness/handoffs/p4b-plan.md, "Docs owed"; apply every item,
-  check each against the merged code, and say in the handoff which ones were already done.
-  Docs only: no code, no test, no threat model (the CSO owns docs/threat-model.md, task p4b-cso).
-  In CLAUDE.md Status do not name a phase4b task id that has no YAML; prefer plain words.
+  Shrunk by the owner (2026-11-23, HARNESS.md 6b usage policy): Sonnet writes the go-live part of the
+  "Docs owed" list in .harness/handoffs/p4b-plan.md. Every decision is already made there; do not
+  design anything. Apply only these items, check each against the merged code, and say in the handoff
+  which were already done:
+  - PRD.md: :24 current phase; :167 repo is public; R14.1, R16.3, R17 and R18 gates as proposed in
+    the plan; section 7 entries listed in the plan (audit approval, O1 to O8, O3 consent, F1 with its
+    evidence and date, F3, F6, F7, F9, F10, cadence, ledger branch decision, record checks run_id only,
+    the 2026-11-02 and 2026-11-16 API facts, the P1-4 lock method); :207 weekly audit is built.
+  - CLAUDE.md: Status (repo public, threat model v3.1 pending, R17 not run, daily-publish disabled
+    until go-live, ledger on the `ledger` branch) and "Where things are" gains docs/runbook.md. Do not
+    name a task id that has no YAML; prefer plain words.
+  - spec.md: :56 scripts stay in queue/approved/ and the ledger branch holds the records; the layout,
+    PublishRecord with the run fields, the YouTube secrets, the upload job's light install and the
+    render lock files; :122 semgrep 1.186.0; :126 reword the GPL note.
+  - workflow.md: a "Phase 4b module order" section with the waves (no `### Phase 4b status` heading);
+    backticks on criterion-map files that now exist.
+  NOT in this task: PLAN.md and architecture.md items (they wait in .harness/backlog.md until the
+  owner picks them). Docs only: no code, no test, no threat model (p4b-cso owns it).
   Run python tests/docs_check.py before handing off.
 paths_allowed:
   - PRD.md
-  - PLAN.md
   - spec.md
-  - architecture.md
   - CLAUDE.md
   - workflow.md
 tests: []
 acceptance: tests/test_docs_check.py::test_acceptance
 context_files:
   - .harness/handoffs/p4b-plan.md
-  - .harness/handoffs/p4-phase-review.md
   - .harness/handoffs/p4-audit.md
-  - .harness/handoffs/p4-cso.md
   - .github/workflows/daily_publish.yml
   - PRD.md
-  - PLAN.md
   - spec.md
-  - architecture.md
-  - workflow.md
-max_turns: 35
+max_turns: 25
