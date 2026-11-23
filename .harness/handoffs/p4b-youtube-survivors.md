@@ -25,6 +25,7 @@ done. One new file, `tests/publish/test_youtube_survivors.py`, 87 tests, all pas
 
 ## Tried and abandoned
 - Running read-failure mid-acceptance with `monkeypatch.undo()` to restore `Path.read_bytes`: undo also drops the env fixture. Moved that call to the end of `test_acceptance` instead.
+- Fake credentials named `*_SECRET` with `GOCSPX-` or `secret` in the value: the pre-commit secret scan blocked them. Renamed to `CLIENT_VALUE` and `ODD_VALUE*` with neutral values rather than skipping the scan.
 
 ## Known risks
 - Rank 7 has limited mutant-killing power: Python's default `HTTPRedirectHandler` does not follow a redirect of a PUT for any of the five codes either, so a regression to plain `urlopen` would still pass this test. It still guards against a handler that follows every method. The token and init redirect tests in `test_youtube.py` remain the real guard.
