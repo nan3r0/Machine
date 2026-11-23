@@ -47,8 +47,9 @@ csvw==4.2.0 \
     --hash=sha256:23197270be72dd2cec99a7adb90f8da76d9e56f1c7f68a436f381fceea26b84f
 curated-tokenizers==0.0.10 \
     --hash=sha256:841743db1da4a4a1298675584771ed973945c31ea9f6dde9f06e9eb6b3974bf3
-curated-transformers==0.1.1 \
-    --hash=sha256:d716063d73d803c6925d2dab56fde9b9ab8e89e663c2c0587804944ba488ff01
+curated-transformers==2.0.1 \
+    --hash=sha256:3348e639d9247bf222bcd90cefded05b37c5dc0e798b0af6957e37a4aafd0f1d \
+    --hash=sha256:5da92a4bf41a8a0bebca39b65ede4db49a7bc78467ca3c3ba7f84ecdcc8c45e5
 cymem==2.0.16 \
     --hash=sha256:1213ff078e81b67972708097c55a2a7849ce4d046fe253671fe56d193c90eb8a
 dlinfo==2.0.0 \
