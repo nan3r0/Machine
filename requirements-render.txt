@@ -127,8 +127,9 @@ preshed==3.0.15 \
     --hash=sha256:b43514670f5cf300ee61af95f680e30b5e6fe59fa7ed84013faf31ebdb0b923b
 pycparser==3.12 \
     --hash=sha256:a076f3f489b39b43ed13563a1dafe42447445bec2e294154ec5c57fcdda4c85e
-pydantic==2.14.3 \
-    --hash=sha256:3f7b347782ab7e4cf4c798496ae3a82787d9f21ec12676a9c564355eeef8daa8
+pydantic==2.14.4 \
+    --hash=sha256:653a2ad9f6d8858529c77c72717d0ea991d6c6837fe683246b2f4b2bbfc3fadc \
+    --hash=sha256:7c19f1d46f8accf55a4617a6116e1ade64840870f397b846a2c53fb9019414ba
 pydantic-core==2.50.4 \
     --hash=sha256:c81d98e27d9d9261909dcccab1ba5d6ea1c98b0bb9470e368604614fd1d36ddd
 pygments==2.21.0 \
