@@ -1,5 +1,16 @@
 # Routing trial: trial-lean
 
+**Status: closed 2026-11-23. The active profile is `baseline`.**
+
+## Result
+
+- Almost every Phase 4 task touched a security path (`pipeline/publish/**`, `.github/workflows/**`), so the safety rules kept Gate 2 on Opus. No review ran on Sonnet and no shadow check was produced (`compare_profiles.py`: 0 reviews by model, 0 shadow checks). The trial saved almost nothing.
+- Implementation outcomes: baseline 23 tasks, 87% first-pass, 1.09 attempts per task; trial-lean 3 tasks, 67%, 1.67 attempts. Three tasks are too few to read anything from.
+- The real usage savings come from fewer repeated reviews and proportionate phase-end reviews, not from the review model (HARNESS.md sections 6a and 6b).
+- The profile code (`profile:` in config.yaml, `.harness/model_for.py`, `compare_profiles.py`, the shadow re-run in `run_review.sh`) stays, as the mechanism for any future routing change. A new trial would have to pick tasks that stay off the security paths.
+
+## Original description
+
 A reversible test of cheaper review routing. The current routing is kept as the `baseline` profile and is
 untouched; the trial is a second profile in `.harness/config.yaml`. Owner-only: config.yaml is a harness
 file, so only a `LOOM_ADMIN=1` session or the owner can switch profiles.
