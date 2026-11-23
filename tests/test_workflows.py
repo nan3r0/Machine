@@ -22,8 +22,8 @@ def test_acceptance() -> None:
 def test_installs_ffmpeg_and_heavy_requirements() -> None:
     text = rules.run_text(rules.load("render.yml"))
     assert "ffmpeg" in text
-    assert "requirements-heavy.txt" in text
-    assert "requirements.txt" in text
+    plain = "-r requirements.txt" in text and "-r requirements-heavy.txt" in text
+    assert plain or "-r requirements-render.txt" in text, "the hashed lock covers both files"
 
 
 def test_caches_models_and_pip() -> None:
@@ -37,6 +37,14 @@ def test_caches_models_and_pip() -> None:
 
 def test_installs_torch_from_cpu_index_only() -> None:
     rules.assert_torch_from_cpu_index_first(rules.run_text(rules.load("render.yml")))
+
+
+def test_torch_rule_holds_for_the_hashed_install() -> None:
+    """The rule must keep passing once p4b-render-lock moves the render paths to the locks."""
+    torch = "python -m pip install -q --no-deps --require-hashes \\\n  --index-url https://download.pytorch.org/whl/cpu"
+    rest = "python -m pip install -q --require-hashes -r requirements-render.txt"
+    for line in (torch, torch.replace("\\\n ", "")):
+        rules.assert_torch_from_cpu_index_first(f"{line} -r requirements-render-torch.txt\n{rest}")
 
 
 def test_uploads_output_with_short_retention() -> None:

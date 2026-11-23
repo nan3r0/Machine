@@ -130,7 +130,9 @@ def assert_safe(workflow: dict[str, Any], name: str = "") -> None:
     assert not found, "\n".join(found)
 
 
-TORCH_INDEX_INSTALL = "--no-deps --index-url https://download.pytorch.org/whl/cpu"
+TORCH_INDEX = "--index-url https://download.pytorch.org/whl/cpu"
+# The heavy set as a plain pin list, or as the hashed lock the render paths install (p4b-render-lock).
+HEAVY_INSTALLS = ("-r requirements-heavy.txt", "-r requirements-render.txt")
 
 
 def assert_torch_from_cpu_index_first(run: str) -> None:
@@ -138,8 +140,12 @@ def assert_torch_from_cpu_index_first(run: str) -> None:
     dependencies, before the heavy requirements. Those, torch's pinned dependencies included, then
     resolve from PyPI only (no extra index, no dependency confusion)."""
     assert "--extra-index-url" not in run
-    torch_at = run.index(TORCH_INDEX_INSTALL)
-    assert torch_at < run.index("-r requirements-heavy.txt")
+    installs = [line for line in run.replace("\\\n", " ").splitlines() if "pip install" in line]
+    torch = [i for i, line in enumerate(installs) if "--no-deps" in line and TORCH_INDEX in line]
+    heavy = [i for i, line in enumerate(installs) if any(r in line for r in HEAVY_INSTALLS)]
+    assert torch and heavy, "torch and the heavy requirements are installed"
+    assert torch[0] < heavy[0]
+    assert "--index-url" not in installs[heavy[0]], "the heavy requirements come from PyPI only"
 
 
 def model_cache_keys(workflow: dict[str, Any]) -> list[str]:
