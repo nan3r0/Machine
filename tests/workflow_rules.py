@@ -140,7 +140,7 @@ def assert_torch_from_cpu_index_first(run: str) -> None:
     dependencies, before the heavy requirements. Those, torch's pinned dependencies included, then
     resolve from PyPI only (no extra index, no dependency confusion)."""
     assert "--extra-index-url" not in run
-    installs = [line for line in run.splitlines() if "pip install" in line]
+    installs = [line for line in run.replace("\\\n", " ").splitlines() if "pip install" in line]
     torch = [i for i, line in enumerate(installs) if "--no-deps" in line and TORCH_INDEX in line]
     heavy = [i for i, line in enumerate(installs) if any(r in line for r in HEAVY_INSTALLS)]
     assert torch and heavy, "torch and the heavy requirements are installed"

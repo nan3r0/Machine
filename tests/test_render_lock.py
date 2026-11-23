@@ -40,7 +40,10 @@ def requirements(path: Path, hashed: bool) -> dict[str, str]:
     (--index-url, --find-links and the like) are not requirements, so they fail too."""
     assert path.is_file(), f"{path.name} is missing"
     found: dict[str, str] = {}
-    for raw in path.read_text(encoding="utf-8").replace("\\\n", " ").splitlines():
+    # pip never joins a comment line to the next, even one ending in `\` (a regenerate command).
+    text = path.read_text(encoding="utf-8")
+    lines = [line for line in text.splitlines() if not line.lstrip().startswith("#")]
+    for raw in "\n".join(lines).replace("\\\n", " ").splitlines():
         line = COMMENT.sub("", raw).strip()
         if not line:
             continue
@@ -107,6 +110,20 @@ def test_daily_render_job_installs_only_from_the_locks() -> None:
 
 def test_render_workflow_installs_only_from_the_locks() -> None:
     assert_hashed_render_install(rules.run_text(rules.load("render.yml")))
+
+
+def test_the_checks_accept_a_well_formed_lock(tmp_path: Path) -> None:
+    """Guards the checks themselves: a header with regenerate commands, wrapped hashes and the
+    locked installs, wrapped or not, all pass."""
+    lock = tmp_path / "lock.txt"
+    hashes = " \\\n    --hash=sha256:" + "a" * 64 + " \\\n    --hash=sha256:" + "b" * 64
+    lock.write_text(f"# pip download torch==2.11.0+cpu --index-url {CPU_INDEX} \\\n#   --no-deps \\\n"
+                    f"torch==2.11.0+cpu{hashes}\nmisaki[en]==0.9.4{hashes}  # via kokoro\n", encoding="utf-8")
+    assert requirements(lock, hashed=True) == {"torch": "2.11.0+cpu", "misaki": "0.9.4"}
+    torch = f"python -m pip install -q --no-deps --require-hashes \\\n  --index-url {CPU_INDEX}"
+    rest = "python -m pip install -q --require-hashes -r requirements-render.txt"
+    for line in (torch, torch.replace("\\\n ", "")):
+        assert_hashed_render_install(f"{line} -r requirements-render-torch.txt\n{rest}")
 
 
 def test_acceptance() -> None:
