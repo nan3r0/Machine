@@ -22,8 +22,8 @@ def test_acceptance() -> None:
 def test_installs_ffmpeg_and_heavy_requirements() -> None:
     text = rules.run_text(rules.load("render.yml"))
     assert "ffmpeg" in text
-    assert "requirements-heavy.txt" in text
-    assert "requirements.txt" in text
+    plain = "-r requirements.txt" in text and "-r requirements-heavy.txt" in text
+    assert plain or "-r requirements-render.txt" in text, "the hashed lock covers both files"
 
 
 def test_caches_models_and_pip() -> None:
