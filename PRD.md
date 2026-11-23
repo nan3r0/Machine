@@ -21,7 +21,7 @@ Non-goals:
 
 ## 3. Phasing
 
-Phases and their done-when lines are in PLAN.md section 11. Current phase: **Phase 2, scripts and fact-check** (Phase 1 closed 2026-11-16); Phase 4 (publishing) is planned and waits for owner decisions O1 to O3. Phase 0 (admin: Google Cloud project, YouTube audit, Meta and TikTok apps, Cloudflare) runs in parallel and is done by the owner.
+Phases and their done-when lines are in PLAN.md section 11. Current phase: **Phase 4b, YouTube go-live** (Phase 1 closed 2026-11-16; Phase 2 code is closed and only the first Workflow A run by hand is left; Phase 4 code is merged and the Phase 4b follow-ups are built). Go-live waits on the gates in R18. Phase 0 (admin: Google Cloud project, YouTube audit, Meta and TikTok apps, Cloudflare) runs in parallel and is done by the owner.
 
 ## 4. Functional requirements and acceptance criteria
 
@@ -109,7 +109,7 @@ Goal: Workflow A opens a real pull request of 7 fact-checked scripts, with flags
 Goal: Workflow B publishes one approved script a day to YouTube with the owner's PC off, at $0. Planned 2026-11-21 (`.harness/handoffs/p4-plan.md`); Instagram and TikTok are deferred to a Phase 4b if the owner accepts O5. Kept minimal: no in-upload retry, no try-next on QA failure, no alert channel beyond GitHub's failed-run email.
 
 **R14. Pick.**
-- R14.1 The next script is the oldest in `queue/approved/` whose `publish_after` is on or before today (UTC) and that has no record in `data/published/`.
+- R14.1 The next script is the oldest in `queue/approved/` whose `publish_after` is on or before today (UTC) and that has no record on the `ledger` branch (`data/published/`).
 - R14.2 With nothing due, the run fails with "queue empty" (owner decision O6).
 - R14.3 A record with no video id (an unconfirmed upload) stops the run and names the script; nothing is uploaded that day.
 
@@ -122,12 +122,12 @@ Goal: Workflow B publishes one approved script a day to YouTube with the owner's
 **R16. Workflow B (`daily_publish.yml`).**
 - R16.1 Runs daily in the 14:00 UTC slot and by hand; runs never overlap.
 - R16.2 Jobs render (no secret, read-only), claim (write, no secret), upload (YouTube secrets, read-only) and record (write, no secret). No job holds both a secret and a write token, and every workflow file passes the safety rules (R13.3).
-- R16.3 The claim is committed before the upload; after it, the record holds the video id and the script moves unchanged to `queue/published/`. A claim whose upload sent nothing is released. Records and `queue/published/` are append-only.
+- R16.3 The claim is committed to the bot-only `ledger` branch before the upload and names the run id and attempt; the upload refuses a claim from another run or attempt. After the upload the record holds the video id; the script stays in `queue/approved/` unchanged and is never picked again. A claim whose upload sent nothing is released. A record with a video id is never changed or deleted by the workflow. Nothing in Workflow B pushes to `main`.
 - R16.4 The upload job reads only the mp4 from the render artifact, extracted outside the checkout.
 
-**R17. Manual first live run.** The owner adds the secrets (after O1) and dispatches Workflow B once: the video is public on the channel, carries the expected disclosure, and the record and queue move are on `main`.
+**R17. Manual first live run.** The owner adds the secrets (after O1) and dispatches Workflow B once: the video is public on the channel, carries the expected disclosure, and the record is on the `ledger` branch.
 
-**R18. Go-live** (leaving the schedule on unattended): threat model version 3 signed off, the Phase 4 Auditor report approved (A1 to A3 closed), O1 implemented, and the source refill decided (O4).
+**R18. Go-live** (leaving the schedule on unattended): threat model v3.1 signed off; the Phase 4 Auditor report approved; O1 implemented; the `main` and `ledger` rulesets and the agent deny rules in place (P1-2); the hashed render install (P1-4 heavy half), the run binding (P4-1), the paid placement flag (F1) and the weekly audit (F7) merged; artifact and log retention set to 30 days or less (F8); cadence decided (done: 7 a week, refill every two weeks).
 
 ### Later phases
 
@@ -164,7 +164,7 @@ Confirmed by the owner:
 - 2026-11-15: The deviations from HARNESS.md listed under "Assumed by Claude" below are accepted.
 - 2026-11-15: PLAN.md updated for Kokoro-only voice, the alignment QA rule and the Phase 1 contract files.
 - 2026-11-15: The "Office / dashboard" in HARNESS.md sections 6b and 10b is the owner's general-purpose tool, not part of this project. Nothing is built for it here.
-- 2026-11-15: Code lives in the private GitHub repo `nan3r0/Machine`, default branch `main`.
+- 2026-11-15: Code lives in the GitHub repo `nan3r0/Machine`, default branch `main`. It was private at first and is public for now (O1 option (b), 2026-11-21).
 - 2026-11-15: Everything must be completely free. Free tiers only, and no payment method on any account (GitHub, Google Cloud, Meta, TikTok, Cloudflare), so nothing can ever bill.
 - 2026-11-15: Platform research applied to PLAN.md. Sources: developers.google.com/youtube (v3 quota, videos.insert, revision history, Analytics metrics), support.google.com/cloud (OAuth testing and verification), aistudio.google.com/docs (Gemini pricing, rate limits, structured output), developers.facebook.com/docs/instagram-platform (content publishing, token refresh), developers.tiktok.com (Content Posting API, updated 2026-08-04), developers.cloudflare.com/workers-ai (pricing, updated 2026-11-12), docs.github.com (Actions billing), Pexels and Pixabay API docs and licences.
   - YouTube: no audit needed for public uploads since 2 Nov 2026; uploads use their own quota (1 unit each, 100/day). OAuth consent screen "In production" as a personal unverified app.
@@ -204,18 +204,27 @@ Assumed by Claude (owner can overrule):
 - 2026-11-15: HARNESS.md section 6b calls every specialist read-only, but the CSO must update `docs/threat-model.md`. The CSO agent gets Edit and Write, limited to that one file through its task's `paths_allowed`.
 - 2026-11-15: The QA Lead stays read-only. It proposes missing tests in its handoff, and the Test Author writes them as a new locked-test task, instead of the QA Lead writing tests itself as section 6b suggests.
 - 2026-11-15: semgrep, gitleaks, actionlint and mutmut run in CI only (no `make` or native Windows support locally), so Gate 1 is "free" but not "instant" for those tools.
-- 2026-11-15: The weekly scheduled audit workflow (section 6b) is not built in Phase 1. The phase-end Auditor covers Phase 1. The weekly workflow is planned for Phase 4, before go-live.
+- 2026-11-15: The weekly scheduled audit workflow (section 6b) is not built in Phase 1. The phase-end Auditor covers Phase 1. The weekly workflow was planned for Phase 4, before go-live, and is built in Phase 4b (`weekly_audit.yml`, decision F7, 2026-11-22).
 - 2026-11-15: Usage-limit message fixtures (HARNESS.md section 10b) go in `.harness/tests/fixtures/limit_messages/`, not `tests/fixtures/`, because the parser is harness code and `tests/**` is locked.
 - 2026-11-15: The contracts task also owns tooling (`pyproject.toml`, requirements, CI), so no implementer can change pins or gates.
 - 2026-11-15: Tests needing ffmpeg or torch carry a `heavy` marker, skip locally when the tool is missing, and always run in CI.
 - 2026-11-15: Code targets Python 3.11+ (owner's machine has 3.11); CI runs 3.12.
 - 2026-11-16: The owner approved the Phase 1 Auditor report (R7.6). No Phase 1 blockers. A1 to A3 and CSO P1-2, P1-4, P1-5 are Phase 4 pre-go-live items; CSO P1-1, P1-3 and P1-6 are Phase 2 entry items. Phase 1 is closed once main CI is green.
 - 2026-11-21: The owner approved the Phase 2 Auditor report (R13.6) and signed off threat model version 2. Still open: enable weekly-scripts and run it once by hand (R13.5).
+- 2026-11-22: The owner approved the Phase 4 Auditor report (`.harness/handoffs/p4-audit.md`) and decided O1 to O8 as the Architect's defaults: O1 option (b) (repo public for now, YouTube tokens as environment secrets with a main-only rule), O2 `containsSyntheticMedia` true, O3 the default credit line, O4 to O8 their defaults (YouTube only, a red run is the alert, first video `sample-65s`, CI minutes by discipline).
+- 2026-11-22: O3 consent recorded: the owner accepts the fixed credit line in every description. F4 rewording: the line reads "Sources: Wikipedia (CC BY-SA 4.0) or public records. Narrated with a synthetic voice." because some facts come from public records such as NOAA.
+- 2026-11-22: F1 accepted. Every `videos.insert` sends `paidProductPlacementDetails.hasPaidProductPlacement = false` from a constant (`YOUTUBE_PAID_PRODUCT_PLACEMENT`), together with a check that the access token holds only printable ASCII characters before it is masked. Evidence, checked 2026-11-22: the [videos.insert reference](https://developers.google.com/youtube/v3/docs/videos/insert) lists `paidProductPlacementDetails` among the accepted `part` names but not in its list of settable properties. The [revision history](https://developers.google.com/youtube/v3/revision_history) entry of 2026-11-16 says `hasPaidProductPlacement` no longer defaults to false and must be set to `false` explicitly to declare no paid placement. R17 is the live confirmation.
+- 2026-11-22: F3 accepted: the channel never links the repo. F6: `sources/cottingley-fairies.yaml` is dropped. F7: the weekly audit is built (`weekly_audit.yml`). F9 accepted: video ids stay in the ledger. F10 accepted: the project is a personal tool, so no public privacy policy is published.
+- 2026-11-22: Cadence stays 7 videos a week (the Phase 4 review follow-ups T7 and N2 are dropped). The sources last about two weeks, so the owner adds about 14 new `sources/*.yaml` every second weekend (`docs/runbook.md`).
+- 2026-11-22: Ledger branch decision (CSO P1-2): the claim and the record live on a bot-only orphan branch `ledger`, not on `main`. No ruleset bypass for `github-actions[bot]`, because a bypass would let any workflow with `contents: write` push code that reaches the YouTube token. Approved scripts therefore stay in `queue/approved/` and nothing moves to `queue/published/`. The `main` ruleset requires a pull request and the `check` status.
+- 2026-11-22: The record job checks `run_id` only; the upload job checks `run_id` and `run_attempt`. If the upload succeeded and only the record job failed, a re-run of just that job can still finish the record, and the duplicate-upload risk sits in the upload job, which refuses another attempt. The upload guards still fail without writing `sent=false`.
+- 2026-11-22: API facts, read on Google's and GitHub's pages: since 2026-11-02 YouTube needs no API audit for public uploads from an unverified project ([revision history](https://developers.google.com/youtube/v3/revision_history)); since 2026-11-16 `hasPaidProductPlacement` no longer defaults to false (same page). `github.run_id` does not change on a re-run and `github.run_attempt` starts at 1 and increments ([contexts reference](https://docs.github.com/en/actions/reference/workflows-and-actions/contexts)). Whether "re-run failed jobs" counts as a re-run is confirmed live the first time it happens; the runbook says not to do it on purpose.
+- 2026-11-22: The P1-4 lock method adds no new tool: `pip download` plus `pip hash`, as `requirements-generate.txt` already does. `requirements-render-torch.txt` and `requirements-render.txt` serve the daily render job and `render.yml`; `ci.yml` keeps its unhashed install because it holds no secret and publishes nothing.
 
 ## 8. Open questions
 
 - **[Decision needed]** Average view duration target for 65 s videos (PLAN.md section 12), to be set by the owner after the first 30 days of data.
-- **[Decision needed before Phase 4]** How `sources/` is refilled: 14 seeded sources last two weekly batches.
+- Decided 2026-11-22: `sources/` is refilled by hand every second weekend, about 14 new files by PR (`docs/runbook.md`). There are 14 seeded sources.
 - To verify in Phase 4: one test upload confirms an unaudited YouTube project's uploads go public. Answered on paper 2026-11-21: the `videos.insert` reference says "Videos uploaded from unverified API projects are not restricted to private viewing mode"; R17 confirms it live. `publishAt` is not used in Phase 4.
-- **[Decision needed before Phase 4 contracts]** O1 (where the YouTube tokens live), O2 (synthetic-media flag) and O3 (description credit line) in `.harness/handoffs/p4-plan.md`; O4 to O8 there have defaults.
+- Decided 2026-11-21 and 2026-11-22: O1 to O8 in `.harness/handoffs/p4-plan.md` (see section 7).
 - To verify in Phase 2: Gemini free-tier limits for the chosen models in the owner's AI Studio dashboard (published figures come from third parties). Each model's free daily limit must cover 28 requests, since a run can make up to 28 HTTP requests per model (CSO P2-6).

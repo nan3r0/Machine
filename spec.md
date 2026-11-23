@@ -37,6 +37,18 @@ sources/<slug>.yaml                         # hand-curated facts, one solved mys
 .github/workflows/weekly_scripts.yml        # Workflow A
 ```
 
+Phase 4 and 4b add:
+
+```
+pipeline/publish/pick.py                    # the next due approved script, using the records on the ledger branch
+pipeline/publish/youtube.py                 # the only file that talks to YouTube (resumable videos.insert)
+.github/workflows/daily_publish.yml         # Workflow B: render, claim, upload, record
+.github/workflows/weekly_audit.yml          # pip-audit and licence check, read-only, no secret
+requirements-render-torch.txt               # hashed torch and torchaudio for the render jobs
+requirements-render.txt                     # hashed everything else the render jobs install
+docs/runbook.md                             # owner runbook for Workflow B
+```
+
 Import rule: `schema` and `constants` import nothing from `pipeline`. Modules under `voice/` and `render/` import only those two, never each other. `render_one.py` is the only file that imports the modules. Details in architecture.md section 2.
 
 ## 3. Data model
@@ -53,7 +65,9 @@ Narration text for voice and alignment is `hook`, then each scene's `narration`,
 
 **Flag**: `script_id`, `scene` (index, or none for the whole script), `reason`. Flags go into the PR body, never into the script file. **LineVerdict**: `index`, `verdict` (`SUPPORTED | UNSUPPORTED | PARTIAL`), `reason`, `fact_ids`; SUPPORTED and PARTIAL must name at least one fact id.
 
-Scripts move between `queue/approved/` and `queue/published/` as plain files. `queue/published/` is append-only: a published script is never edited or deleted, so its sources stay used. Workflow A writes new scripts straight into `queue/approved/` on its PR branch, so merging the PR is the approval (owner decision D2; no `queue/pending/`, no `on_merge_approve.yml`). A schema change bumps a `schema_version` field and needs a contract change approved by the Architect.
+**PublishRecord** (Phase 4, `data/published/<script_id>.json` on the `ledger` branch): `script_id`, `script_sha` (git blob SHA of the approved script), `claimed_at`, `youtube_video_id` and `published_at` (both null until the upload is recorded), `run_id` and `run_attempt` (the `GITHUB_RUN_ID` and `GITHUB_RUN_ATTEMPT` of the run that wrote the claim). Every field is required, nulls included.
+
+Approved scripts stay in `queue/approved/` as plain files and are never edited or deleted once published, so their sources stay used. Nothing moves to `queue/published/` any more (it keeps what is already there). The `ledger` branch is an orphan, data-only branch that the publish workflow writes; its records, not a folder move, say what was published. Workflow A writes new scripts straight into `queue/approved/` on its PR branch, so merging the PR is the approval (owner decision D2; no `queue/pending/`, no `on_merge_approve.yml`). A schema change bumps a `schema_version` field and needs a contract change approved by the Architect.
 
 ## 4. Rules and numbers
 
@@ -91,6 +105,8 @@ Never allowed: a render that continues after voice failure, an empty or silent w
 ## 5. Security and privacy design
 
 - Secrets only in GitHub Actions encrypted secrets. Phase 1 needs none. Phase 2 needs one, `GEMINI_API_KEY`: a repo secret (D1 option (c), decided 2026-11-18, PRD.md section 7), from an AI Studio project with no billing. It reaches no unpinned install: Workflow A stays disabled until p2-weekly-hardening (CSO P2-1) has merged. It is read from the environment at call time, sent only in the `x-goog-api-key` header, and never logged or put in an exception. Only the `generate` job of `weekly_scripts.yml` gets it; that job has a read-only token. Restrict the key in Google Cloud to the Generative Language API.
+- Phase 4 adds three secrets, `YOUTUBE_CLIENT_ID`, `YOUTUBE_CLIENT_SECRET` and `YOUTUBE_REFRESH_TOKEN`. They are environment secrets of the `youtube` environment, whose deployment rule allows `main` only (O1 option (b)), and only the `upload` job of `daily_publish.yml` uses that environment. That job has a read-only token and installs only `requirements-generate.txt` with `--require-hashes` (the light set, no torch). It checks out `main` and verifies the run's claim on the `ledger` branch in a step before the one step that holds the secrets.
+- The render jobs (`daily_publish.yml` render and `render.yml`) hold no secret and install only from `requirements-render-torch.txt` and `requirements-render.txt` with `--require-hashes`. Regenerate both with `pip download` and `pip hash` after any bump in `requirements.txt` or `requirements-heavy.txt` (no new tool). `ci.yml` keeps its unhashed install because it holds no secret and publishes nothing.
 - Text from sources and from the model is untrusted: source facts go into prompts as delimited data, model output is parsed and validated before use, and branch names, PR titles and commit messages never come from model output.
 - In the approval PR body every model-derived string (flag and left-out reasons, hook, narration, loop line, title, description, tags) sits inside a fenced code block or a same-line code span whose fence is longer than any backtick run in the text. No link, image, HTML tag or comment, and no @mention (GitHub notifies on a bare @name), can come from the model. Only fact texts and urls (owner-reviewed), script ids and fixed labels are plain Markdown.
 - The Gemini client fails loudly: HTTP 404 (usually a retired model id) and a second 429 raise at once; there is never more than one retry.
@@ -115,15 +131,15 @@ Coverage must not drop. Harness tests run separately: `pytest .harness/tests`.
 
 ## 7. Approved dependencies
 
-Pinned by p1-contracts on 2026-11-15 to the newest stable release at least two weeks old. The pins live in four files so the local install stays light:
+Pinned by p1-contracts on 2026-11-15 to the newest stable release at least two weeks old. The pins live in four main files so the local install stays light (the two hashed render files are described under secrets in the security section):
 
 - `requirements-generate.txt` (Workflow A's `generate` job): every direct pin from `requirements.txt` plus six transitive packages, each with a sha256 line, installed with `--require-hashes`. Regenerate it whenever `requirements.txt` changes; the pin test fails until then.
 - `requirements.txt` (runtime, light): `pydantic` 2.14.2, `pyyaml` 6.0.3, `soundfile` 0.14.0, `numpy` 2.4.6 (2.5 needs Python 3.12).
-- `requirements-dev.txt`: `pytest` 9.2.0, `pytest-cov` 7.1.0, `hypothesis` 6.170.15, `ruff` 0.17.5, `mypy` 2.4.1, `types-PyYAML` 6.0.12.20261030, `bandit` 1.9.4, `pip-audit` 2.10.1, `pip-licenses` 5.5.5, and on Linux only `semgrep` 1.183.0 and `mutmut` 3.8.1.
+- `requirements-dev.txt`: `pytest` 9.2.0, `pytest-cov` 7.1.0, `hypothesis` 6.170.15, `ruff` 0.17.5, `mypy` 2.4.1, `types-PyYAML` 6.0.12.20261030, `bandit` 1.9.4, `pip-audit` 2.10.1, `pip-licenses` 5.5.5, and on Linux only `semgrep` 1.186.0 and `mutmut` 3.8.1.
 - `requirements-heavy.txt` (CI and the render workflow only, never local): `torch` and `torchaudio` 2.11.0 CPU builds (torchaudio's last release line, and the two must match), `stable-ts` 2.19.1, `openai-whisper` 20250625, `kokoro` 0.9.4, `misaki[en]` 0.9.4, plus pins for what kokoro leaves loose: `transformers` 5.22.1, `spacy` 3.8.18 and the `en_core_web_sm` 3.8.0 model (misaki would otherwise download it at runtime). torch's own dependencies, taken from the CPU wheel's metadata, are pinned too: `filelock` 4.2.10, `typing-extensions` 4.16.0, `setuptools` 81.0.0 (torch needs below 82), `sympy` 1.14.0 with `mpmath` 1.3.0 (sympy needs below 1.4), `networkx` 3.7, `jinja2` 3.1.6 with `markupsafe` 3.0.4, `fsspec` 2026.9.0. torchaudio declares no dependencies.
 - CI binaries, checksum verified in `ci.yml`: `gitleaks` 8.30.1, `actionlint` 1.7.12.
 - System: `ffmpeg` and `espeak-ng` (apt).
-- Licence note, `espeakng-loader` 0.2.4 (pulled in by `misaki[en]`, checked 2026-11-22): the release has no licence. Its commit [`146599e`](https://github.com/thewh1teagle/espeakng-loader/tree/146599e29be31bf17d99f0bcb7dbb2f92aef3d95) has no LICENSE file and the wheel has no licence metadata. The author added an [MIT LICENSE](https://github.com/thewh1teagle/espeakng-loader/blob/main/LICENSE) later (commit `0ddc87a`, 2025-11-01), and 0.2.4 is still the latest release on PyPI. The manylinux x86_64 wheel bundles `libespeak-ng.so.1.52.0` and `espeak-ng-data/`, which are [GPL-3.0](https://github.com/espeak-ng/espeak-ng). Nothing forbids commercial use, and GPL duties apply only to distribution, which this private pipeline does not do, so this is a note, not a go-live blocker. Re-check if the repo or an image containing these files is ever distributed.
+- Licence note, `espeakng-loader` 0.2.4 (pulled in by `misaki[en]`, checked 2026-11-22): the release has no licence. Its commit [`146599e`](https://github.com/thewh1teagle/espeakng-loader/tree/146599e29be31bf17d99f0bcb7dbb2f92aef3d95) has no LICENSE file and the wheel has no licence metadata. The author added an [MIT LICENSE](https://github.com/thewh1teagle/espeakng-loader/blob/main/LICENSE) later (commit `0ddc87a`, 2025-11-01), and 0.2.4 is still the latest release on PyPI. The manylinux x86_64 wheel bundles `libespeak-ng.so.1.52.0` and `espeak-ng-data/`, which are [GPL-3.0](https://github.com/espeak-ng/espeak-ng). No GPL files are tracked in the repo or distributed by it: the wheel is installed on the runner at run time and the repo, though public, holds none of its files. Nothing forbids commercial use, so this is a note, not a go-live blocker. Re-check if an image or artifact containing these files is ever distributed.
 
 Voice package: `kokoro` (PyTorch, misaki G2P), by owner decision, for voice and timing quality. Weights come from the Hugging Face repo `hexgrad/Kokoro-82M` at commit `f3ff3571791e39611d31c381e3a41a3af07b4987` (`VOICE_REPO_REVISION`) into the cache folder the caller passes, and each loaded file (`config.json`, `kokoro-v1_0.pth`, `voices/af_heart.pt`) is checked against its sha256 in `VOICE_FILE_SHA256` before use. Alignment uses the whisper `small.en` model (`ALIGN_MODEL_NAME`), downloaded into the same cache folder; openai-whisper checks its sha256 itself.
 
