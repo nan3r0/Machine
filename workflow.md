@@ -243,6 +243,22 @@ Specialist reviews: security for p4-youtube and p4-daily-workflow. No visual QA:
 | p4-audit | done, merged 2026-11-22 (PR #122) | owner approval pending; F1 paid placement flag, F2 cadence, F7 weekly audit |
 | p4-qa-lead | done, merged 2026-11-22 (PR #122) | ten ranked tests, no code bug found |
 | p4-phase-review | done 2026-11-22 | Phase 4 code can close; R17 not run, go-live gates and follow-up tasks T1 to T11 in the handoff |
+| p4b-youtube-contracts | done, merged 2026-11-23 (PR #127) | locked tests for the YouTube client follow-ups |
+| p4b-drop-cottingley | done, merged 2026-11-23 (PR #126) | merged before the first weekly-scripts run |
+| p4b-youtube | done, merged 2026-11-23 (PR #129) | security reviewed |
+| p4b-ledger-contracts | done, merged 2026-11-23 (PR #128) | ledger branch contracts and locked tests |
+| p4b-pick-ledger | done, merged 2026-11-23 (PR #131) | security reviewed; handoff still says partial |
+| p4b-ledger-workflow-tests | done, merged 2026-11-23 (PR #130) | locked workflow tests |
+| p4b-ledger-workflow | done, merged 2026-11-23 (PR #132) | security reviewed; handoff still says partial |
+| p4b-youtube-survivors | done, merged 2026-11-23 (PR #133) | survivor tests; closed after p4b-youtube-redact |
+| p4b-render-lock-tests | done, merged 2026-11-23 (PR #134) | locked tests for the render lock |
+| p4b-render-lock | done, merged 2026-11-23 (PR #136) | security reviewed; handoff still says partial; Linux proof is the owner's render.yml run |
+| p4b-audit-tests | done, merged 2026-11-23 (PR #137) | locked tests for the weekly audit |
+| p4b-weekly-audit | done, merged 2026-11-23 (PR #140) | security reviewed |
+| p4b-youtube-redact | done, merged 2026-11-23 (PR #138) | secret redaction in YouTube errors |
+| p4b-runbook | done, merged 2026-11-23 (PR #143) | go-live runbook in `docs/runbook.md` |
+| p4b-cso | done, merged 2026-11-23 (PR #144) | threat model v3.1; owner sign-off is a go-live gate |
+| p4b-docs | done, merged 2026-11-23 (PR #145) | go-live docs in PRD, spec, CLAUDE.md and workflow.md |
 
 ## Phase 4b module order
 

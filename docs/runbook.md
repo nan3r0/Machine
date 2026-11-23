@@ -55,6 +55,7 @@ A kept claim blocks the next pick. Every later run stops with "unconfirmed claim
 4. Never re-run failed jobs while a claim is kept. A re-run of the whole workflow counts as a new run attempt and can change what the guards see.
 5. The one safe re-run: the upload job succeeded and only the record job failed (for example, a push race). Re-run only the record job. It fills in the video id from the earlier upload.
 6. A record with a video id is never changed by the workflow. Do not edit one unless step 2 says so.
+7. Delete only claim-only ledger records, never one that has a video id.
 
 ## 4. Token revoke and rotate
 
