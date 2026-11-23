@@ -251,10 +251,16 @@ def _http_message(error: urllib.error.HTTPError, step: str, stored: list[str]) -
     if "invalid_grant" in text:
         message += " (the refresh token was revoked or expired, make it again)"
     # Redact before cutting, so a secret split by the cut cannot survive as a prefix.
-    for secret in stored:
-        # An echoed secret may come back URL-encoded or JSON-escaped.
-        for form in (secret, urllib.parse.quote(secret, safe=""), json.dumps(secret)[1:-1]):
-            text = text.replace(form, "[redacted]")
+    # An echoed secret may come back URL-encoded or JSON-escaped. Longest form first, so a
+    # shorter form that sits inside a longer one cannot cut it and leave a part behind.
+    forms = {
+        form
+        for secret in stored
+        for form in (secret, urllib.parse.quote(secret, safe=""), json.dumps(secret)[1:-1])
+        if form
+    }
+    for form in sorted(forms, key=len, reverse=True):
+        text = text.replace(form, "[redacted]")
     return f"{message}: {text[:_EXCERPT_CHARS]}"
 
 
