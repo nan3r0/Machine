@@ -61,7 +61,7 @@ In Stage 0 the "orchestrator" is one long-running Claude Code session acting as 
 
 **Claude Fable 5.2:** deliberately not in the routing. The work isn't hard enough to justify it, and it would use up plan limits quickly. If your plan includes it, keep it as a manual break-glass option for a task that fails even after Opus escalation. Never route to it automatically.
 
-**Rule:** routing lives in `.harness/config.yaml`, so the retrospective can propose changes like "move test-writing for render tasks to Sonnet". Every change is logged and measured. Routing trials run as named profiles in the same file (`profile:` at the top, `baseline` = this table); see `TRIAL.md` for the current trial, its safety rules and the one-line rollback.
+**Rule:** routing lives in `.harness/config.yaml`, so the retrospective can propose changes like "move test-writing for render tasks to Sonnet". Every change is logged and measured. Routing trials run as named profiles in the same file (`profile:` at the top, `baseline` = this table); see `TRIAL.md` for the closed `trial-lean` trial (profile code kept as the mechanism), its safety rules and the one-line rollback.
 
 ---
 
@@ -170,12 +170,13 @@ The output is structured, so Loom can act on it without interpretation:
  "checklist": {"contract": "pass", "test_integrity": "pass", "edge_cases": "fail", "...": "..."}}
 ```
 
-- **Blocking** issues go back to Sonnet as the next attempt's input. Max 2 review rounds, then Opus fixes it (§6).
+- **Blocking** issues go back to Sonnet as the next attempt's input. **Max 2 review rounds per task**, then Opus fixes it (§6); a third round with the same implementer never starts.
+- **A fix round re-runs only the reviewer(s) that blocked.** If Gate 2 approved and only security blocked, round 2 runs security only (and the reverse). If the fix touches files outside the blocked findings, both re-run. The round-2 reviewer gets the previous findings and the fix diff only, not the whole task again.
 - **Non-blocking** notes are logged to `.harness/log/review_notes.jsonl`. Haiku groups them weekly; the retrospective turns recurring notes into CLAUDE.md rules, so the same issue stops coming back.
 
 **Gate 3, integration:** merge into main, run the full suite. This catches problems between tasks that a single-task review can't see.
 
-**Phase-end check (lightweight):** when a whole phase is done, one Opus session reviews the phase's *combined* architecture: interfaces fitting together, duplicated logic across tasks. Since every task was already reviewed, this is a short pass, not a 100-issue audit.
+**Phase-end check (lightweight):** when a whole main phase is done, one combined Opus session reviews the phase's *combined* architecture: interfaces fitting together, duplicated logic across tasks. Since every task was already reviewed, this is a short pass, not a 100-issue audit. The full set of specialist phase-end reviews runs only at the triggers in §6b "Phase-end review policy".
 
 ---
 
@@ -188,12 +189,32 @@ The output is structured, so Loom can act on it without interpretation:
 | Review | What it checks | When | Deterministic tools (free, run in Gate 1 / CI) | LLM reviewer | Human |
 |---|---|---|---|---|---|
 | **Code review** | Correctness, contract fit, maintainability | **Every task** | ruff, mypy, pytest, coverage | Opus, Gate 2 checklist (§6a) | — |
-| **QA review** | Test quality, not just test passing: missing edge cases, weak assertions, flaky tests | Every task (light, part of Gate 2) + **end of each phase** (deep) | pytest-cov, **hypothesis** (property tests for caption timing, number normalisation), **mutmut** mutation testing per phase (shows which tests would miss a bug) | Opus "QA Lead": reads the mutation report + coverage gaps → writes missing tests as a new locked-test task | — |
+| **QA review** | Test quality, not just test passing: missing edge cases, weak assertions, flaky tests | Every task (light, part of Gate 2) + **phase-end policy** (deep, below) | pytest-cov, **hypothesis** (property tests for caption timing, number normalisation), **mutmut** mutation testing per phase (shows which tests would miss a bug) | Opus "QA Lead": reads the mutation report + coverage gaps → writes missing tests as a new locked-test task | — |
 | **Security review** | Code-level vulnerabilities | Every task (tools) + **path-triggered** reviewer | **bandit** (Python SAST), **semgrep** OSS rules, **gitleaks** (secrets), **pip-audit** (vulnerable deps), **actionlint** (workflow mistakes) | Opus "Security Reviewer", triggered when a task touches `publish/`, `ingest/`, auth/OAuth, `subprocess`/FFmpeg calls, or `.github/workflows/` | — |
-| **CSO review** | Overall security posture: threat model, what an attacker could do with the system | **End of each phase** + whenever a new external integration is added | — | Opus "CSO": STRIDE threat model of the whole pipeline, updates `docs/threat-model.md`, opens tasks for each real risk | **You sign off** before first public publishing |
+| **CSO review** | Overall security posture: threat model, what an attacker could do with the system | **Phase-end policy** (below): before go-live, and whenever a new external integration or secret is added | — | Opus "CSO": STRIDE threat model of the whole pipeline, updates `docs/threat-model.md`, opens tasks for each real risk | **You sign off** before first public publishing |
 | **Audit** | Compliance & hygiene: licences, platform policies, secret handling, permissions | **Weekly (scheduled)** + before go-live | **pip-licenses** (dependency licences), asset licence log check, scheduled pip-audit, GitHub token-permission lint | Opus "Auditor" (per phase): platform-policy checklist (YouTube inauthentic content, AI disclosure, TikTok/IG terms), OAuth scopes are the minimum needed, data retention | **You approve** the audit report |
 | **"Frontend" review** | This product's frontend is **the video itself** (and later the agent office) | Every task touching `render/` or `visuals/` | Golden-render tests: render the sample scripts, check duration, resolution, caption timing, safe zones; extract frames at fixed timestamps | Opus with **image input**: reviews extracted frames for caption readability, safe-zone overlap, contrast, visual glitches | Spot-check videos weekly |
 | **Office/dashboard UI** (if built) | Web UI quality | When the office code changes | Playwright screenshot tests, axe accessibility checks | Sonnet reviews screenshots | — |
+
+### Phase-end review policy
+
+Phase-end reviews are the costliest Opus work, and findings used to turn straight into new sub-phases with more Opus test authors. They are now sized to the risk:
+
+| When | What runs |
+|---|---|
+| **Before go-live**, **before the first public publish**, and when a **new external integration or secret** is added | The full set: CSO, Auditor, QA Lead and the phase review (all Opus, read-only) |
+| End of every other **main** phase (1, 2, 3 ...) | **One combined Opus phase review**: architecture fit, test quality (mutation and coverage reports) and security posture in a single session |
+| End of a **follow-up sub-phase** (2b, 2c, 2d, 4b ...) | **No phase-end review.** Per-task Gate 2 and security reviews already ran. The next main phase review picks up anything cross-cutting |
+
+Findings do not become tasks by default:
+- Every finding goes into `.harness/backlog.md` with a severity (critical, high, medium, low), its source and, once taken up, the task id.
+- Only **critical or high** findings, or any finding that **blocks go-live**, become tasks right away.
+- The rest wait until the owner picks them.
+
+What does not change:
+- The path-triggered security review (above) and visual QA stay on every matching task.
+- The owner signs off the threat model and approves the Auditor report before the first public publish.
+- Findings still need file:line, severity, a failure scenario and a fix hint (below).
 
 ### Threats specific to this project (seed for the CSO review)
 - **Prompt injection via ingested content:** RSS/news text goes into Gemini prompts. A malicious article could inject instructions ("include this link…") into a script that gets **published publicly**. Mitigations: treat source text as data (delimited, never as instructions), the fact-check gate, a link/URL allowlist in descriptions, human PR review.
@@ -213,7 +234,7 @@ The output is structured, so Loom can act on it without interpretation:
     visual_qa: ["pipeline/render/**", "pipeline/visuals/**", "assets/**"]
   ```
   Matching tasks get the specialist review **in addition to** the normal Gate 2 review, run in parallel.
-- **Phase-end reviews** (QA Lead, CSO, Auditor) become tasks in the task graph automatically when the last task of a phase merges. Their findings become **new tasks**, not direct edits.
+- **Phase-end reviews** follow the "Phase-end review policy" above: the full set only at its triggers, one combined review for other main phases, none for follow-up sub-phases. Their findings go to `.harness/backlog.md`; only critical or high ones, or go-live blockers, become **new tasks** straight away, never direct edits.
 - **Scheduled audit** runs as a GitHub Actions workflow (weekly), so it runs with your PC off. It opens an issue if anything is found.
 - **All LLM reviewers must give evidence:** file:line, severity (critical/high/medium/low), a concrete exploit/failure scenario, and a fix hint. Findings without a scenario are logged as notes, not blockers. This keeps false positives from piling up.
 - Each reviewer role gets its own file in `.claude/agents/` (`security-reviewer.md`, `qa-lead.md`, `cso.md`, `auditor.md`, `visual-qa.md`), all **Opus 5.5, read-only tools**.
@@ -397,7 +418,8 @@ No orchestrator code yet. One long-running **orchestrator session** (Claude Code
 - **task close-out (doc sync)**, after the task's PR merges, every time:
   1. the orchestrator writes any lessons.md entry and decision (PRD.md section 7, architecture.md) the task produced
   2. it launches a **Scribe** session (Haiku, own window, closes when done) that applies the mechanical doc updates: `.harness/status.yaml`, the workflow.md status table, the CLAUDE.md status line, the outcome log (`log_outcome.py`) and the remaining items in the handoff's Docs section
-  3. both go on one docs branch and PR, never the task branch
+  3. both go on one docs branch and PR, never the task branch; `.harness/status.yaml` and the workflow.md status row change in the same commit (the docs check fails if only one does)
+  4. the orchestrator's own handoff: its **State block is REPLACED, never appended** (one `## State` heading, file under 12 KB; `.harness/tests/test_orchestrator_handoff.py` enforces both). Old state goes to `.harness/handoffs/orchestrator-history.md` (append-only, never read at session start) only if worth keeping
 - CI runs `tests/docs_check.py` on every push: plain code, no model, so free. It fails when the docs disagree with each other or with the repo (see §11)
 - install the lock/paths `PreToolUse` hook now; it's cheap and catches problems immediately
 - you approve the contracts PR and merge PRs; nothing else needs you
@@ -458,6 +480,8 @@ No orchestrator code yet. One long-running **orchestrator session** (Claude Code
 ## 10b. Usage Limits (5-hour and weekly) — Wait, Then Auto-Resume
 
 The plan's usage limits are an expected event, not an error. When one is hit, Loom **freezes cleanly, records the reset time, waits, checks the limit has lifted, then continues exactly where it stopped**.
+
+> **Stage 0 today:** the rest of this section is the Stage 1+ design. There is no Loom code, `limit_state.json`, probe or auto-wake yet. What actually happens: a session or agent that hits a limit just fails (for example HTTP 429). The orchestrator commits the WIP, makes no attempt count, and retries or resumes after the reset by hand (resuming the same session worked in practice). Before a limit is hit, the rule is in `orchestrator.md`: when the owner says the weekly limit is near, or a limit message appears, finish the current task's close-out, then stop and start no new wave or review. Reviews are never skipped or downgraded to get around a limit.
 
 ### Detection
 - After every headless call Loom checks the exit code + output for a usage-limit response.
