@@ -1,0 +1,27 @@
+id: p4b-youtube-redact
+title: Redact every echoed form of a secret, longest form first
+depends_on: [p4b-youtube-survivors]
+role: implementer
+notes: |
+  Found by the locked survivor tests (p4b-youtube-survivors handoff, Known risks).
+  `_error_message` in pipeline/publish/youtube.py replaces each secret's plain, URL-encoded and
+  JSON-escaped forms one after the other. When one form contains another (a client secret of 12
+  backslashes plus `x`: its JSON-escaped form contains the plain form), replacing the shorter one
+  first leaves part of the longer one in the message. Fix: collect the forms of every stored secret
+  and replace them longest first, so no form is cut by a shorter one. Skip empty forms. No new
+  helper beyond what the fix needs, no other change.
+  Do not close p4b-youtube-survivors in status.yaml before this task is done: this task owns the
+  survivor test file so it skips on main until then (conftest maps a file to the last task that
+  lists it).
+  Security specialist review runs (pipeline/publish/** is a trigger).
+paths_allowed:
+  - pipeline/publish/youtube.py
+tests:
+  - tests/publish/test_youtube_survivors.py
+acceptance: tests/publish/test_youtube_survivors.py::test_acceptance
+context_files:
+  - .harness/handoffs/p4b-youtube-survivors.md
+  - pipeline/publish/youtube.py
+  - tests/publish/test_youtube_survivors.py
+  - lessons.md
+max_turns: 15
