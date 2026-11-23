@@ -238,8 +238,9 @@ tokenizers==0.23.3 \
     --hash=sha256:376851d22bcf9d650a5c3090bb83e6cf9e895fbf0595369fa4cd43c1f69b5f87
 tqdm==4.70.1 \
     --hash=sha256:c293e525e6fef9c20e8728fd4612df02a0aa31bb5fe91ecd93e123b1b7bffa73
-transformers==5.22.1 \
-    --hash=sha256:c940b4bf98de4f568723895f330ba1460a398bd83061b93b70238c3fe32e4389
+transformers==5.23.0 \
+    --hash=sha256:018e82fd07490ad5bb58414f65e31576033dc7f36bed10c574843f69b90991bf \
+    --hash=sha256:19d647a4d5d903a7c644ca5cde2d86efc3dde7d8c687ae7988806ff2205efa71
 triton==3.9.0 \
     --hash=sha256:5e52ab4e2f1d64f0ac494c9aa723697b793f81a91c4cae4c36608ca0bc4267bf
 truststore==0.10.5 \
