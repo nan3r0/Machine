@@ -65,7 +65,7 @@ pytest_add_cli_args = ["-m", "not heavy"]
 also_copy = [
     "queue/", "sources/", ".harness/", "assets/", ".github/", ".claude/hooks/",
     "Makefile", ".gitignore", "requirements.txt", "requirements-dev.txt", "requirements-heavy.txt",
-    "requirements-generate.txt",
+    "requirements-generate.txt", "requirements-render.txt", "requirements-render-torch.txt",
     "CLAUDE.md", "README.md", "workflow.md", "lessons.md",
 ]
 
