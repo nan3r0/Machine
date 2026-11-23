@@ -6,7 +6,7 @@ torch==2.11.0+cpu
 torchaudio==2.11.1
 # torch 2.11.0+cpu's own dependencies (Requires-Dist of the CPU wheel; torchaudio declares none)
 # and theirs, pinned so the --no-deps torch step stays reproducible.
-filelock==4.2.10
+filelock==4.2.12
 typing-extensions==4.16.0
 setuptools==81.0.0
 sympy==1.14.0
