@@ -4,7 +4,8 @@ Usage: python -m pipeline.script.batch SOURCES_DIR QUEUE_DIR OUT_DIR
 
 Steps are called through their modules (`sources.load_sources`, `generate.write_script`,
 `exact.unsupported`, `semantic.check_script`, ...), never imported by name, so tests can fake them.
-Logs and prints counts and script ids only: never prompts, model output, fact text or the key.
+Logs counts, script ids and the clipped reason a script was left out (the same text the PR body
+shows, which can quote up to REASON_MAX_CHARS of model output); never prompts, fact text or the key.
 """
 
 import argparse
@@ -59,7 +60,9 @@ def run(sources_dir: Path, queue_dir: Path, out_dir: Path, run_date: date) -> in
        checked before any line is flagged for lack of budget. With too little left, flag instead
        of rewriting.
     4. GeminiError or GenerateError while writing or checking a script: the script is left out and
-       listed in the PR body with the reason (a Flag with scene None).
+       listed in the PR body with the reason (a Flag with scene None). The same clipped reason is
+       logged as a warning; when every script fails there is no PR body, so the log is then the
+       only copy.
     5. Writes each script to `queue_dir/approved/<id>.json` and the body to `out_dir/pr_body.md`.
        Flag reasons are clipped to `REASON_MAX_CHARS`.
 
@@ -82,8 +85,9 @@ def run(sources_dir: Path, queue_dir: Path, out_dir: Path, run_date: date) -> in
             script = _write(source, slug, first_day + timedelta(days=number), budget)
             script, failures = _check_and_repair(script, source, scripts_left, budget)
         except (generate.GenerateError, gemini.GeminiError) as error:
-            left_out.append(_flag(slug, None, str(error)))
-            log.warning("script %s left out", slug)
+            flag = _flag(slug, None, str(error))
+            left_out.append(flag)
+            log.warning("script %s left out: %s", slug, flag.reason)
             continue
         written.append((script, source))
         flags += [_flag(slug, index, reason) for index, reason in failures.items()]
