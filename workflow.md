@@ -259,6 +259,11 @@ Specialist reviews: security for p4-youtube and p4-daily-workflow. No visual QA:
 | p4b-runbook | done, merged 2026-11-23 (PR #143) | go-live runbook in `docs/runbook.md` |
 | p4b-cso | done, merged 2026-11-23 (PR #144) | threat model v3.1; owner sign-off is a go-live gate |
 | p4b-docs | done, merged 2026-11-23 (PR #145) | go-live docs in PRD, spec, CLAUDE.md and workflow.md |
+| p4c-lock-pin | done, merged 2026-11-24 (PR #149) | render lock fix |
+| p4c-lock-pin-2 | done, merged 2026-11-24 (PR #157) | pydantic-core, thinc, curated-transformers pins |
+| p4c-lock-pin-3 | done, merged 2026-11-24 (PR #166) | curated-transformers 0.1.1, bare Dependabot ignores |
+| p4c-batch-log-reason | done, merged 2026-11-24 (PR #165) | batch warning carries the clipped reason |
+| p4c-lock-pin-4 | done, merged 2026-11-24 (PR #172) | rfc3986 back to 1.5.0, csvw and rfc3986 ignored in Dependabot |
 
 ## Phase 4b module order
 
