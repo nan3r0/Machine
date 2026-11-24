@@ -1,12 +1,13 @@
-"""Hashed lock files agree with each other (tasks p4c-lock-pin, p4c-lock-pin-2).
+"""Hashed lock files agree with each other (tasks p4c-lock-pin, p4c-lock-pin-2, p4c-lock-pin-4).
 
 pip installs a hashed lock only if every pin satisfies what the other pins require, or it fails with
 ResolutionImpossible. Dependabot broke that by bumping one package without the one that constrains
 it: pydantic-core alone (commit ba7bbd0), then pydantic alone (PR #151) while an ignore held
-pydantic-core back, and thinc (PR #150) and curated-transformers (PR #152) past what spaCy allows.
+pydantic-core back, thinc (PR #150) and curated-transformers (PR #152) past what spaCy allows, and
+rfc3986 (PR #161) past what csvw allows.
 The tests check that every package pinned in more than one hashed lock has one version across all
 of them, that pins satisfy the known requirements in CONSTRAINTS, and that Dependabot bumps pydantic
-and pydantic-core together and leaves the spaCy pins' majors alone.
+and pydantic-core together and leaves the capped pins' majors alone.
 """
 
 from pathlib import Path
@@ -28,10 +29,11 @@ CONSTRAINTS = [
     ("spacy", "3.8.18", "thinc", ">=8.3.12,<8.4.0"),  # spacy-3.8.18 wheel METADATA
     # spacy_curated_transformers-0.3.1 wheel METADATA
     ("spacy-curated-transformers", "0.3.1", "curated-transformers", ">=0.1.0,<0.2.0"),
+    ("csvw", "4.2.0", "rfc3986", "<2"),  # csvw-4.2.0 wheel METADATA
 ]
 
-# Dependabot may not take these past a major: spaCy caps them, and they are only transitive pins.
-SPACY_CAPPED = ("thinc", "curated-transformers")
+# Dependabot may not take these past a major: spaCy or csvw caps them, and they are only transitive pins.
+CAPPED = ("thinc", "curated-transformers", "rfc3986")
 
 
 def hashed_locks(root: Path) -> list[Path]:
@@ -91,9 +93,9 @@ def test_pydantic_core_is_pinned_in_both_light_and_render_locks() -> None:
         assert {"pydantic", "pydantic-core"} <= pins.keys(), f"{name} lost pydantic or pydantic-core"
 
 
-def test_render_lock_pins_spacy_and_what_it_caps() -> None:
+def test_render_lock_pins_the_capping_packages_and_what_they_cap() -> None:
     pins = requirements(ROOT / "requirements-render.txt", hashed=True)
-    assert {"spacy", "spacy-curated-transformers", *SPACY_CAPPED} <= pins.keys()
+    assert {"spacy", "spacy-curated-transformers", "csvw", *CAPPED} <= pins.keys()
 
 
 def test_shared_packages_have_one_version_across_hashed_locks() -> None:
@@ -141,20 +143,20 @@ def test_dependabot_bumps_pydantic_and_pydantic_core_together() -> None:
             f"pip update for {where} has no group with both pydantic and pydantic-core")
 
 
-def test_dependabot_never_takes_spacy_capped_pins_past_a_major() -> None:
+def test_dependabot_never_takes_capped_pins_past_a_major() -> None:
     for update in pip_updates():
         majors_ignored = {
             normalise(i.get("dependency-name", "")) for i in update.get("ignore") or []
             if "version-update:semver-major" in (i.get("update-types") or ["version-update:semver-major"])}
-        missing = set(SPACY_CAPPED) - majors_ignored
+        missing = set(CAPPED) - majors_ignored
         assert not missing, f"pip update for {update.get('directory')} may bump {sorted(missing)} a major"
 
 
 def test_acceptance() -> None:
     test_generate_and_render_locks_are_both_checked()
     test_pydantic_core_is_pinned_in_both_light_and_render_locks()
-    test_render_lock_pins_spacy_and_what_it_caps()
+    test_render_lock_pins_the_capping_packages_and_what_they_cap()
     test_shared_packages_have_one_version_across_hashed_locks()
     test_pins_satisfy_the_known_requirements()
     test_dependabot_bumps_pydantic_and_pydantic_core_together()
-    test_dependabot_never_takes_spacy_capped_pins_past_a_major()
+    test_dependabot_never_takes_capped_pins_past_a_major()

@@ -1,0 +1,34 @@
+id: p4c-lock-pin-4
+title: Put rfc3986 back to 1.5.0 and stop Dependabot bumping it past what csvw allows
+depends_on: []
+role: implementer
+notes: |
+  Bug: PR #161 (rfc3986 1.5.0 to 2.0.0, commit 3561720) was merged to main, so requirements-render.txt
+  pins a version csvw 4.2.0 rejects (its wheel METADATA has `Requires-Dist: rfc3986<2`).
+  `pip install --require-hashes -r requirements-render.txt` fails with ResolutionImpossible
+  (render.yml run 45300168256). tests/test_lock_consistency.py now carries a csvw row in CONSTRAINTS
+  and rfc3986 in CAPPED; test_pins_satisfy_the_known_requirements fails on main today and is the
+  regression test for this task.
+  - requirements-render.txt: replace the whole rfc3986==2.0.0 block (the pin line and both hash lines)
+    with the 1.5.0 block, the pin line and its one hash line from
+    `git show 3561720^:requirements-render.txt` (lines 290-291). Copy the lines with a script from git,
+    never type, invent or download a hash. Nothing else in the file changes.
+  - .github/dependabot.yml, pip entry: add bare ignores `- dependency-name: rfc3986` and
+    `- dependency-name: csvw` (no update-types, so every version is ignored: a csvw bump can move its
+    own rfc3986 cap). Keep every existing ignore and the pydantic group. The locked test counts a
+    bare ignore as ignoring majors.
+  - Install proof on Linux: CI's Gate 1 does not install the locks (task p4c-ci-lock-resolve adds
+    that). Hand off as `partial`, "awaiting install proof"; the orchestrator asks the owner to dispatch
+    render.yml on main after merge. If that run fails on another package, report which; do not guess.
+paths_allowed:
+  - requirements-render.txt
+  - .github/dependabot.yml
+tests:
+  - tests/test_lock_consistency.py
+acceptance: tests/test_lock_consistency.py::test_acceptance
+context_files:
+  - requirements-render.txt
+  - .github/dependabot.yml
+  - tests/test_lock_consistency.py
+  - lessons.md
+max_turns: 15
