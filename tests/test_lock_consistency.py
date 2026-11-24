@@ -1,13 +1,16 @@
-"""Hashed lock files agree with each other (tasks p4c-lock-pin, p4c-lock-pin-2, p4c-lock-pin-4).
+"""Hashed lock files agree with each other (tasks p4c-lock-pin, p4c-lock-pin-2, p4c-lock-pin-4,
+p4c-lock-pin-5).
 
 pip installs a hashed lock only if every pin satisfies what the other pins require, or it fails with
 ResolutionImpossible. Dependabot broke that by bumping one package without the one that constrains
 it: pydantic-core alone (commit ba7bbd0), then pydantic alone (PR #151) while an ignore held
 pydantic-core back, thinc (PR #150) and curated-transformers (PR #152) past what spaCy allows, and
-rfc3986 (PR #161) past what csvw allows.
+rfc3986 (PR #161) past what csvw allows, srsly (PR #169) past what spaCy allows, and num2words
+(PR #158) to a release that needs docopt, which no lock pins.
 The tests check that every package pinned in more than one hashed lock has one version across all
 of them, that pins satisfy the known requirements in CONSTRAINTS, and that Dependabot bumps pydantic
-and pydantic-core together and leaves the capped pins' majors alone.
+and pydantic-core together and leaves the capped pins' majors alone. pip's hash mode also needs
+every line pinned with == and hashed.
 """
 
 from pathlib import Path
@@ -30,10 +33,11 @@ CONSTRAINTS = [
     # spacy_curated_transformers-0.3.1 wheel METADATA
     ("spacy-curated-transformers", "0.3.1", "curated-transformers", ">=0.1.0,<0.2.0"),
     ("csvw", "4.2.0", "rfc3986", "<2"),  # csvw-4.2.0 wheel METADATA
+    ("spacy", "3.8.18", "srsly", ">=2.5.3,<3.0.0"),  # spacy-3.8.18 wheel METADATA
 ]
 
 # Dependabot may not take these past a major: spaCy or csvw caps them, and they are only transitive pins.
-CAPPED = ("thinc", "curated-transformers", "rfc3986")
+CAPPED = ("thinc", "curated-transformers", "rfc3986", "srsly")
 
 
 def hashed_locks(root: Path) -> list[Path]:
@@ -120,16 +124,30 @@ def test_the_check_flags_a_package_bumped_in_one_lock_only(tmp_path: Path) -> No
 
 def test_the_check_flags_pins_outside_a_requirement(tmp_path: Path) -> None:
     write_lock(tmp_path / "requirements-ok.txt",
-               "pydantic==2.14.4", "pydantic-core==2.50.5", "spacy==3.8.18", "thinc==8.3.14")
+               "pydantic==2.14.4", "pydantic-core==2.50.5", "spacy==3.8.18", "thinc==8.3.14",
+               "srsly==2.5.6")
     write_lock(tmp_path / "requirements-core.txt", "pydantic==2.14.4", "pydantic-core==2.50.4")
-    write_lock(tmp_path / "requirements-thinc.txt", "spacy==3.8.18", "thinc==10.0.0")
-    write_lock(tmp_path / "requirements-gone.txt", "spacy==3.8.18")
+    write_lock(tmp_path / "requirements-thinc.txt", "spacy==3.8.18", "thinc==10.0.0", "srsly==2.5.6")
+    write_lock(tmp_path / "requirements-gone.txt", "spacy==3.8.18", "srsly==2.5.6")
     write_lock(tmp_path / "requirements-new.txt", "pydantic==99.0.0", "pydantic-core==99.0.0")
     write_lock(tmp_path / "requirements-other.txt", "pyyaml==6.0.2")
     problems = constraint_problems(hashed_locks(tmp_path))
     assert [p.split(":")[0] for p in problems] == [
         "requirements-core.txt", "requirements-gone.txt", "requirements-new.txt", "requirements-thinc.txt"]
     assert "add one" in problems[2]
+
+
+def test_every_hashed_lock_line_is_pinned_and_hashed() -> None:
+    for lock in hashed_locks(ROOT):
+        assert requirements(lock, hashed=True), f"{lock.name} pins nothing"
+
+
+def test_num2words_stays_at_0_5_6_unless_docopt_is_pinned() -> None:
+    # num2words 0.5.6 has no Requires-Dist; 0.5.14 requires docopt>=0.6.2 (both wheels' METADATA),
+    # and docopt ships only an sdist, so render.yml run 45306110415 failed in --require-hashes mode.
+    pins = requirements(ROOT / "requirements-render.txt", hashed=True)
+    if pins.get("num2words") != "0.5.6":
+        assert "docopt" in pins, f"num2words {pins.get('num2words')} needs docopt, which is not pinned"
 
 
 def test_dependabot_bumps_pydantic_and_pydantic_core_together() -> None:
@@ -160,3 +178,5 @@ def test_acceptance() -> None:
     test_pins_satisfy_the_known_requirements()
     test_dependabot_bumps_pydantic_and_pydantic_core_together()
     test_dependabot_never_takes_capped_pins_past_a_major()
+    test_every_hashed_lock_line_is_pinned_and_hashed()
+    test_num2words_stays_at_0_5_6_unless_docopt_is_pinned()
