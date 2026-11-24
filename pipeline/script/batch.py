@@ -82,8 +82,9 @@ def run(sources_dir: Path, queue_dir: Path, out_dir: Path, run_date: date) -> in
             script = _write(source, slug, first_day + timedelta(days=number), budget)
             script, failures = _check_and_repair(script, source, scripts_left, budget)
         except (generate.GenerateError, gemini.GeminiError) as error:
-            left_out.append(_flag(slug, None, str(error)))
-            log.warning("script %s left out", slug)
+            flag = _flag(slug, None, str(error))
+            left_out.append(flag)
+            log.warning("script %s left out: %s", slug, flag.reason)
             continue
         written.append((script, source))
         flags += [_flag(slug, index, reason) for index, reason in failures.items()]
