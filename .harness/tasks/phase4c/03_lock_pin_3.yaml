@@ -1,0 +1,35 @@
+id: p4c-lock-pin-3
+title: Put curated-transformers back to 0.1.1 and stop Dependabot bumping the curated stack
+depends_on: []
+role: implementer
+notes: |
+  Bug: PR #160 (curated-transformers 0.1.1 to 0.9.1) was merged to main, so requirements-render.txt
+  pins a version spacy-curated-transformers 0.3.1 rejects (requires curated-transformers>=0.1.0,<0.2.0).
+  `pip install --require-hashes -r requirements-render.txt` fails with ResolutionImpossible. The
+  semver-major ignore from p4c-lock-pin-2 did not catch it: 0.1.1 to 0.9.1 is a minor bump under 0.x.
+  The PR's CI had run before the stricter test merged, and it was merged without a rebase.
+  tests/test_lock_consistency.py::test_pins_satisfy_the_known_requirements fails on main today and is
+  the regression test for this task.
+  - requirements-render.txt: curated-transformers back to 0.1.1 with its block from
+    `git show e2f92bb^:requirements-render.txt` (the hash lines are copied from git, never invented
+    or downloaded; keep every hash line of the block). Nothing else in the file changes.
+  - .github/dependabot.yml, pip entry: replace the curated-transformers semver-major ignore with a bare
+    `- dependency-name: curated-transformers` (no update-types, so every version is ignored) and add
+    bare ignores for `curated-tokenizers` and `spacy-curated-transformers`. Keep the thinc ignore and
+    the pydantic group. The locked test counts a bare ignore as ignoring majors, so it still passes.
+  - Install proof on Linux: CI's Gate 1 does not install the locks. Hand off as `partial`, "awaiting
+    install proof"; the orchestrator asks the owner to dispatch render.yml on main after merge.
+  - Other bumps merged unchecked in the same batch (num2words, filelock, rfc3986): the render.yml
+    dispatch is their install proof too. If it fails on one, report which; do not guess.
+paths_allowed:
+  - requirements-render.txt
+  - .github/dependabot.yml
+tests:
+  - tests/test_lock_consistency.py
+acceptance: tests/test_lock_consistency.py::test_acceptance
+context_files:
+  - requirements-render.txt
+  - .github/dependabot.yml
+  - tests/test_lock_consistency.py
+  - lessons.md
+max_turns: 15
