@@ -1,6 +1,6 @@
 id: p4c-ci-lock-resolve
 title: CI job that resolves every hashed lock on each push and PR
-depends_on: [p4c-lock-pin-4]
+depends_on: [p4c-lock-pin-4, p4c-lock-pin-5]
 role: architect
 notes: |
   Backlog (high): CI never installs the hashed locks, so Dependabot bumps that pip cannot resolve
