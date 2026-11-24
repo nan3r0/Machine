@@ -1,0 +1,62 @@
+id: p4c-ci-lock-resolve
+title: CI job that resolves every hashed lock on each push and PR
+depends_on: [p4c-lock-pin-4]
+role: architect
+notes: |
+  Backlog (high): CI never installs the hashed locks, so Dependabot bumps that pip cannot resolve
+  merged green four times (pydantic-core, thinc, curated-transformers, rfc3986) and failed only in a
+  live workflow. tests/test_ci_lock_resolve.py (locked, written first) defines done.
+
+  Why role architect: .github/workflows/ci.yml is in .harness/locks.yaml, so an implementer may not
+  edit it and tests/scope_check.py rejects the change on a task branch unless the task's role owns the
+  contracts. The Architect (or the owner with LOOM_ADMIN=1) makes the edit on branch
+  task/p4c-ci-lock-resolve; Gate 2 review and the owner's PR diff review still apply. The Makefile is
+  not touched: the job is its own ci.yml job, not part of make check.
+
+  Add one job `lock-resolve` to ci.yml. Shape (the VALID_JOB fixture in the test is a sketch of it):
+  - runs-on ubuntu-latest, setup-python 3.12 (pinned by SHA like the check job, cache: pip optional),
+    first step actions/checkout pinned by SHA with persist-credentials: false. No job-level `if`, no
+    `needs`, no secrets, no `permissions` key (the workflow's contents: read applies), no `${{ }}`
+    inside run, timeout-minutes set, no continue-on-error, no `|| true`.
+  - Render locks, in one fresh venv: a real install of requirements-render-torch.txt with
+    `--no-deps --require-hashes --index-url https://download.pytorch.org/whl/cpu`, then
+    `pip install --dry-run --require-hashes -r requirements-render.txt`. This is what render.yml and
+    daily_publish.yml run, minus the install.
+  - Generate lock, in its own fresh venv: `pip install --dry-run --require-hashes -r requirements-generate.txt`.
+  - Call pip as `"$RUNNER_TEMP/<venv>/bin/python" -m pip install ...` (the test reads lines that
+    contain `pip install`). Name each lock literally on its pip line; the test reads the names, and it fails when a new
+    hashed requirements*.txt appears that ci.yml does not resolve.
+
+  Why not the backlog's cross-platform command (`--platform manylinux2014_x86_64 --python-version
+  3.12 --only-binary=:all: --target <tmp>`): --platform needs --only-binary=:all: (or --no-deps), and
+  openai-whisper and stable-ts ship only an sdist, so the render lock cannot resolve that way. The
+  render lock also cannot resolve without torch present: torch is not in it, and --require-hashes
+  rejects the unpinned requirement. --no-deps on the render or generate lock would skip resolution,
+  which is the point of the job. The runner already is Linux CPython 3.12, so --platform and
+  --python-version add nothing. No --ignore-installed (it would hide the installed torch), no
+  --extra-index-url (dependency confusion), no venv shared with the check job (its unhashed installs
+  would satisfy pins).
+  - --dry-run still downloads each file and checks its hash; it builds metadata for the two sdists
+    with build isolation, which render.yml already does. Verified only against pip 23.0.1 help
+    locally; the first CI run on the PR is the proof. If the torch download makes the job too slow,
+    say so in the handoff; do not drop the render locks.
+  - Existing locked tests on ci.yml apply to every job: tests/test_ci_workflow.py (safe, checkout
+    first with persist-credentials false, torch from the CPU index before any heavy install) and
+    tests/test_ci_triggers.py.
+
+  Owner decision, outside this task: make `lock-resolve` a required status check on main and require
+  branches to be up to date before merge. Without that, a red Dependabot PR or a stale green one
+  (p4c-lock-pin-3) can still merge.
+paths_allowed:
+  - .github/workflows/ci.yml
+tests:
+  - tests/test_ci_lock_resolve.py
+acceptance: tests/test_ci_lock_resolve.py::test_acceptance
+context_files:
+  - .github/workflows/ci.yml
+  - .github/workflows/render.yml
+  - tests/test_ci_lock_resolve.py
+  - tests/test_ci_workflow.py
+  - tests/workflow_rules.py
+  - lessons.md
+max_turns: 20
