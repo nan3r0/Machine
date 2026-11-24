@@ -1,0 +1,35 @@
+id: p4c-batch-log-reason
+title: Log why a script was left out of the weekly batch
+depends_on: []
+role: implementer
+notes: |
+  Bug: `run` in pipeline/script/batch.py logs "script %s left out" without the error. When every
+  script fails, no PR body is written, so the reason is lost: weekly-scripts run 45278431238 wrote
+  0 of 7 scripts and left no reason in the log or anywhere else.
+
+  Fix: the warning for a left-out script carries the same clipped reason as its Flag (whitespace
+  collapsed, cut to `constants.REASON_MAX_CHARS`). Reuse the reason `_flag` already builds, for
+  example by logging the `reason` of the Flag that goes into `left_out`; do not clip a second way.
+  Keep the slug in the message and use %-style logger arguments, not an f-string.
+
+  Disclosure: GeminiError text never holds the API key (`_http_message` redacts it). GenerateError
+  text can quote clipped model output; that same clipped text already goes into the public PR
+  body, and workflow logs are public too (docs/threat-model.md, "Workflow logs and artifacts are
+  public", accepted), so the log adds nothing new.
+  tests/script/test_batch.py::test_logs_hold_no_model_output_or_facts must keep passing.
+
+  pipeline/script/batch.py matches the security trigger in .harness/config.yaml, so a security
+  review runs alongside Gate 2.
+paths_allowed:
+  - pipeline/script/batch.py
+tests:
+  - tests/script/test_batch_log.py
+  - tests/script/test_batch.py
+  - tests/script/test_batch_qa.py
+acceptance: tests/script/test_batch_log.py::test_acceptance
+context_files:
+  - pipeline/script/batch.py
+  - tests/script/test_batch_log.py
+  - tests/script/test_batch.py
+  - lessons.md
+max_turns: 15
