@@ -12,6 +12,9 @@ updates:
       - dependency-name: spacy-curated-transformers
       - dependency-name: rfc3986
       - dependency-name: csvw
+      - dependency-name: num2words
+      - dependency-name: docopt
+      - dependency-name: srsly
     groups:
       pydantic:
         patterns:
