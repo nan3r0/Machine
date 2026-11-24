@@ -112,9 +112,8 @@ murmurhash==1.0.16 \
     --hash=sha256:e043f2f67dde4d357459bedccf6222d61d50198adb4abf7a381cb086e91888b5
 networkx==3.7 \
     --hash=sha256:e3fd2c13a7814cee3746340d8d7f8598a67f16a58bf47fb7f8793fab6efca1b0
-num2words==0.5.14 \
-    --hash=sha256:1c8e5b00142fc2966fd8d685001e36c4a9911e070d1b120e1beb721fa1edb33d \
-    --hash=sha256:b066ec18e56b6616a3b38086b5747daafbaa8868b226a36127e0451c0cf379c6
+num2words==0.5.6 \
+    --hash=sha256:529017394eef84daf63bb57e837fe2fb81363d1b06f6114e86608dae7ceb11ee
 numba==0.68.1 \
     --hash=sha256:8b33fee239194b9b6cb9b176f3c2563b94e5882fd846748ad0cf960daeee5406
 numpy==2.4.6 \
