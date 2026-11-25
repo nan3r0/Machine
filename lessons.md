@@ -376,3 +376,11 @@ How it was caught: the orchestrator dispatched the reports job for the Phase 4 Q
 Fix: `data/` added to `[tool.mutmut] also_copy`.
 Rule going forward: a task that adds a test reading a new root folder or file adds it to `also_copy` in the same change; the reports job is dispatched once per phase, so check it before the phase-end tasks.
 Test added: none, CI config; the reports job itself is the check.
+
+### 2026-11-25: render lock broke five times in a row on Dependabot bumps nobody installed
+What happened: Dependabot bumps (rfc3986 2.0.0 against csvw 4.2.0, num2words 0.5.14 pulling in sdist-only docopt, srsly 3.0.1 against spacy 3.8.18) merged green but broke `pip install --require-hashes -r requirements-render.txt`. Each was found only by a failed render.yml run, and each fix exposed the next.
+Why it happened (root cause, not symptom): CI never installed the lock files, so a bump of a package that another package pins or caps passed every gate. On top of that, conftest gives a locked test file to the last task that lists it, so `tests/test_lock_consistency.py` was skipped on main until its task was marked done.
+How it was caught: the owner dispatched render.yml and the orchestrator read the failed step log.
+Fix: pins restored (p4c-lock-pin to -5), bare Dependabot ignores for 0.x or capped packages (num2words, docopt, srsly, rfc3986, csvw), CONSTRAINTS and CAPPED rows in the locked test.
+Rule going forward: a bump of a package that another package pins or caps must move with it (group it, do not ignore one side); a locked test only runs once its task is in the done list, so mark tasks done at close-out; stop patching one package at a time after the second red run and add the CI resolve check (p4c-ci-lock-resolve).
+Test added: `tests/test_lock_consistency.py` (num2words/docopt check, srsly cap).
