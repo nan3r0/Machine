@@ -62,9 +62,17 @@ def run(sources_dir: Path, queue_dir: Path, out_dir: Path, run_date: date) -> in
     4. GeminiError or GenerateError while writing or checking a script: the script is left out and
        listed in the PR body with the reason (a Flag with scene None). The same clipped reason is
        logged as a warning; when every script fails there is no PR body, so the log is then the
-       only copy.
+       only copy. The loop stops, with no further Gemini call, on a GeminiQuotaError from any
+       call (also from a rewrite: it may have landed unchecked, so the script is left out) and
+       after `GEMINI_MAX_CONSECUTIVE_ERRORS` scripts in a row left out by a GeminiError. A written
+       script or one left out by a GenerateError (Gemini answered) restarts that count; a failed
+       rewrite does not add to it. A stop is logged as a warning and shown in the PR body as a
+       fixed-text line (`pr_body`, `stopped`); scripts already written still go in the PR.
     5. Writes each script to `queue_dir/approved/<id>.json` and the body to `out_dir/pr_body.md`.
        Flag reasons are clipped to `REASON_MAX_CHARS`.
+
+    The number of Gemini requests this run sent (`gemini.requests_sent`, retries included) is logged
+    once, in the summary line, on every path that made a call.
 
     Returns 0 when at least one script was written. With no unused source, or no script written,
     returns 1 and writes no PR body (the workflow run fails and opens no PR).
@@ -76,6 +84,9 @@ def run(sources_dir: Path, queue_dir: Path, out_dir: Path, run_date: date) -> in
         return 1
     first_day = run_date + timedelta(days=7 - run_date.weekday())
     budget = _Budget()
+    requests_before = gemini.requests_sent
+    streak = 0
+    stopped: str | None = None
     written: list[tuple[Script, SourceFile]] = []
     flags: list[Flag] = []
     left_out: list[Flag] = []
@@ -88,14 +99,25 @@ def run(sources_dir: Path, queue_dir: Path, out_dir: Path, run_date: date) -> in
             flag = _flag(slug, None, str(error))
             left_out.append(flag)
             log.warning("script %s left out: %s", slug, flag.reason)
+            streak = streak + 1 if isinstance(error, gemini.GeminiError) else 0
+            if isinstance(error, gemini.GeminiQuotaError):
+                stopped = "Gemini daily quota used up"
+            elif streak >= constants.GEMINI_MAX_CONSECUTIVE_ERRORS:
+                stopped = f"{streak} Gemini errors in a row"
+            if stopped:
+                log.warning("batch stopped early: %s", stopped)
+                break
             continue
+        streak = 0
         written.append((script, source))
         flags += [_flag(slug, index, reason) for index, reason in failures.items()]
         flags += [_flag(slug, None, reason) for reason in _check_spoken_extras(script, source)]
-    log.info("%d of %d scripts written, %d flags", len(written), len(picked), len(flags))
+    log.info("%d of %d scripts written, %d flags, %d Gemini requests", len(written), len(picked),
+             len(flags), gemini.requests_sent - requests_before)
     if not written:
         return 1
-    body = pr_body(written, flags, left_out, exhausted=len(picked) < constants.SCRIPTS_PER_BATCH)
+    body = pr_body(written, flags, left_out, exhausted=len(picked) < constants.SCRIPTS_PER_BATCH,
+                   stopped=stopped)
     approved = queue_dir / "approved"
     approved.mkdir(parents=True, exist_ok=True)
     for script, _ in written:
@@ -169,6 +191,8 @@ def _check_and_repair(
         budget.writes += 1
         try:
             script = generate.rewrite_line(script, index, source, reason)
+        except gemini.GeminiQuotaError:
+            raise
         except (generate.GenerateError, gemini.GeminiError):
             log.info("rewrite of %s scene %d failed", script.id, index + 1)
         else:
@@ -220,11 +244,15 @@ def pr_body(
     flags: Sequence[Flag],
     left_out: Sequence[Flag],
     exhausted: bool,
+    *,
+    stopped: str | None = None,
 ) -> str:
     """The approval PR body in Markdown, readable on a phone (no wide tables).
 
     Order: when `exhausted` (fewer unused sources than SCRIPTS_PER_BATCH), a line containing
-    "N of 7: sources exhausted" (N scripts written, 7 being SCRIPTS_PER_BATCH); every flag (script id,
+    "N of 7: sources exhausted" (N scripts written, 7 being SCRIPTS_PER_BATCH); when `stopped` is
+    given, the line "Stopped early: <stopped>" (`run` passes one of two fixed texts, never an error
+    or model text, since the line is plain text); every flag (script id,
     scene number, reason); every left-out script with its reason; then per written script a heading
     naming its id, the hook, each scene's narration with the text and url of each fact it cites
     (each fact's text and url at most once per script, as plain text so the links work), the loop
@@ -241,6 +269,8 @@ def pr_body(
     parts = ["# Weekly scripts for approval"]
     if exhausted:
         parts.append(f"{len(written)} of {constants.SCRIPTS_PER_BATCH}: sources exhausted")
+    if stopped:
+        parts.append(f"Stopped early: {stopped}")
     if flags:
         parts.append("## Flags\n" + "\n".join(_flag_line(flag) for flag in flags))
     if left_out:

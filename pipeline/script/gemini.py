@@ -12,6 +12,7 @@ temperature is given. Response: `{"status": "completed", "steps": [{"type": "mod
 import http.client
 import json
 import os
+import re
 import time
 import urllib.error
 import urllib.request
@@ -21,6 +22,10 @@ from pipeline import constants
 
 _EXCERPT_CHARS = 200
 _UNEXPECTED_SHAPE = "Gemini response has an unexpected shape"
+# "20 requests per day" and quota ids such as "GenerateRequestsPerDayPerProjectPerModel-FreeTier".
+_PER_DAY = re.compile(r"per\s?day", re.IGNORECASE)
+
+requests_sent = 0
 
 
 class _NoRedirect(urllib.request.HTTPRedirectHandler):
@@ -37,6 +42,11 @@ class GeminiError(Exception):
     """Any failed Gemini call. The message never contains the API key."""
 
 
+class GeminiQuotaError(GeminiError):
+    """HTTP 429 whose error body names a per-day limit. It cannot clear the same day, so it is
+    sent once and never retried. A GeminiError, so callers that catch GeminiError still catch it."""
+
+
 def generate_json(
     model: str, prompt: str, schema: dict[str, Any], temperature: float | None = None
 ) -> dict[str, Any]:
@@ -48,7 +58,9 @@ def generate_json(
 
     Sends with `opener.open(request, timeout=constants.GEMINI_TIMEOUT_S)`, an opener that never
     follows redirects. HTTP 429, any 5xx and a timeout are retried once after
-    `time.sleep(constants.GEMINI_RETRY_WAIT_S)`; if the retry fails too, GeminiError. Any other
+    `time.sleep(constants.GEMINI_RETRY_WAIT_S)`; if the retry fails too, GeminiError. A 429 whose
+    full error body names a per-day limit (`_PER_DAY`) is not retried: GeminiQuotaError at once, also
+    when it is the retry's answer. A 429 whose body cannot be read is an ordinary 429. Any other
     failure raises GeminiError at once with no retry: any 3xx (a redirect would re-send the key
     header to another host), HTTP 404 (its message names `model`, since a retired model id is the
     usual cause), other 4xx, an OSError or http.client.HTTPException while sending or reading the
@@ -58,6 +70,10 @@ def generate_json(
     Error messages give the HTTP status and at most a short excerpt of the response body; if
     reading the error body fails, the message keeps the status (and the model name for 404) and
     has no excerpt.
+
+    The module-level `requests_sent` counts the HTTP requests handed to the opener (successes,
+    errors, timeouts and retries alike), never a call that fails on a missing key. Callers take a
+    difference to count their own requests.
 
     The returned text is the text parts of the model_output steps joined in order. The output is
     untrusted: it is only parsed here, and callers validate it.
@@ -87,15 +103,20 @@ def generate_json(
 
 
 def _send_with_one_retry(request: urllib.request.Request, model: str, key: str) -> bytes:
+    global requests_sent
     for attempt in (1, 2):
+        requests_sent += 1
         try:
             with _OPENER.open(request, timeout=constants.GEMINI_TIMEOUT_S) as response:
                 body: bytes = response.read()
                 return body
         except urllib.error.HTTPError as error:
+            error_text = _read_body(error, key)
+            if error.code == 429 and error_text is not None and _PER_DAY.search(error_text):
+                raise GeminiQuotaError(_http_message(error, model, error_text)) from None
             retryable = error.code == 429 or error.code >= 500
             if not retryable or attempt == 2:
-                raise GeminiError(_http_message(error, model, key)) from None
+                raise GeminiError(_http_message(error, model, error_text)) from None
         except TimeoutError:
             if attempt == 2:
                 raise GeminiError("Gemini request timed out twice") from None
@@ -111,18 +132,25 @@ def _send_with_one_retry(request: urllib.request.Request, model: str, key: str) 
     raise AssertionError("unreachable")
 
 
-def _http_message(error: urllib.error.HTTPError, model: str, key: str) -> str:
-    # Redact before cutting, so a key split by the cut cannot survive as a prefix.
-    message = f"Gemini HTTP {error.code}"
-    if error.code == 404:
-        message += f" (model {model} not found, it may have been retired)"
+def _read_body(error: urllib.error.HTTPError, key: str) -> str | None:
+    """The whole error body with the key redacted, or None when reading fails. Read once only:
+    `HTTPError.read()` drains the stream."""
     try:
         body = error.read()
     except (OSError, http.client.HTTPException):
         # Raised inside the HTTPError handler, so the sibling excepts do not catch it.
+        return None
+    return body.decode("utf-8", errors="replace").replace(key, "[redacted]")
+
+
+def _http_message(error: urllib.error.HTTPError, model: str, body: str | None) -> str:
+    # `body` is redacted before the cut, so a key split by the cut cannot survive as a prefix.
+    message = f"Gemini HTTP {error.code}"
+    if error.code == 404:
+        message += f" (model {model} not found, it may have been retired)"
+    if body is None:
         return message
-    excerpt = body.decode("utf-8", errors="replace").replace(key, "[redacted]")
-    return f"{message}: {excerpt[:_EXCERPT_CHARS]}"
+    return f"{message}: {body[:_EXCERPT_CHARS]}"
 
 
 def _parse_answer(raw: bytes) -> dict[str, Any]:
