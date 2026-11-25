@@ -7,30 +7,40 @@ notes: |
   owner approves before p3-contracts" (p3-plan D ids, not Phase 2's D1 to D8 in PRD.md). The
   plan is the spec; record any deviation. Goes to main on `plan/p3-contracts` before any
   implementer (lessons.md 2026-11-25).
-  - pipeline/constants.py, using the numbers p3-spike proposes:
+  - Method A, all libass (owner 2026-11-25): sets, host and cards are events in one scenes.ass.
+    No FFmpeg image layers in slice 1. The table "Numbers p3-contracts needs" in
+    .harness/handoffs/p3-spike.md is the starting point.
+  - pipeline/constants.py, using those numbers:
     - set ids (D13), poses (D12), camera moves, and the default set per template;
-    - drift speed per depth, push-in rate, scene fade, blink and bob timings;
-    - character placement, the data-card panel, CAPTION_POS_Y (D2, inside the locked range);
+    - drift speed per depth with the drift distance per scene capped at the layer margin,
+      push-in rate, scene fade, blink and bob timings;
+    - set layer and shape caps (2 to 4 layers, at most 25 shapes per set), and a render budget:
+      the compose call stays under half of COMPOSE_TIMEOUT_S;
+    - character placement with the feet above the caption band (the spike host overlapped it),
+      the data-card panel, CAPTION_POS_Y (D2, inside the locked range);
     - caps on items, labels and values, plus a per-script total so 7 scripts at every cap
       stay under PR_BODY_MAX_CHARS (extend the arithmetic in the locked batch test).
     No schema.py change.
   - pipeline/visuals/art.py (contract): the Pydantic models for assets/character/host.yaml and
     assets/sets/<id>.yaml, plus loaders. Validate assets/character/host.yaml now.
   - Stubs raising NotImplementedError, with docstring contracts:
-    - pipeline/visuals/__init__.py, ass_kit.py, character.py, cards.py, charts.py, router.py;
-    - pipeline/render/background.py (draw each set layer to a PNG once; build the FFmpeg
-      arguments for parallax, push-in and fades, argument lists only).
-    compose's new keyword-only arguments are described in its test file only.
+    - pipeline/visuals/__init__.py, ass_kit.py, character.py, sets.py, cards.py, charts.py,
+      router.py. sets.py: set layer events for a scene window and camera (drift by depth,
+      push-in about the frame centre, the scene fade).
+    compose's new keyword-only argument (the scenes .ass path) is described in its test file only.
   - Locked tests, new files with one owner each:
     - tests/script/test_validate_visuals.py
     - tests/visuals/test_ass_kit.py, test_character.py (mouth follows word timings, blinks,
       every pose, same anchor in every scene), test_cards.py, test_charts.py, test_router.py
       (a hypothesis test that spans are ordered, cover hook to loop line and never overlap;
       {} falls back to the defaults)
-    - tests/visuals/test_sets_art.py (every set id has a valid asset; owner p3-sets-art)
-    - tests/render/test_background.py, tests/render/test_compose_layers.py (heavy cases inside)
-    - tests/test_render_one_visuals.py (heavy acceptance: both demo scripts render and pass QA,
-      and write golden frames plus an 8-frame strip across one scene change)
+    - tests/visuals/test_sets.py (drift never exceeds the margin, deeper layers drift less,
+      push-in centred, fade at each scene start), tests/visuals/test_sets_art.py (every set id
+      has a valid asset within the caps; owner p3-sets-art)
+    - tests/render/test_compose_layers.py (heavy cases inside)
+    - tests/test_render_one_visuals.py (heavy acceptance: both demo scripts render and pass QA
+      inside the render budget, and write golden frames, an 8-frame strip 0.25 s apart across
+      one scene change, and 8 consecutive full-resolution frames for stepping)
     - tests/script/test_generate_visuals.py, tests/script/test_batch_visuals.py
     - tests/test_render_constants_visuals.py (this task's own)
     Expected values come from the spec or literals, never from the code under test.
@@ -55,7 +65,7 @@ paths_allowed:
   - pipeline/visuals/cards.py
   - pipeline/visuals/charts.py
   - pipeline/visuals/router.py
-  - pipeline/render/background.py
+  - pipeline/visuals/sets.py
   - queue/approved/sample-65s.json
   - tests/**
   - pyproject.toml

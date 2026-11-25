@@ -9,7 +9,8 @@ notes: |
   - assets/character/host.yaml: ASS drawing paths per part (head, hair, eyes open and closed,
     brows, mouth shapes rest, open, wide and O, body, arms per pose), fill and outline colours,
     and anchor points (neck, shoulders, the arm rotation origin), drawn at one reference scale.
-    The shape follows the method p3-spike chose.
+    Drawn and animated in libass (method A, .harness/handoffs/p3-spike.md); the spike's rough
+    host is a starting point only.
   - Poses: talk, wave, point, surprised, think, shrug.
   - Render a still sheet of every pose and expression on the runner, the same way as p3-spike
     (a throwaway branch; nothing but the asset and the licence row merges). Hand it to the owner.

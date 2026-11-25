@@ -1,16 +1,13 @@
 id: p3-wiring
-title: render_one builds background and scenes layers and composes them (milestone M1)
+title: render_one writes scenes.ass and composes it under the captions (milestone M1)
 depends_on: [p3-router, p3-compose, p3-validate-visuals, p3-sets-art]
 role: implementer
 notes: |
-  After alignment, render_one:
-  - loads the sets the scene plan uses;
-  - draws their layer PNGs into out_dir;
-  - writes `out_dir/scenes.ass` from the router;
-  - passes all of it to compose.
-  Steps are still called through their modules, so tests can fake them. Exit codes are
-  unchanged. The heavy acceptance runs in CI on a draft PR.
-  Then M1: the orchestrator dispatches render.yml on this branch for
+  Method A (.harness/handoffs/p3-spike.md): no image layers. After alignment, render_one
+  writes `out_dir/scenes.ass` from `router.build_scenes_ass(script, timings)` and passes it to
+  compose. Steps are still called through their modules, so tests can fake them. Exit codes
+  are unchanged. The heavy acceptance (render inside the budget) runs in CI on a draft PR.
+  Then M1: the owner dispatches render.yml on this branch from the Actions page for
   queue/approved/sample-65s.json and tests/fixtures/scripts/demo-data.json. Visual QA reviews
   both frames artifacts (golden frames and the 8-frame strip). The owner watches the mp4 before
   merge. The existing render_one and golden-frame tests must keep passing (not listed under
@@ -24,8 +21,6 @@ context_files:
   - .harness/handoffs/p3-plan.md
   - pipeline/render_one.py
   - pipeline/visuals/router.py
-  - pipeline/visuals/art.py
-  - pipeline/render/background.py
   - pipeline/render/compose.py
   - tests/test_render_one_visuals.py
 max_turns: 30

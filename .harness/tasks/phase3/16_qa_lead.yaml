@@ -10,7 +10,7 @@ notes: |
   - mouth timing and blink determinism;
   - chart scaling edge cases;
   - the data-value exact check and downgrade;
-  - background argument building;
+  - set drift caps and push-in maths;
   - PR body caps.
   Propose missing tests in the handoff; never write them.
 paths_allowed: []

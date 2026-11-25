@@ -4,9 +4,9 @@ depends_on: [p3-cso, p3-qa-lead]
 role: reviewer
 notes: |
   HARNESS.md section 6a. A short pass:
-  - router, character, cards, charts, background, compose and render_one fit together, and with
+  - router, character, sets, cards, charts, compose and render_one fit together, and with
     Workflows A and B;
-  - the layer interface is ready for slice 2 painted images;
+  - nothing blocks the slice 2 image-layer step (deferred p3-background) under scenes.ass;
   - the escape_ass_text import is the only exception to the import rule;
   - nothing contradicts PLAN.md, PRD.md, spec.md or architecture.md;
   - M0, M1 and M2 are recorded.

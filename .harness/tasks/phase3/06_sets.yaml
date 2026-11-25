@@ -1,0 +1,29 @@
+id: p3-sets
+title: Set layers as libass events - parallax drift, push-in, scene fade
+depends_on: [p3-ass-kit]
+role: implementer
+notes: |
+  Method A, all libass (.harness/handoffs/p3-spike.md). `pipeline/visuals/sets.py` builds the ASS
+  events for one set (loaded through art.py) over a scene window and camera move:
+  - Every shape of a layer moves with `\move` at its depth's speed. The distance per scene is
+    capped at the layer margin, so no edge shows in a long scene.
+  - push_in scales about the frame centre with `\org` and `\t(\fscx\fscy)` at the constants'
+    rate; still does not; pan_left and pan_right use a larger drift with the same cap.
+  - A black full-frame shape fades the scene in.
+  - Layers go on ASS layers below the character and cards.
+  No IO and no FFmpeg. The spike's set_events_moving in spike/art.py on the throwaway branch
+  shows the technique; write it fresh against the contracts.
+paths_allowed:
+  - pipeline/visuals/sets.py
+tests:
+  - tests/visuals/test_sets.py
+acceptance: tests/visuals/test_sets.py::test_acceptance
+context_files:
+  - .harness/handoffs/p3-plan.md
+  - .harness/handoffs/p3-spike.md
+  - pipeline/visuals/sets.py
+  - pipeline/visuals/ass_kit.py
+  - pipeline/visuals/art.py
+  - pipeline/constants.py
+  - tests/visuals/test_sets.py
+max_turns: 30
