@@ -37,6 +37,13 @@ class GeminiError(Exception):
     """Any failed Gemini call. The message never contains the API key."""
 
 
+class GeminiQuotaError(GeminiError):
+    """HTTP 429 for the free tier's daily request limit (task p4d-gemini-quota-guard)."""
+
+
+requests_sent = 0  # HTTP requests sent by this process; filled in by p4d-gemini-quota-guard
+
+
 def generate_json(
     model: str, prompt: str, schema: dict[str, Any], temperature: float | None = None
 ) -> dict[str, Any]:

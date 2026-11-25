@@ -1,0 +1,83 @@
+id: p4d-gemini-quota-guard
+title: Stop the weekly batch on a Gemini daily quota or an outage, and count real requests
+depends_on: []
+role: implementer
+notes: |
+  Bug: weekly-scripts runs on 2026-11-23 and 24 failed with HTTP 503 (overload) and HTTP 429 for
+  the free tier's 20 requests per day on WRITER_MODEL. The client retried each 429 once (a daily
+  limit cannot clear the same day), `run` in batch.py caught every GeminiError and moved on, so each
+  remaining script spent up to 2 requests for nothing, and no log showed the real request count.
+  This task stops the waste only. It does not make a batch fit the free tier (a batch needs 14 to
+  28 writer calls against 20 a day); that is an owner decision.
+
+  The locked tests define done: tests/script/test_gemini_quota.py and tests/script/test_batch_stop.py.
+  Both fail at import until GeminiQuotaError and requests_sent exist. pipeline/constants.py already
+  has GEMINI_MAX_CONSECUTIVE_ERRORS = 3 (locked; do not add numbers elsewhere).
+
+  pipeline/script/gemini.py:
+  - `class GeminiQuotaError(GeminiError)`, with a docstring. Raised for HTTP 429 when the full error
+    body (not the 200-character excerpt) names a per-day limit: a case-insensitive "per day" with or
+    without the space, which covers "20 requests per day" and quota ids like
+    "GenerateRequestsPerDayPerProjectPerModel-FreeTier". Not retried, no sleep. Any other 429, any
+    5xx and a timeout keep the single retry exactly as now. A daily-quota 429 on the retry is
+    GeminiQuotaError too.
+  - Read the error body once: `HTTPError.read()` drains the stream, so detection and the excerpt
+    must share one read. Keep redaction before the cut and keep the "no excerpt when reading the
+    body fails" rule (then it cannot be detected and stays an ordinary retried 429).
+  - Module-level int `requests_sent`, incremented once per HTTP attempt handed to the opener
+    (success, error, timeout, retry). Never incremented when the key is missing. Document it in
+    the module or generate_json docstring.
+  - Update the generate_json docstring: the 429 retry rule now excludes the daily quota.
+  - Do not touch `_NoRedirect`, `_OPENER`, key handling or the header layout.
+
+  pipeline/script/batch.py, `run`:
+  - Note `gemini.requests_sent` at the start; log the difference once at the end, in the existing
+    summary info line or one of its own, as "<N> Gemini requests". Logged on every path, including
+    the no-script-written exit (not the "no unused source" exit, which makes no call).
+  - GeminiQuotaError from write, check or rewrite: that script is left out (Flag with its reason,
+    as today) and the loop stops. In `_check_and_repair` the rewrite `except` must let
+    GeminiQuotaError through (catch it first and re-raise, or narrow the tuple); a rewrite may have
+    landed unchecked, so the script is left out, not kept.
+  - Errors in a row: a script left out by GeminiError (quota or not) adds one; a written script or
+    one left out by GenerateError (Gemini answered) resets to zero. Rewrite-level GeminiErrors do
+    not count (the script is still written). At GEMINI_MAX_CONSECUTIVE_ERRORS the loop stops.
+  - On a stop, log a warning holding the stop reason, and give pr_body a fixed-text line
+    "Stopped early: Gemini daily quota used up" or "Stopped early: <N> Gemini errors in a row".
+    No error or model text in that line (it is outside a code span; see the pr_body docstring).
+    Add it as a keyword-only parameter with a default of None so existing positional calls work.
+  - Exit codes unchanged: 0 when at least one script was written (PR body written, scripts kept),
+    1 with no PR body when none was. Success path unchanged: a clean run has no stop line.
+  - Update the `run` and `pr_body` docstrings (step 4, the order of lines).
+
+  Locked tests checked: no existing test in tests/script/ contradicts this (725 pass with the new
+  constant). No CONTRACT_CHANGE needed. The new tests were checked by reading only (no prototype
+  ran): if one cannot be passed as written, write CONTRACT_CHANGE.md and stop; do not bend the code
+  to fit it.
+
+  gemini.py and batch.py match the security trigger in .harness/config.yaml: a security review runs
+  alongside Gate 2. Points for it: redirect refusal and key redaction unchanged; the body is read
+  once and redacted before any excerpt; the stop line carries no untrusted text.
+paths_allowed:
+  - pipeline/script/gemini.py
+  - pipeline/script/batch.py
+tests:
+  - tests/script/test_gemini_quota.py
+  - tests/script/test_batch_stop.py
+  - tests/script/test_gemini.py
+  - tests/script/test_gemini_errors.py
+  - tests/script/test_gemini_redirect.py
+  - tests/script/test_survivors.py
+  - tests/script/test_batch.py
+  - tests/script/test_batch_log.py
+  - tests/script/test_batch_qa.py
+  - tests/script/test_batch_hook.py
+acceptance: tests/script/test_batch_stop.py::test_acceptance
+context_files:
+  - pipeline/script/gemini.py
+  - pipeline/script/batch.py
+  - tests/script/test_gemini_quota.py
+  - tests/script/test_batch_stop.py
+  - tests/script/test_batch.py
+  - .harness/handoffs/p4d-gemini-quota-guard-contracts.md
+  - lessons.md
+max_turns: 25
