@@ -264,6 +264,7 @@ Specialist reviews: security for p4-youtube and p4-daily-workflow. No visual QA:
 | p4c-lock-pin-3 | done, merged 2026-11-24 (PR #166) | curated-transformers 0.1.1, bare Dependabot ignores |
 | p4c-batch-log-reason | done, merged 2026-11-24 (PR #165) | batch warning carries the clipped reason |
 | p4c-lock-pin-4 | done, merged 2026-11-24 (PR #172) | rfc3986 back to 1.5.0, csvw and rfc3986 ignored in Dependabot |
+| p4c-ci-lock-resolve | done, merged 2026-11-25 (PR #179) | `lock-resolve` job in `ci.yml`; making it a required check is the owner's step |
 | p4c-lock-pin-5 | done, merged 2026-11-25 (PR #176) | num2words back to 0.5.6, num2words, docopt and srsly ignored in Dependabot; render.yml run green on main |
 
 ## Phase 4b module order

@@ -73,3 +73,12 @@ The queue runs at 7 videos a week. The sources last about two weeks.
 1. Every second weekend, add about 14 new `sources/*.yaml` files by pull request. Follow the content rules in PLAN.md section 4. You review the facts yourself.
 2. Merge the refill before the Sunday run of the weekly-scripts workflow (Workflow A).
 3. When the batch pull request body says "sources exhausted", or a daily run stops with "queue empty", refill first. A "queue empty" run publishes nothing, so it is safe to leave red until the refill lands.
+
+## 6. `lock-resolve` is red on a pull request
+
+The `lock-resolve` job in CI resolves the hashed render and generate locks. Red means pip cannot install a lock as written.
+
+1. Open the job and read the last pip error. It names the package and the reason (a cap, a missing hash, an sdist-only dependency).
+2. A Dependabot bump: do not merge. If another package caps the bumped one, close the PR with `@dependabot ignore this major version` and add a bare ignore in `.github/dependabot.yml`. If the bumped package pulls in a new dependency, either bump both together or ignore it.
+3. A lock you edited by hand: regenerate the affected block with `pip download` and `pip hash`, never type a hash.
+4. Nothing was published or claimed; the job only resolves. Leave the PR open until it is green.
