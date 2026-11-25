@@ -20,7 +20,7 @@ openai-whisper==20250625
 kokoro==0.9.4
 misaki[en]==0.9.4
 # kokoro leaves these unpinned; pinned here so a new release cannot break the voice step.
-transformers==5.23.0
+transformers==5.24.0
 spacy==3.8.18
 # misaki downloads this spaCy model at runtime if it is missing; installing it here avoids that.
 en_core_web_sm @ https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.8.0/en_core_web_sm-3.8.0-py3-none-any.whl#sha256=1932429db727d4bff3deed6b34cfc05df17794f4a52eeb26cf8928f7c1a0fb85
