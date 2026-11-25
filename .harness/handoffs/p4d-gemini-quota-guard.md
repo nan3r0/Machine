@@ -28,6 +28,7 @@ Gate 2 and security review; merge; then the Docs below at close-out.
 
 ## Docs
 Outside my paths_allowed, to apply at close-out:
+- spec.md, row "Model calls per batch" (line 98): a 429 whose body names a per-day limit is not retried; the batch stops on it or after `GEMINI_MAX_CONSECUTIVE_ERRORS` scripts in a row left out by a GeminiError. "Never more than one retry" (line 112) stays true.
 - architecture.md section 7 (real requests reaching twice the cap): a daily-quota 429 is not retried; the batch stops on it or after `GEMINI_MAX_CONSECUTIVE_ERRORS` errors in a row; the run logs the real request count ("<N> Gemini requests").
 - docs/runbook.md, red weekly-scripts runs: "Stopped early: Gemini daily quota used up" or "Stopped early: 3 Gemini errors in a row" in the PR or the log; the unused sources are picked again next run.
 - docs/threat-model.md: no new surface; the stop line is fixed text (optional note).
