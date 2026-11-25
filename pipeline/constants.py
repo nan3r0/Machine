@@ -116,6 +116,8 @@ CHECKER_MAX_CALLS_PER_BATCH = 14
 SCRIPT_ATTEMPTS = 2  # write_script calls the batch makes per script: first try plus one retry
 GEMINI_TIMEOUT_S = 120
 GEMINI_RETRY_WAIT_S = 10  # wait before the single retry after HTTP 429, a 5xx or a timeout
+# Scripts in a row left out by GeminiError before the batch stops; an outage would burn the quota.
+GEMINI_MAX_CONSECUTIVE_ERRORS = 3
 
 # YouTube (Phase 4, owner decisions O1 to O3 of 2026-11-21). Data API v3 videos.insert, resumable
 # upload, read 2026-11-21 (.harness/handoffs/p4-plan.md). One insert a day; no retry inside a run.
