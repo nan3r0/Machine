@@ -1,0 +1,31 @@
+id: p3-spike
+title: Throwaway libass motion-graphics render to measure speed and look before contracts lock
+depends_on: []
+role: architect
+notes: |
+  .harness/handoffs/p3-plan.md, risk "libass speed". Run once on the target OS before locking
+  compose arguments and the ASS feature set (lessons.md 2026-11-15, pip-audit entry).
+  On a throwaway branch `spike/p3-ass` (never merged, no PR): hand-write, under the tracked
+  folder spike/ (out/ is git-ignored, so the runner would not see it), one scenes .ass for the
+  65 s sample with every slice 1 layout (story card, counter, 4 growing bars, steps, timeline,
+  place card with sonar rings) and a drifting background motif with \blur. Temporarily chain it
+  in compose (`subtitles=scenes,subtitles=captions`) and dispatch render.yml on that branch.
+  Record in the handoff: render step time against the Phase 1 baseline (125 s for 69.6 s of
+  video, run 43873059742), final.mp4 size, which ASS tags rendered as expected on the runner's
+  libass (\p1 drawing, \move, \t with \fscx and \fscy, \fad, \blur, \clip), and the golden frames.
+  Propose the constants p3-contracts should lock (panel band, caption y, palettes, timings).
+  Delete the branch afterwards.
+paths_allowed:
+  - pipeline/render/compose.py
+  - pipeline/render_one.py
+  - spike/**
+tests: []
+acceptance: null
+context_files:
+  - .harness/handoffs/p3-plan.md
+  - pipeline/render/compose.py
+  - pipeline/render/captions_ass.py
+  - pipeline/constants.py
+  - .github/workflows/render.yml
+  - lessons.md
+max_turns: 30

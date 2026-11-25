@@ -1,0 +1,27 @@
+id: p3-compose
+title: Compose the visuals layer under the captions; captions move to the lower third
+depends_on: [p3-contracts]
+role: implementer
+notes: |
+  compose.build_ffmpeg_args and compose.compose gain keyword-only `scenes` (path or None) and
+  `background` (FFmpeg colour, default BACKGROUND_COLOR). With a scenes file the filtergraph is
+  `subtitles=<scenes>,subtitles=<captions>`, both paths through the existing escaping helper and
+  the same fontsdir; without one it is exactly today's arguments. A missing scenes file raises
+  ComposeError like the other inputs. captions_ass.py: POS_Y comes from CAPTION_POS_Y (p3-plan D2);
+  nothing else in it changes. Argument lists only, never a shell. The existing compose and
+  captions tests must keep passing (not listed under `tests`, so they keep running on main).
+paths_allowed:
+  - pipeline/render/compose.py
+  - pipeline/render/captions_ass.py
+tests:
+  - tests/render/test_compose_scenes.py
+acceptance: tests/render/test_compose_scenes.py::test_acceptance
+context_files:
+  - .harness/handoffs/p3-plan.md
+  - .harness/handoffs/p3-spike.md
+  - pipeline/render/compose.py
+  - pipeline/render/captions_ass.py
+  - pipeline/constants.py
+  - tests/render/test_compose_scenes.py
+  - lessons.md
+max_turns: 25

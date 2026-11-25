@@ -1,0 +1,23 @@
+id: p3-charts
+title: Chart layouts - count-up stat and growing bar chart
+depends_on: [p3-ass-kit]
+role: implementer
+notes: |
+  Same function shape as p3-cards. Stat: one item, the value counts up over the constants'
+  count-up time when it is a plain number (shown with the same thousands separators as the
+  value), else pops in; label below. Bars: 2 to VISUAL_ITEMS_MAX items, bar length proportional
+  to the value with the largest filling the panel width, bars grow in one after another, the
+  value text at the bar end is exactly the script's value string. Zero and equal values are
+  handled; no division by zero.
+paths_allowed:
+  - pipeline/visuals/charts.py
+tests:
+  - tests/visuals/test_charts.py
+acceptance: tests/visuals/test_charts.py::test_acceptance
+context_files:
+  - .harness/handoffs/p3-plan.md
+  - pipeline/visuals/charts.py
+  - pipeline/visuals/ass_kit.py
+  - pipeline/constants.py
+  - tests/visuals/test_charts.py
+max_turns: 30

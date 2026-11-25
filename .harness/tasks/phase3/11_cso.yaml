@@ -1,0 +1,24 @@
+id: p3-cso
+title: Threat model version 4 - rendered on-screen text and visual data (slice 1)
+depends_on: [p3-wiring, p3-writer-visuals, p3-batch-visuals]
+role: cso
+notes: |
+  HARNESS.md section 6b. Turn the section 5 "Phase 3" seeds that slice 1 touches into section 4
+  rows with file:line controls: on_screen_text and visual data are capped, checked and shown in
+  the PR body; ASS escaping of every drawn string (no drawtext); per-type data validation; the
+  exact check and p3-plan D4 downgrade on screen numbers; libass load against the compose timeout. Leave
+  the Pexels, Pixabay and Cloudflare rows as seeds for slices 2 and 3. New gaps become proposed
+  tasks in the handoff. Owner sign-off of version 4 joins the go-live gates.
+paths_allowed:
+  - docs/threat-model.md
+tests: []
+acceptance: null
+context_files:
+  - .harness/handoffs/p3-plan.md
+  - HARNESS.md#6b
+  - docs/threat-model.md
+  - pipeline/visuals/
+  - pipeline/script/validate.py
+  - pipeline/script/batch.py
+  - pipeline/render/compose.py
+max_turns: 30

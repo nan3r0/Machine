@@ -1,0 +1,27 @@
+id: p3-router
+title: Visual router - scene time spans, background motif, one scenes.ass per script
+depends_on: [p3-cards, p3-charts]
+role: implementer
+notes: |
+  `scene_spans(script, timings)`: count the words of the hook, each scene and the loop line
+  (split on whitespace, as Script.narration_words does) and map them onto the word timings; a
+  scene runs from its first word's start to the next part's first word's start, the last to the
+  final word's end. Raises ValueError when the timing count differs from the word count.
+  `build_scenes_ass(script, timings)`: the ass_kit header with the template's palette, the
+  template's background motif over the whole video, and per scene the layout picked from its
+  visual type and data per the plan's table ({} falls back to the story card). The hook and loop
+  line show the background only. Trusts validated input; no network, no IO.
+paths_allowed:
+  - pipeline/visuals/router.py
+tests:
+  - tests/visuals/test_router.py
+acceptance: tests/visuals/test_router.py::test_acceptance
+context_files:
+  - .harness/handoffs/p3-plan.md
+  - pipeline/visuals/router.py
+  - pipeline/visuals/cards.py
+  - pipeline/visuals/charts.py
+  - pipeline/visuals/ass_kit.py
+  - pipeline/schema.py
+  - tests/visuals/test_router.py
+max_turns: 30
