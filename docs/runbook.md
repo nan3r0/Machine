@@ -82,3 +82,12 @@ The `lock-resolve` job in CI resolves the hashed render and generate locks. Red 
 2. A Dependabot bump: do not merge. If another package caps the bumped one, close the PR with `@dependabot ignore this major version` and add a bare ignore in `.github/dependabot.yml`. If the bumped package pulls in a new dependency, either bump both together or ignore it.
 3. A lock you edited by hand: regenerate the affected block with `pip download` and `pip hash`, never type a hash.
 4. Nothing was published or claimed; the job only resolves. Leave the PR open until it is green.
+
+## 7. `weekly-scripts` stopped early
+
+The generate job log ends with a warning, and the PR body (if any script was written) has a "Stopped early" line.
+
+1. "Gemini daily quota used up": the free tier's 20 requests a day for the writer model is gone. Do not re-run the same day. Run it again after the next reset (midnight Pacific time).
+2. "N Gemini errors in a row": Google was overloaded (HTTP 503). Wait a few hours and run again.
+3. Scripts already written are in the PR. The sources that were left out are picked again on the next run, so nothing is lost.
+4. The log line "<N> Gemini requests" says how many requests the run really sent, retries included.
