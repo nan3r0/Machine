@@ -1,0 +1,30 @@
+id: p3-character
+title: Animate the host character - poses, blink, bob, mouth on word timings
+depends_on: [p3-ass-kit]
+role: implementer
+notes: |
+  `pipeline/visuals/character.py` builds ASS events for the host from assets/character/host.yaml
+  (loaded through art.py) for a time window, a pose and the word timings that fall inside it.
+  - The mouth opens on each word and rests between words.
+  - Blinks come at the constants' interval, from a fixed pattern (no randomness), so a render
+    is repeatable.
+  - An idle bob is always on.
+  - Pose arms rotate around the asset's anchor.
+  - The character sits at the constants' placement in every scene, fully in frame and clear of
+    the caption band.
+  Method as chosen by p3-spike.
+paths_allowed:
+  - pipeline/visuals/character.py
+tests:
+  - tests/visuals/test_character.py
+acceptance: tests/visuals/test_character.py::test_acceptance
+context_files:
+  - .harness/handoffs/p3-plan.md
+  - .harness/handoffs/p3-spike.md
+  - .harness/handoffs/p3-character-art.md
+  - pipeline/visuals/character.py
+  - pipeline/visuals/ass_kit.py
+  - pipeline/visuals/art.py
+  - assets/character/host.yaml
+  - tests/visuals/test_character.py
+max_turns: 35

@@ -1,0 +1,28 @@
+id: p3-writer-visuals
+title: Script writer picks set, pose, camera and data per scene in the same Gemini call
+depends_on: [p3-validate-visuals]
+role: implementer
+notes: |
+  generate.py only.
+  - Writer schema: each scene adds the flat fields `visual_type`, `set`, `pose`, `camera` (enums
+    from constants) and `items` (an array of {label, value} strings). No anyOf.
+  - Prompt: a `_VISUAL_RULES` constant as in .harness/handoffs/p3-plan.md, inside the existing
+    prompt. The facts stay in the data block.
+  - Still exactly one generate_json call per write_script.
+  - A scene whose visual breaks a validate rule falls back to the plan's defaults in code: no
+    GenerateError, no extra call.
+  - rewrite_line keeps the visual.
+  - Update the docstrings.
+  The existing generate and prompt_data tests must keep passing (not listed under `tests`).
+paths_allowed:
+  - pipeline/script/generate.py
+tests:
+  - tests/script/test_generate_visuals.py
+acceptance: tests/script/test_generate_visuals.py::test_acceptance
+context_files:
+  - .harness/handoffs/p3-plan.md
+  - pipeline/script/generate.py
+  - pipeline/script/validate.py
+  - tests/script/test_generate_visuals.py
+  - tests/script/gemini_fakes.py
+max_turns: 25

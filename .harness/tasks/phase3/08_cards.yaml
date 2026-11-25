@@ -1,0 +1,24 @@
+id: p3-cards
+title: Data card layouts - numbered steps, timeline, place card
+depends_on: [p3-ass-kit]
+role: implementer
+notes: |
+  One function per layout, each taking the scene's items, a time window and a palette and
+  returning ASS events built with ass_kit:
+  - steps: numbered cards appear one at a time;
+  - timeline: dots on a line, the year and label popping in, staggered;
+  - place card: a pin, sonar rings, the place name and the optional value.
+  Every element sits inside the data-card panel and the window. Long labels wrap inside the
+  panel and are never cut off.
+paths_allowed:
+  - pipeline/visuals/cards.py
+tests:
+  - tests/visuals/test_cards.py
+acceptance: tests/visuals/test_cards.py::test_acceptance
+context_files:
+  - .harness/handoffs/p3-plan.md
+  - pipeline/visuals/cards.py
+  - pipeline/visuals/ass_kit.py
+  - pipeline/constants.py
+  - tests/visuals/test_cards.py
+max_turns: 30

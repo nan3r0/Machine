@@ -1,0 +1,30 @@
+id: p3-background
+title: Set layers to PNG and the background filtergraph - parallax, push-in, fades
+depends_on: [p3-contracts]
+role: implementer
+notes: |
+  `pipeline/render/background.py`, the FFmpeg adapter for the set layer (method from p3-spike).
+  - Draw each set layer once to a transparent PNG through FFmpeg and libass.
+  - Build the argument list that turns a list of (scene window, set layers, camera) into the
+    background video: layers drift by depth speed, push-in or pan per camera, fades between
+    scenes.
+  - The layer interface is a PNG path plus its depth, so a slice 2 painted image plugs in
+    unchanged.
+  - Argument lists only, never a shell. `-hide_banner -loglevel error`. A timeout from
+    constants. Errors raise with the stderr tail, like compose.
+  - Imports only schema and constants (render/ layer rule). Layer PNG paths come from the
+    caller.
+paths_allowed:
+  - pipeline/render/background.py
+tests:
+  - tests/render/test_background.py
+acceptance: tests/render/test_background.py::test_acceptance
+context_files:
+  - .harness/handoffs/p3-plan.md
+  - .harness/handoffs/p3-spike.md
+  - pipeline/render/background.py
+  - pipeline/render/compose.py
+  - pipeline/constants.py
+  - tests/render/test_background.py
+  - lessons.md
+max_turns: 35

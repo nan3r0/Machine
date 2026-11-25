@@ -1,0 +1,27 @@
+id: p3-sets-art
+title: Draw the starting sets as layered flat art and get the owner's approval from stills
+depends_on: [p3-contracts]
+role: architect
+notes: |
+  p3-plan "Sets" and D13. Write one assets/sets/<id>.yaml per set id in constants, each with 2 to
+  4 layers that fit the art.py model.
+  - Flat shapes and soft bands, no gradients that need new tools.
+  - A dark, slow, mysterious palette (PLAN.md section 4).
+  - Room for the character's placement and for the caption band to stay readable.
+  Render a still of each set with the host on the runner (a throwaway branch, as in p3-spike)
+  for the owner and visual QA; iterate until approved. Add assets/LICENSES.md rows (original
+  work).
+paths_allowed:
+  - assets/sets/**
+  - assets/LICENSES.md
+tests:
+  - tests/visuals/test_sets_art.py
+acceptance: tests/visuals/test_sets_art.py::test_acceptance
+context_files:
+  - .harness/handoffs/p3-plan.md
+  - .harness/handoffs/p3-spike.md
+  - .harness/handoffs/p3-character-art.md
+  - pipeline/visuals/art.py
+  - pipeline/constants.py
+  - assets/LICENSES.md
+max_turns: 40
