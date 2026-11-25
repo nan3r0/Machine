@@ -1,0 +1,28 @@
+id: p3-validate-visuals
+title: Validate scene visual data (set, pose, camera, items) and its caps
+depends_on: [p3-contracts]
+role: implementer
+notes: |
+  `validate.problems` gains the rules in .harness/handoffs/p3-plan.md, "Scene format":
+  - every key is optional, and nothing outside set, pose, camera and items is allowed;
+  - set, pose and camera must be one of the values in constants;
+  - items: 1 to VISUAL_ITEMS_MAX `{label, value}` objects, allowed only on chart, steps and
+    map; chart with 2 or more items needs plain-number values; steps values are all empty or
+    all set; map has exactly one item;
+  - every label and value goes through the existing published-field text check;
+  - caps come from constants only.
+  Messages name the scene and the field. Phase 2 scripts with {} stay valid. The existing
+  validate tests and tests/test_queue_scripts.py must keep passing. They are not listed under
+  `tests`, so they keep running on main.
+paths_allowed:
+  - pipeline/script/validate.py
+tests:
+  - tests/script/test_validate_visuals.py
+acceptance: tests/script/test_validate_visuals.py::test_acceptance
+context_files:
+  - .harness/handoffs/p3-plan.md
+  - pipeline/script/validate.py
+  - pipeline/constants.py
+  - tests/script/test_validate_visuals.py
+  - lessons.md
+max_turns: 25

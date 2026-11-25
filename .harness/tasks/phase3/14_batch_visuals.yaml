@@ -1,0 +1,26 @@
+id: p3-batch-visuals
+title: PR body shows each scene's visual; exact check on data card values
+depends_on: [p3-validate-visuals]
+role: implementer
+notes: |
+  batch.py only.
+  - `_script_section` adds, for each scene, its set, pose and items as same-line code spans
+    (`_code`).
+  - After any rewrite, `exact.unsupported` checks each item's label and value against that
+    scene's cited facts. A miss becomes a Flag naming the scene and the missing values, and
+    (p3-plan D4) replaces the scene's data with a story scene, keeping its set. There is no
+    Gemini call and no stop.
+  - The PR body stays under PR_BODY_MAX_CHARS at every cap (locked arithmetic test).
+  The existing batch tests must keep passing (not listed under `tests`).
+paths_allowed:
+  - pipeline/script/batch.py
+tests:
+  - tests/script/test_batch_visuals.py
+acceptance: tests/script/test_batch_visuals.py::test_acceptance
+context_files:
+  - .harness/handoffs/p3-plan.md
+  - pipeline/script/batch.py
+  - pipeline/factcheck/exact.py
+  - tests/script/test_batch_visuals.py
+  - lessons.md
+max_turns: 25

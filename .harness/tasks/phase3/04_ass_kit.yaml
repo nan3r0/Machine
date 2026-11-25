@@ -1,0 +1,25 @@
+id: p3-ass-kit
+title: ASS drawing kit - header, styles, shapes from art paths, timed events
+depends_on: [p3-contracts]
+role: implementer
+notes: |
+  Pure functions with no IO, used by character, cards, charts and router.
+  - A header for the full WIDTH x HEIGHT frame.
+  - Drawing events from art paths (`\p1`), with position, scale, colour and alpha.
+  - One Dialogue builder taking start, end, layer and override tags (fade, move, transform,
+    rotation origin).
+  - Text goes through `captions_ass.escape_ass_text`. The plan allows the import; never copy it.
+paths_allowed:
+  - pipeline/visuals/ass_kit.py
+tests:
+  - tests/visuals/test_ass_kit.py
+acceptance: tests/visuals/test_ass_kit.py::test_acceptance
+context_files:
+  - .harness/handoffs/p3-plan.md
+  - .harness/handoffs/p3-spike.md
+  - pipeline/visuals/ass_kit.py
+  - pipeline/visuals/art.py
+  - pipeline/render/captions_ass.py
+  - pipeline/constants.py
+  - tests/visuals/test_ass_kit.py
+max_turns: 30

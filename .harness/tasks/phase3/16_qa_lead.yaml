@@ -3,9 +3,15 @@ title: Phase 3 slice 1 test quality review (mutation and coverage)
 depends_on: [p3-wiring, p3-writer-visuals, p3-batch-visuals]
 role: qa_lead
 notes: |
-  HARNESS.md section 6b. Read the reports artifact (dispatched only after the slice 1 close-out
-  merges, lessons.md 2026-11-21). Focus: visual data validation, scene span maths, chart scaling
-  edge cases (zero, equal, one item), the screen-number exact check and downgrade, PR body caps.
+  HARNESS.md section 6b. Read the reports artifact, dispatched only after the slice 1 close-out
+  merges (lessons.md 2026-11-21). Focus:
+  - scene span maths and fallbacks;
+  - visual data validation;
+  - mouth timing and blink determinism;
+  - chart scaling edge cases;
+  - the data-value exact check and downgrade;
+  - background argument building;
+  - PR body caps.
   Propose missing tests in the handoff; never write them.
 paths_allowed: []
 tests: []
@@ -13,7 +19,9 @@ acceptance: null
 context_files:
   - .harness/handoffs/p3-plan.md
   - pipeline/visuals/
+  - pipeline/render/
   - pipeline/script/
   - tests/visuals/
+  - tests/render/
   - tests/script/
 max_turns: 25

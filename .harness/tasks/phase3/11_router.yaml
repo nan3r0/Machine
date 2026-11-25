@@ -1,0 +1,30 @@
+id: p3-router
+title: Visual router - scene spans, per-scene set, pose and camera, scenes.ass
+depends_on: [p3-character, p3-cards, p3-charts]
+role: implementer
+notes: |
+  - `scene_spans(script, timings)`: count the words of the hook, each scene and the loop line,
+    split as Script.narration_words splits them, and map those counts onto the word timings.
+    Raises ValueError on a count mismatch.
+  - `scene_plan(script)`: resolves each scene's set, pose, camera and layout, applying the
+    plan's fallbacks. {} gives the template's default set, talk and push_in; a data type with
+    no items gives story. The hook uses the first scene's set and the loop line the last
+    scene's.
+  - `build_scenes_ass(script, timings) -> str`: the character in story scenes; in data scenes,
+    the data card with the character hidden and the set dimmed.
+  Trusts validated input. No IO.
+paths_allowed:
+  - pipeline/visuals/router.py
+tests:
+  - tests/visuals/test_router.py
+acceptance: tests/visuals/test_router.py::test_acceptance
+context_files:
+  - .harness/handoffs/p3-plan.md
+  - pipeline/visuals/router.py
+  - pipeline/visuals/character.py
+  - pipeline/visuals/cards.py
+  - pipeline/visuals/charts.py
+  - pipeline/visuals/ass_kit.py
+  - pipeline/schema.py
+  - tests/visuals/test_router.py
+max_turns: 30

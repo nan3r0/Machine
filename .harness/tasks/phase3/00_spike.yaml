@@ -1,23 +1,37 @@
 id: p3-spike
-title: Throwaway libass motion-graphics render to measure speed and look before contracts lock
+title: Throwaway runner spike - character and layered set with libass and FFmpeg, timed
 depends_on: []
 role: architect
 notes: |
-  .harness/handoffs/p3-plan.md, risk "libass speed". Run once on the target OS before locking
-  compose arguments and the ASS feature set (lessons.md 2026-11-15, pip-audit entry).
-  On a throwaway branch `spike/p3-ass` (never merged, no PR): hand-write, under the tracked
-  folder spike/ (out/ is git-ignored, so the runner would not see it), one scenes .ass for the
-  65 s sample with every slice 1 layout (story card, counter, 4 growing bars, steps, timeline,
-  place card with sonar rings) and a drifting background motif with \blur. Temporarily chain it
-  in compose (`subtitles=scenes,subtitles=captions`) and dispatch render.yml on that branch.
-  Record in the handoff: render step time against the Phase 1 baseline (125 s for 69.6 s of
-  video, run 43873059742), final.mp4 size, which ASS tags rendered as expected on the runner's
-  libass (\p1 drawing, \move, \t with \fscx and \fscy, \fad, \blur, \clip), and the golden frames.
-  Propose the constants p3-contracts should lock (panel band, caption y, palettes, timings).
-  Delete the branch afterwards.
+  .harness/handoffs/p3-plan.md, "The look, and how it is built". Settles the open technical
+  questions before anything is locked (lessons.md 2026-11-15, pip-audit entry: run on the target
+  OS first). No new dependency: libass and FFmpeg only (p3-plan D3).
+  On a throwaway branch `spike/p3-look` (never merged, no PR; files under the tracked folder
+  spike/, since out/ is git-ignored), with a temporary change to compose and render_one, dispatch
+  render.yml on that branch for sample-65s (about 70 s, 10 scenes). Build:
+  - one rough set of 3 layers (far, mid, near) as ASS vector art;
+  - a rough round-head character: blink, mouth swapping on word timings, an arm wave with \frz
+    and \org, a bob;
+  - one counter and one bar chart card.
+  Try two methods:
+  (A) all-libass, everything in one animated .ass;
+  (B) hybrid: each set layer drawn once to a transparent PNG by FFmpeg with libass, moved with
+      overlay x(t) for parallax and pushed in with scale and crop per frame; the character and
+      cards stay in a libass layer on top.
+  For each method record:
+  - render step time and per-call FFmpeg time against COMPOSE_TIMEOUT_S 600 (Phase 1 baseline:
+    125 s for 69.6 s, run 43873059742);
+  - mp4 size;
+  - visible stepping or jitter, from an 8-frame strip at 0.25 s spacing;
+  - whether one filtergraph or per-scene segments with concat is needed.
+  Deliver the M0 stills (frames artifact) to the owner. Pick a method and propose the constants
+  for p3-contracts: panel and character placement, caption y, drift speeds, push-in rate, fade
+  and blink timings. If neither method fits the time or looks smooth, stop and write a revised
+  D3 for the owner. Delete the branch afterwards.
 paths_allowed:
   - pipeline/render/compose.py
   - pipeline/render_one.py
+  - .github/workflows/render.yml
   - spike/**
 tests: []
 acceptance: null
@@ -28,4 +42,4 @@ context_files:
   - pipeline/constants.py
   - .github/workflows/render.yml
   - lessons.md
-max_turns: 30
+max_turns: 40

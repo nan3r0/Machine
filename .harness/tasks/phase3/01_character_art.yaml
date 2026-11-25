@@ -1,0 +1,31 @@
+id: p3-character-art
+title: Design the original host character and get the owner's approval from a still sheet
+depends_on: [p3-spike]
+role: architect
+notes: |
+  p3-plan "Character" and D12. One original round-head character, a recurring host with a fixed
+  outfit. It must not copy or closely resemble any existing creator's character: check it
+  against the owner's references and say so in the handoff.
+  - assets/character/host.yaml: ASS drawing paths per part (head, hair, eyes open and closed,
+    brows, mouth shapes rest, open, wide and O, body, arms per pose), fill and outline colours,
+    and anchor points (neck, shoulders, the arm rotation origin), drawn at one reference scale.
+    The shape follows the method p3-spike chose.
+  - Poses: talk, wave, point, surprised, think, shrug.
+  - Render a still sheet of every pose and expression on the runner, the same way as p3-spike
+    (a throwaway branch; nothing but the asset and the licence row merges). Hand it to the owner.
+    Iterate until approved; the approval goes in the handoff.
+  - assets/LICENSES.md: one row, original work made for this project.
+  p3-contracts then writes the Pydantic model (pipeline/visuals/art.py) that this file must fit.
+  Name the fields so a model can describe them directly.
+paths_allowed:
+  - assets/character/**
+  - assets/LICENSES.md
+  - spike/**
+tests: []
+acceptance: null
+context_files:
+  - .harness/handoffs/p3-plan.md
+  - .harness/handoffs/p3-spike.md
+  - assets/LICENSES.md
+  - pipeline/constants.py
+max_turns: 40
