@@ -31,6 +31,8 @@ Push, open the PR, read the lock-resolve run. Then the owner makes `lock-resolve
 - workflow.md status row for p4c-ci-lock-resolve at close-out.
 - docs/runbook.md: a red `lock-resolve` on a Dependabot PR means the bump cannot resolve; close it or group it with what pins it (close-out, scribe).
 - .harness/status.yaml: mark done after a green CI run.
+- docs/threat-model.md:90 (P4b-1 residual c, a Linux-only dependency missing from a hand-made lock): once CI is green, note that `lock-resolve` now resolves the render and generate locks on Linux on every push and PR (CSO, at the next threat-model update).
+- spec.md section on gates (near line 146, install order): add one line that CI's `lock-resolve` job resolves every hashed lock with `--require-hashes` in fresh venvs, outside `make check`.
 
 ## Evidence
-`LOOM_TASK=p4c-ci-lock-resolve pytest tests/test_ci_lock_resolve.py tests/test_ci_workflow.py tests/test_ci_triggers.py -q --tb=short` (temporary empty tests/__init__.py, removed): 42 passed. `ruff check .` clean. `python tests/docs_check.py` passed. actionlint not available locally.
+`LOOM_TASK=p4c-ci-lock-resolve pytest tests/test_ci_lock_resolve.py tests/test_ci_workflow.py tests/test_ci_triggers.py -q --tb=short` (temporary empty tests/__init__.py, removed): 42 passed. `ruff check .` clean. `python tests/docs_check.py` passed. actionlint not available locally. Re-run on the committed tree: docs_check passed, `pytest .harness/tests -q`: 90 passed.
