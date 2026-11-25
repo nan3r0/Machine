@@ -1,13 +1,14 @@
 id: p3-compose
-title: Compose background, scenes layer and captions; captions to the lower half
-depends_on: [p3-background]
+title: Compose the scenes layer under the captions; captions to the lower half
+depends_on: [p3-contracts]
 role: implementer
 notes: |
-  compose.build_ffmpeg_args and compose.compose gain keyword-only arguments for the background
-  (from background.py) and a scenes .ass path, each defaulting to today's behaviour. With them
-  the filtergraph runs background, then `subtitles=<scenes>`, then `subtitles=<captions>`; every
-  path goes through the existing escaping helper with the same fontsdir. A missing input raises
-  ComposeError.
+  Method A (.harness/handoffs/p3-spike.md): sets, host and cards all live in one scenes .ass.
+  compose.build_ffmpeg_args and compose.compose gain a keyword-only `scenes` path, defaulting
+  to None, which gives today's arguments exactly. With it, the filtergraph is
+  `subtitles=<scenes>,subtitles=<captions>` over the existing colour source. Both paths go
+  through the existing escaping helper with the same fontsdir. A missing scenes file raises
+  ComposeError like the other inputs.
   captions_ass.py: POS_Y comes from CAPTION_POS_Y (p3-plan D2), and nothing else in it changes.
   Argument lists only. The existing compose and captions tests must keep passing (not listed
   under `tests`).
@@ -21,9 +22,8 @@ context_files:
   - .harness/handoffs/p3-plan.md
   - .harness/handoffs/p3-spike.md
   - pipeline/render/compose.py
-  - pipeline/render/background.py
   - pipeline/render/captions_ass.py
   - pipeline/constants.py
   - tests/render/test_compose_layers.py
   - lessons.md
-max_turns: 30
+max_turns: 25

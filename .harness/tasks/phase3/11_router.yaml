@@ -1,8 +1,10 @@
 id: p3-router
 title: Visual router - scene spans, per-scene set, pose and camera, scenes.ass
-depends_on: [p3-character, p3-cards, p3-charts]
+depends_on: [p3-character, p3-sets, p3-cards, p3-charts]
 role: implementer
 notes: |
+  Method A (.harness/handoffs/p3-spike.md): one scenes.ass holds the set layers (from sets.py),
+  the host and the data cards, in that layer order.
   - `scene_spans(script, timings)`: count the words of the hook, each scene and the loop line,
     split as Script.narration_words splits them, and map those counts onto the word timings.
     Raises ValueError on a count mismatch.
@@ -10,9 +12,9 @@ notes: |
     plan's fallbacks. {} gives the template's default set, talk and push_in; a data type with
     no items gives story. The hook uses the first scene's set and the loop line the last
     scene's.
-  - `build_scenes_ass(script, timings) -> str`: the character in story scenes; in data scenes,
-    the data card with the character hidden and the set dimmed.
-  Trusts validated input. No IO.
+  - `build_scenes_ass(script, timings) -> str`: each scene's set with its camera; the character
+    in story scenes; in data scenes, the data card with the character hidden and the set dimmed.
+  Trusts validated input. The only file reads are the art loaders in art.py.
 paths_allowed:
   - pipeline/visuals/router.py
 tests:
@@ -22,6 +24,7 @@ context_files:
   - .harness/handoffs/p3-plan.md
   - pipeline/visuals/router.py
   - pipeline/visuals/character.py
+  - pipeline/visuals/sets.py
   - pipeline/visuals/cards.py
   - pipeline/visuals/charts.py
   - pipeline/visuals/ass_kit.py

@@ -8,70 +8,111 @@ Answer the Phase 3 plan's open technical questions on the runner before p3-contr
 4. Push-in jitter.
 
 ## Status
-partial, awaiting the owner's render.yml dispatch. The fixed spike is commit `9fc29f4` on local branch `spike/p3-look-fix`, a fast-forward of `origin/spike/p3-look` (07e7f11, then b2c3898, then 9fc29f4). Not pushed: pushing needs the owner's go-ahead. The branch is throwaway and never merged.
+done.
+- Owner decision 2026-11-25: **method A (all libass)**.
+- M0 is satisfied by the spike stills.
+- Branch `spike/p3-look` (head `9fc29f4`) is throwaway and never merged. Delete it once this handoff is on main.
 
 ## What changed
-Only the throwaway branch:
-- `b2c3898`, made in the other worktree (`spike-p3-look`): `spike/spike.py` puts the `anullsrc` input before `-vf`. This fixes `Option vf ... cannot be applied to input url anullsrc` in a_render and b_final.
-- `9fc29f4`, made in this session:
-  - Layer PNGs are drawn with `subtitles=...:alpha=1`. If this FFmpeg has no alpha option, the spike falls back to drawing on magenta and keying it out with `colorkey`.
-  - Each layer is checked for a non-zero alpha, and the method fails loudly if a layer is empty.
-  - A second strip of 8 consecutive full-resolution frames (crop 360x640 at x 360, y 560, from 10 s) shows stepping between neighbouring frames.
+- **Throwaway branch only:**
+  - `b2c3898` puts the `anullsrc` input before `-vf`.
+  - `9fc29f4` draws layer PNGs with `subtitles=...:alpha=1`. Run 45715145598 had shown every layer fully transparent. It also adds a per-layer alpha check and a strip of 8 consecutive full-resolution frames.
+- **This branch (`docs/p3-spike`):**
+  - this handoff;
+  - `p3-plan.md` and the phase 3 YAMLs updated for method A;
+  - the orchestrator State block.
 
-## Findings so far (run 45715145598, both methods failed at the final call)
-- **Method B's background path works on the runner's FFmpeg.**
-  - All 6 layer PNGs rendered, in 0.15 to 0.34 s each.
-  - All 10 scene segments (7 s each, 3 overlays with x(t) and `scale` with `eval=frame` plus `crop`) rendered, in 11.9 to 12.7 s each, about 122 s for 70 s of background.
-  - The concat took 0.08 s.
-  - So per-frame `scale` and `crop` is accepted and per-scene segments work. That leaves about 480 s of the 600 s budget for the final libass pass.
-- **A second bug the first fix alone would not have caught:**
-  - Every layer PNG in that run was fully transparent (alpha max 0, checked by decoding the artifact).
-  - libass paints only RGB unless the subtitles filter gets `alpha=1`.
-  - Method B would have "worked" with an empty background. 9fc29f4 fixes this and checks for it.
-- **Method A** never reached libass, so it has no timing yet.
+## Results (run 45719091226, ubuntu-latest, apt FFmpeg)
+The test video was 70 s: 10 scenes of 7 s and 2 sets of 3 layers. It had the host (bob, blink, arm wave, a mouth on every word), one counter scene, one bar scene, and captions with fake 0.4 s words.
 
-## Dispatch (owner, Actions page)
-1. Push `spike/p3-look-fix` to `origin/spike/p3-look` (a fast-forward), or tell the orchestrator to.
-2. Actions, then **render**, then **Run workflow**:
-   - Branch: `spike/p3-look`.
-   - Input `script`: leave the default. The spike workflow ignores it.
-3. Artifact `spike` (kept 3 days) holds:
-   - `results.json`: per-call seconds and exit codes, `a_total`, `b_total`, the mp4 sizes and each layer's alpha check;
-   - `a.mp4` and `b.mp4`;
-   - stills `a_story.png`, `a_counter.png`, `a_lamp.png`, `a_bars.png` and their `b_` versions;
-   - strips `a_strip.png` and `b_strip.png` (8 frames 0.25 s apart);
-   - strips `a_strip30.png` and `b_strip30.png` (8 consecutive frames at full resolution);
-   - FFmpeg logs.
-
-## Still to answer from that run
-| Question | Read from | Pass bar |
+| | Method A, all libass | Method B, PNG layers plus libass |
 |---|---|---|
-| Render time | `results.json`: `a_render`, every `b_*`, `b_total` | Each FFmpeg call well under 600 s. The plan wants headroom; real renders add voice and alignment time (Phase 1 baseline 125 s for 69.6 s of video) |
-| A or B | totals, stills, strips | Pick the faster method that looks as good. B is expected to win because static layers are drawn once |
-| Smoothness | `*_strip.png`: blink, mouth, arm wave | No missing or frozen frames, no flicker at the scene fade |
-| Push-in jitter | `*_strip30.png` | Even spacing between neighbouring tiles. `scale` with `eval=frame` rounds to whole pixels and can step. If it does, fallbacks are a lower push rate, pan only, or a larger supersampled layer |
-| Layer alpha | `*_alpha_max` in `results.json`, `*_colorkey` calls | 1.0 for every layer. A colorkey call means `alpha=1` is missing, and magenta fringes need checking in the stills |
+| Render time | **64.1 s**, one FFmpeg call | **139.8 s** in total: 6 layer PNGs at about 0.2 s each, 10 segments at about 10.7 s, concat 0.08 s, final libass pass 31.8 s |
+| mp4 size | 4.97 MB | 4.89 MB |
+| Share of the 600 s per-call timeout | 11% | longest call (final pass) 5% |
+| Layer alpha | n/a | all 6 layers 1.0 (the fix works) |
+| Stills | as expected, nearly the same as B | as expected |
+| Motion (owner watched both mp4s) | **clearly smoother** | visibly less smooth |
+| `a.ass` size | 2564 Dialogue events | |
 
-Then this handoff gets the numbers, the chosen method, the proposed constants for p3-contracts (panel and character placement, caption y, drift speeds, push-in rate, fade and blink timings), and the M0 stills for the owner. Status then becomes done.
+The `a_strip30.png` strip (8 consecutive frames from 10 s) shows the arm rotating in even steps, the bob, and the mouth. Nothing jumps between neighbouring frames.
+
+## Why method A
+- It is twice as fast: 64 s against 140 s.
+- It makes one FFmpeg call instead of 18.
+- The owner judged it smoother. libass places and scales shapes with subpixel precision, while B's per-frame `scale` and `crop` round to whole pixels.
+- It is simpler: no PNG files, no segment concat, and no second FFmpeg adapter.
+
+Cost: every set shape is redrawn on every frame, so render time grows with the number of shapes. The numbers below keep that bounded.
+
+## Camera under method A (what the spike did, and what is open)
+- **Parallax.** Each set layer's shapes get `\move(x0,0,x1,0)` over the scene, where x1 = x0 minus the depth's speed times the scene length. The spike used 6, 14 and 30 px a second for far, mid and near. Layers are drawn 120 px wider than the frame on each side, so the drift never shows an edge.
+- **Push-in.** Each shape gets `\org(540,960)` and `\t(0,<scene ms>,\fscx108\fscy108)`, which is 8% over a 7 s scene. It is smooth in the strip and in the owner's view.
+- **Fades.** A full-frame black shape fades out over 0.3 s at each scene start.
+- **Still open, for p3-contracts:**
+  1. Every layer pushes in at the same rate. Depth-dependent zoom (near layers zoom more) is untested. Recommend leaving it out until someone asks for it.
+  2. `pan_left` and `pan_right` were not tried. They are the same `\move` with a larger speed.
+  3. Scenes can reach about 20 s. At 30 px a second the near layer would drift 600 px against a 120 px margin. Contracts must cap the drift distance per scene, not the speed. Drift = min(speed times length, margin).
+  4. The host overlaps the caption band: captions at y 1230, host body down to y 1330. Contracts must place the host so that its feet sit above the caption band, or scale it down. Visual QA checks it.
+  5. A Flux painting in slice 2 is a still image under the libass layer. It would get its push-in from FFmpeg, not libass, so the pixel stepping seen in B could come back for that layer only. Test it in the slice 2 spike.
+
+## Numbers p3-contracts needs
+These are proposed; p3-contracts locks them in `pipeline/constants.py`.
+
+| Constant | Proposed | Why |
+|---|---|---|
+| Render budget | the compose call must stay under half of `COMPOSE_TIMEOUT_S`. The spike used about 11% for 70 s | Headroom for a 90 s video, more shapes and a busy runner |
+| Set layers | 2 to 4 per set | The spike used 3. Each layer adds shapes on every frame |
+| Shapes per set | at most 25 in total | The spike sets had about 10 to 12. Cost grows with the count |
+| Drift speed, far, mid and near | 6, 14 and 30 px a second, capped at the layer margin per scene | From the spike, and the owner found it smooth |
+| Layer margin | 120 px a side (layers 1320 px wide) | From the spike |
+| Push-in | 8% per scene, centred on (540, 960) | From the spike |
+| Scene fade | 0.3 s | From the spike |
+| Blink | 0.2 s, every 3.6 s, first at 2.2 s into a scene | From the spike. Deterministic |
+| Bob and arm swing | 10 px and ±15 degrees, on 0.4 s half-cycles | From the spike |
+| Caption y | 1230 (inside the locked maximum of 1248) | From the spike. The host moves up to clear it |
+| Shapes for the counter | one event per 0.1 s step, 30 steps | 31 events per counter, well within the budget |
+
+A heavy acceptance test should assert the render time against the budget, so a slow change shows up in CI.
+
+## Carried into p3-plan.md and the YAMLs (this branch)
+- **Method A replaces the hybrid.** The set layers become animated libass shapes in the same `scenes.ass` as the host and the cards.
+- **p3-background is deferred to slice 2** (Flux image layers need FFmpeg). Its YAML is removed so it cannot be launched by mistake; the slice 2 plan writes it again.
+- **p3-compose** depends on p3-contracts again, and it chains only `subtitles=scenes` then `subtitles=captions`.
+- **p3-sets-art:** no PNG wording.
+- **p3-wiring:** writes only `scenes.ass`.
+- **p3-router:** adds the set layers.
+- **p3-contracts:** no `background.py` stub.
 
 ## Decisions made
-- Kept the spike throwaway and dispatch-only. No new tool or package: the alpha check decodes the PNG with the standard library only (zlib).
+- Method A, owner decision 2026-11-25 (above).
+- p3-background's YAML is removed and its job moves to the slice 2 plan, which needs an image-layer path anyway. `p3-plan.md` records this.
 
 ## Tried and abandoned
-- FFmpeg `alphaextract,signalstats` for the alpha check. The gray-to-YUV range conversion makes a zero alpha read as 16, so it was replaced by a direct PNG check. That check was verified on the transparent artifact layer (0.0) and on a synthetic PNG with one opaque pixel (1.0).
+- Method B: slower and less smooth (above).
+- The FFmpeg `alphaextract,signalstats` alpha check: a range conversion reads zero alpha as 16. It was replaced by a direct PNG check.
 
 ## Known risks
-- If the runner's FFmpeg lacks the subtitles `alpha` option, the colorkey fallback can leave magenta edge fringes. The stills show it.
-- 5 lines over the ruff length limit predate this change. The branch is never linted by CI (no PR) and is never merged.
+- **Render time grows with the shape count.** It is bounded by the caps above and a timed heavy test.
+- **The host overlapped the captions in the spike.** Placement goes into contracts and visual QA.
+- **The Flux layer push-in may step (slice 2).**
 
 ## Next step
-1. Owner: push the fix (step 1 above) and dispatch.
-2. Orchestrator: hand the artifact to a fresh p3-spike session, or this Architect, to finish this handoff.
+1. Owner: push `docs/p3-spike` and merge its PR. Then delete `spike/p3-look` on origin and locally, together with the `spike-p3-look` worktree.
+2. Orchestrator: launch p3-character-art. Its still sheet uses method A.
 
 ## Docs
-none (throwaway spike; findings go to p3-contracts through this handoff).
+- `p3-plan.md` and the phase 3 YAMLs are updated here.
+- `.harness/handoffs/orchestrator.md` State is updated here.
+- PRD.md section 7 records the method A decision when p3-contracts writes the owner's p3-plan answers (already in its YAML).
+- Nothing else.
 
 ## Evidence
-- `gh run view 45715145598 --log-failed`: both failures were the `-vf` option order.
-- The artifact of that run, downloaded: the timings above, and every layer PNG had alpha max 0.
-- Locally: `python spike/spike.py --dry` exit 0. `ruff check spike/spike.py` shows 5 pre-existing E501, none new. The alpha checker was tested on the real and synthetic PNGs above. FFmpeg was not run locally (CI only, per CLAUDE.md).
+- `results.json` from artifact `spike` of run 45719091226, read from the orchestrator's download (not downloaded again).
+- `a_strip30.png` viewed.
+- The owner watched both mp4s.
+- After the edits:
+  - `python tests/docs_check.py`: passed.
+  - `pytest .harness/tests -q`: 90 passed.
+  - `pytest -q tests` without `LOOM_TASK`: 1656 passed, 92 skipped, run with the sibling worktree venv (lessons.md 2026-11-15, the `tests` package shadowing).
+  - All 18 phase 3 YAMLs parse, and every `depends_on` names an existing task.

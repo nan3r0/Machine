@@ -12,7 +12,8 @@ notes: |
   - Pose arms rotate around the asset's anchor.
   - The character sits at the constants' placement in every scene, fully in frame and clear of
     the caption band.
-  Method as chosen by p3-spike.
+  All libass (method A); the spike's character_events in spike/art.py on the throwaway branch
+  shows the technique, but write it fresh against the contracts.
 paths_allowed:
   - pipeline/visuals/character.py
 tests:

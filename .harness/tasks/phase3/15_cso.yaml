@@ -1,5 +1,5 @@
 id: p3-cso
-title: Threat model version 4 - rendered visual data, art assets, background FFmpeg calls
+title: Threat model version 4 - rendered visual data, art assets, the scenes layer
 depends_on: [p3-wiring, p3-writer-visuals, p3-batch-visuals]
 role: cso
 notes: |
@@ -9,9 +9,9 @@ notes: |
   - the PR body shows every drawn value;
   - ASS escaping of every drawn string (no drawtext);
   - the exact check and the p3-plan D4 downgrade;
-  - background.py FFmpeg argument lists and timeout;
-  - art assets loaded through a strict model, from the repo only;
-  - render time against the timeouts.
+  - compose's FFmpeg argument list with the scenes layer, and its timeout;
+  - art assets loaded through a strict model, from the repo only, with layer and shape caps;
+  - render time against the timeouts (shape count drives libass cost, p3-spike).
   `on_screen_text` stays unrendered: confirm it. Leave the Cloudflare, Pexels and Pixabay seeds
   for slice 2 (and later). New gaps become proposed tasks. Owner sign-off joins the go-live
   gates.
@@ -24,7 +24,6 @@ context_files:
   - HARNESS.md#6b
   - docs/threat-model.md
   - pipeline/visuals/
-  - pipeline/render/background.py
   - pipeline/render/compose.py
   - pipeline/script/validate.py
   - pipeline/script/batch.py

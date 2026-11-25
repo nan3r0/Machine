@@ -3,6 +3,7 @@ title: Throwaway runner spike - character and layered set with libass and FFmpeg
 depends_on: []
 role: architect
 notes: |
+  Done 2026-11-25: the owner chose method A, all libass (.harness/handoffs/p3-spike.md).
   .harness/handoffs/p3-plan.md, "The look, and how it is built". Settles the open technical
   questions before anything is locked (lessons.md 2026-11-15, pip-audit entry: run on the target
   OS first). No new dependency: libass and FFmpeg only (p3-plan D3).

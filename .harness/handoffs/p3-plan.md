@@ -13,29 +13,40 @@ The target look:
 PLAN.md section 11 sets Phase 3 done as "two videos on similar topics look clearly different".
 
 ## Status
-done, revision 2, approved by the owner on 2026-11-25: D1 to D7 and D10 to D13 (D8 and D9 wait for slice 2). Plan and task YAMLs only: no code, no locked tests. Next: p3-spike.
+done, revision 3.
+- Revision 2 was approved by the owner on 2026-11-25: D1 to D7 and D10 to D13 (D8 and D9 wait for slice 2).
+- Revision 3 applies the p3-spike result. The owner chose method A (all libass) on 2026-11-25. See `.harness/handoffs/p3-spike.md`.
+- Plan and task YAMLs only: no code, no locked tests. Next: p3-character-art.
 
 ## What changed
 - Revision 2 replaces revision 1, which had motion-graphics cards only. The character and the sets come first now, and the data cards become secondary.
-- `.harness/tasks/phase3/`: 18 task YAMLs, 00_spike to 17_phase_review.
+- `.harness/tasks/phase3/`: 18 task YAMLs, 00_spike to 17_phase_review. Revision 3 swaps 06_background (deferred to slice 2) for 06_sets, a libass set-layer module.
 - The implementer YAMLs list only their new test files. tests/conftest.py gives a test file to the last task YAML (in sorted path order) that lists it, so listing an existing file would skip it on main until the task is done. Existing tests that must keep passing are named in each task's notes.
 
 ## The look, and how it is built with no new dependency
 Each video has three layers, back to front:
 
-| Layer | What | How (hypothesis, the spike confirms) |
+| Layer | What | How (method A, chosen after p3-spike) |
 |---|---|---|
-| 1. Set | 2 to 4 flat layers (sky, far hills or wall, near floor or props), drifting at different speeds, slow push-in, fade between scenes | Each set is vector art in `assets/sets/<id>.yaml`. FFmpeg draws each layer once to a transparent PNG through libass, then moves the layers with `overlay` (x changes over time) and pushes in with `scale`/`crop`. A Flux painting later slots in as one more layer PNG |
-| 2. Character and data cards | The character with poses and expressions; the counter, bars, timeline and place card | One animated `scenes.ass`, drawn by libass: `\p1` vector shapes, `\move`, `\t` with `\fscx`, `\fscy` and `\frz`, and `\fad`. Mouth shapes switch on each word's timing, so the character talks with the narration. Blinks are short events |
+| 1. Set | 2 to 4 flat layers (sky, far hills or wall, near floor or props), drifting at different speeds, slow push-in, fade between scenes | Each set is vector art in `assets/sets/<id>.yaml`. Its shapes are libass events in the same `scenes.ass`. Each layer drifts with `\move` at its depth's speed and pushes in with `\org` plus `\t(\fscx\fscy)`. A black shape fades each scene in |
+| 2. Character and data cards | The character with poses and expressions; the counter, bars, timeline and place card | Same `scenes.ass`, above the set: `\p1` vector shapes, `\move`, `\t` with `\fscx`, `\fscy` and `\frz`, and `\fad`. Mouth shapes switch on each word's timing, so the character talks with the narration. Blinks are short events |
 | 3. Captions | Bold, white, black outline, current word highlighted, lower half | Already built. Only the y position moves, inside the locked safe-zone range |
+
+Spike result (run 45719091226, 70 s test video):
+- Method A took 64 s in one FFmpeg call, 11% of the 600 s timeout.
+- Method B, PNG layers moved by FFmpeg, took 140 s.
+- The owner judged A clearly smoother.
+- Render time grows with the number of shapes, so p3-contracts caps layers and shapes (numbers in the spike handoff).
 
 Why no cairosvg, rsvg, matplotlib or Pillow: each needs owner approval and the hashed render lock, which broke five times on 2026-11-25. libass and FFmpeg are already on the runner. If the spike shows they cannot do it smoothly in time, that becomes a new owner decision, not a quiet workaround.
 
-The open technical questions, all answered by **p3-spike** on the runner before anything is locked:
-1. **All-libass or hybrid.** Does it render faster with everything in libass, or with sets as pre-drawn PNG layers moved by FFmpeg and libass for the character only? I expect the hybrid to win, because animated full-screen libass shapes get redrawn on every frame.
-2. **Render time** of a 70 s video against the 600 s FFmpeg timeout, and filtergraph size: about 10 scenes with 3 layers each. One graph, or per-scene segments joined with concat?
-3. **Smoothness.** How much the character can move in libass without visible stepping: arm wave with `\frz` and `\org`, a bob, a blink, mouth swaps.
-4. **Push-in.** Is it smooth with `scale` and `crop` evaluated per frame? `zoompan` is known to jitter.
+The p3-spike questions are answered in `.harness/handoffs/p3-spike.md`:
+- render time;
+- all-libass against the hybrid (all-libass won; my expectation that the hybrid would win was wrong);
+- smoothness;
+- push-in.
+
+The camera points it leaves open (drift cap per scene, host placement above the captions, pans) are for p3-contracts.
 
 ## Character
 - **One original character, a recurring host.** Round head, simple body, a fixed outfit and fixed proportions on every video, for recognition and consistency. It must not resemble any existing creator's character; the reviewer checks this against the owner's references.
@@ -47,7 +58,9 @@ The open technical questions, all answered by **p3-spike** on the runner before 
 ## Sets
 - **Proposed starting list** (the owner approves the names before contracts and the art later): `night_street`, `desert_rail`, `lamp_room`, `shore_night`, `forest`, `archive`.
 - Each set is 2 to 4 layers with a depth (far, mid or near) that sets its drift speed.
-- **One layer interface:** a layer is a transparent 1080-wide-or-wider PNG plus its depth. Flat sets produce their PNGs from vector art. In slice 2, a Flux painting is one more far layer. The compose step does not care which.
+- **Layers in slice 1 are libass shapes plus a depth.**
+  - In slice 2, a Flux painting is a still image under `scenes.ass`, added by an FFmpeg background step (the deferred p3-background, written again by the slice 2 plan).
+  - Its push-in then comes from FFmpeg. The spike saw whole-pixel stepping there, so the slice 2 spike tests it.
 
 ## Scene format (script JSON, no schema change)
 Every scene already has `visual: {"type": "chart" | "map" | "steps" | "story", "data": {...}}`. Phase 3 defines what `data` may hold. All keys are optional:
@@ -101,12 +114,12 @@ YAMLs in `.harness/tasks/phase3/`. At most two at once, and no shared paths with
 | 03 | p3-validate-visuals | implementer | `pipeline/script/validate.py` | p3-contracts |
 | 04 | p3-ass-kit | implementer | `pipeline/visuals/ass_kit.py` | p3-contracts |
 | 05 | p3-character | implementer | `pipeline/visuals/character.py` | p3-ass-kit |
-| 06 | p3-background | implementer | `pipeline/render/background.py` | p3-contracts |
+| 06 | p3-sets | implementer | `pipeline/visuals/sets.py` (set layers as libass events: drift, push-in, fades) | p3-ass-kit |
 | 07 | p3-sets-art | architect | `assets/sets/**`, `assets/LICENSES.md` | p3-contracts |
 | 08 | p3-cards | implementer | `pipeline/visuals/cards.py` | p3-ass-kit |
 | 09 | p3-charts | implementer | `pipeline/visuals/charts.py` | p3-ass-kit |
-| 10 | p3-compose | implementer | `pipeline/render/compose.py`, `pipeline/render/captions_ass.py` | p3-background |
-| 11 | p3-router | implementer | `pipeline/visuals/router.py` | p3-character, p3-cards, p3-charts |
+| 10 | p3-compose | implementer | `pipeline/render/compose.py`, `pipeline/render/captions_ass.py` | p3-contracts |
+| 11 | p3-router | implementer | `pipeline/visuals/router.py` | p3-character, p3-sets, p3-cards, p3-charts |
 | 12 | p3-wiring | implementer | `pipeline/render_one.py` | p3-router, p3-compose, p3-validate-visuals, p3-sets-art |
 | 13 | p3-writer-visuals | implementer | `pipeline/script/generate.py` | p3-validate-visuals |
 | 14 | p3-batch-visuals | implementer | `pipeline/script/batch.py` | p3-validate-visuals |
@@ -119,7 +132,7 @@ Waves:
 2. p3-character-art. The owner approves the pose sheet.
 3. p3-contracts on `plan/p3-contracts`. The owner merges it.
 4. p3-validate-visuals and p3-ass-kit.
-5. p3-character and p3-background.
+5. p3-character and p3-sets.
 6. p3-sets-art and p3-cards. The owner approves the set stills.
 7. p3-charts and p3-compose.
 8. p3-router.
@@ -130,7 +143,8 @@ Waves:
 
 Reviews:
 - Visual QA: every task touching `pipeline/visuals/**`, `pipeline/render/**` or `assets/**`.
-- Security: p3-background and p3-compose (FFmpeg argument lists), p3-validate-visuals and p3-batch-visuals.
+- Security: p3-compose (FFmpeg argument lists), p3-validate-visuals and p3-batch-visuals.
+- p3-background (FFmpeg image layers) is deferred to slice 2, where Flux paintings need it; method A draws flat sets in libass (`.harness/handoffs/p3-spike.md`).
 - No Auditor in slice 1: the art is original and logged in `assets/LICENSES.md` as own work, and there is no new API.
 
 **How visual QA judges stills:**
@@ -163,7 +177,7 @@ These are my calls; the owner can overrule them. D ids here are p3-plan ids, not
 - **Art lives in `assets/`, checked by a Pydantic model in `pipeline/visuals/art.py`** (a contract file from p3-contracts). Numbers that are rules stay in `constants.py`.
 - **Imports.**
   - `pipeline/visuals/` may import `escape_ass_text` from `render/captions_ass.py` rather than copying it.
-  - Inside `visuals/`, imports point one way: router to character, cards and charts; those to ass_kit; ass_kit to art.
+  - Inside `visuals/`, imports point one way: router to character, sets, cards and charts; those to ass_kit; ass_kit to art.
   - No test enforces the import boundary (grep of `tests/`), so nothing locked changes.
   - Text is drawn only through ASS, never FFmpeg `drawtext`.
 - **Compose** gets keyword-only arguments that default to today's behaviour, so the existing locked compose tests stay true. New behaviour is tested in new files. p3-contracts edits two existing locked tests so they hold both before and after the change: `tests/script/test_generate.py:112` and the fake compose in `tests/test_render_one.py:51`.
@@ -208,11 +222,9 @@ The defaults are what the YAMLs assume.
 | 2 | 0 extra | about 1 painting per set used, a few a day, against the free daily allowance (PLAN.md says about 170 images a day; unverified until the slice 2 plan reads the pricing page) | one small job a day |
 
 ## Risks
-- **Render time and smoothness.** These are the biggest unknowns, which is why the spike comes before contracts. Fallbacks:
-  - fewer moving layers;
-  - per-scene segments;
-  - a lighter push-in;
-  - D3 revisited with the owner.
+- **Render time and smoothness.** The spike measured them: 64 s for 70 s of video, smooth. Render time grows with the shape count, so p3-contracts caps it, and a heavy test fails when the render exceeds its budget. Fallbacks:
+  - fewer shapes per set;
+  - a lighter push-in.
 - **The character looks cheap or off-model between poses.** The still sheet is approved first, and visual QA checks consistency on every render task.
 - **The character could resemble an existing creator's.** It is designed as original, reviewed against the owner's references, and logged as own work.
 - **Inauthentic-content policy.** A recurring host, varied sets and per-script poses give more variety than cards alone. How YouTube judges this is still unverified.
