@@ -13,7 +13,7 @@ The target look:
 PLAN.md section 11 sets Phase 3 done as "two videos on similar topics look clearly different".
 
 ## Status
-done, revision 2 (after the owner saw the mock). Plan and task YAMLs only: no code, no locked tests. Committed on branch `plan/p3-plan`, not pushed. Waiting on the owner (see "What the owner approves before p3-contracts").
+done, revision 2, approved by the owner on 2026-11-25: D1 to D7 and D10 to D13 (D8 and D9 wait for slice 2). Plan and task YAMLs only: no code, no locked tests. Next: p3-spike.
 
 ## What changed
 - Revision 2 replaces revision 1, which had motion-graphics cards only. The character and the sets come first now, and the data cards become secondary.
@@ -232,7 +232,7 @@ The defaults are what the YAMLs assume.
 See Risks. Slice 2 has no YAMLs yet, so PLAN.md's Phase 3 done line closes only when it is planned, or narrowed by D10.
 
 ## Next step
-1. Owner: answer the decisions above.
+1. Owner: done (2026-11-25, D1 to D7 and D10 to D13 approved).
 2. Orchestrator: run p3-spike, then p3-character-art, then p3-contracts once the owner approves the items above.
 
 ## Docs
