@@ -384,3 +384,12 @@ How it was caught: the owner dispatched render.yml and the orchestrator read the
 Fix: pins restored (p4c-lock-pin to -5), bare Dependabot ignores for 0.x or capped packages (num2words, docopt, srsly, rfc3986, csvw), CONSTRAINTS and CAPPED rows in the locked test.
 Rule going forward: a bump of a package that another package pins or caps must move with it (group it, do not ignore one side); a locked test only runs once its task is in the done list, so mark tasks done at close-out; stop patching one package at a time after the second red run and add the CI resolve check (p4c-ci-lock-resolve).
 Test added: `tests/test_lock_consistency.py` (num2words/docopt check, srsly cap).
+
+### 2026-11-25: a task PR failed the scope check because its task YAML was not on main
+
+What happened: p4d-gemini-quota-guard was planned and built, but the architect's task YAML and locked tests lived only on the task branch. CI reads the task YAML from main, so the scope check failed with "no task in .harness/tasks/ on origin/main". The new locked tests also failed at import, so they could not simply go to main first.
+Why it happened (root cause, not symptom): the orchestrator skipped the contracts PR step. The earlier tasks had their YAML and tests merged to main before the implementer started.
+How it was caught: CI on the task PR.
+Fix: the contracts commit went to main first as its own PR, then main was merged into the task branch.
+Rule going forward: the contracts commit (task YAML, locked tests, and empty import stubs so the tests collect; conftest skips them until the task is done) merges to main before the implementer starts. Merge main into the task branch, never rebase.
+Test added: none (process rule).
