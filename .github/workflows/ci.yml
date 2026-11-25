@@ -126,6 +126,36 @@ jobs:
           if-no-files-found: ignore
           retention-days: 7
 
+  # make check installs the plain pin lists, never the hashed locks, so a Dependabot bump that pip
+  # cannot resolve passed it and broke only a live workflow. This job resolves each lock the way
+  # render.yml, daily_publish.yml and weekly_scripts.yml install it, each in a fresh venv so no
+  # unhashed install from another step can satisfy a pin. Torch is installed for real because the
+  # render lock does not pin it and --require-hashes rejects an unpinned requirement.
+  lock-resolve:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements*.txt
+
+      - name: Resolve the render locks
+        run: |
+          python -m venv "$RUNNER_TEMP/render"
+          "$RUNNER_TEMP/render/bin/python" -m pip install -q --no-deps --require-hashes --index-url https://download.pytorch.org/whl/cpu -r requirements-render-torch.txt
+          "$RUNNER_TEMP/render/bin/python" -m pip install --dry-run --require-hashes -r requirements-render.txt
+
+      - name: Resolve the generate lock
+        run: |
+          python -m venv "$RUNNER_TEMP/generate"
+          "$RUNNER_TEMP/generate/bin/python" -m pip install --dry-run --require-hashes -r requirements-generate.txt
+
   reports:
     if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
