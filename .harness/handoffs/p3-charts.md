@@ -35,3 +35,12 @@ none
 - `python -m pytest tests/visuals/test_charts.py`: 24 passed (plain venv; no tests-package shadow here).
 - full `LOOM_TASK=p3-charts pytest -q --tb=short`: 1693 passed, 227 skipped.
 - `ruff check .` clean; `mypy --strict pipeline/` clean; `tests/scope_check.py task/p3-charts origin/main`: passed.
+
+## Round 1 review fixes
+- Blocker: override tags were single-backslash strings (`\a`, `\f`, `\t` became control bytes). Now `"\an5"` etc. and `_POP` is `cards._pop()`. Checked by hand: no control byte in any event, tags read `\an4\alpha&HFF&\t(...)` and `\an7\fscx1\t(0,600,\fscx100)`.
+- Regression test needs the locked test file: proposed in `CONTRACT_CHANGE.md`, not added.
+- Counter frame times built once (`times` list), so frames cannot gap or overlap.
+- Bar values share one size (smallest fit). Bar rows are centred vertically in the panel.
+- `counter_events` raises ValueError unless there is exactly 1 item.
+- Dedupe: `_pop` reused from cards. `_fit` not reused: cards' version has a fixed 720 px column and divides by zero on empty text, and cards.py is not in this task's paths.
+- Evidence: ruff clean, mypy --strict clean, full pytest and scope_check rerun, see final report.
