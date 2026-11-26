@@ -2,7 +2,8 @@
 
 Items are (label, value) pairs from a validated scene. Every event lies inside [start, end], uses
 ASS layer ASS_LAYER_CARD or above, and every `\\pos` lies inside DATA_PANEL. Text events are
-ass_kit.text_event (CARD_STYLE), so long labels wrap inside the panel.
+ass_kit.text_event (CARD_STYLE). Each text is shrunk to fit one line of a 720 px column, so a label
+of up to 24 characters never wraps, overlaps the badge or runs past the panel edge.
 """
 
 from pipeline import constants as c
@@ -13,7 +14,9 @@ _MID_X = (_LEFT + _RIGHT) / 2
 _BADGE_X = _LEFT + 60
 _TEXT_X = _LEFT + 100  # label column starts right of the badge
 _COLUMN_PX = _RIGHT - _TEXT_X
-_CHAR_WIDTH = 0.6  # of the font size, bold, wide-ish estimate
+# Per character, of the font size: "A" in Montserrat Bold is 0.756 em (Pillow), above the 0.735 em
+# capital average. libass draws about 18% smaller (it sizes to ascent + descent), so this is a margin.
+_CHAR_WIDTH = 0.76
 _ROW_MAX = 190
 _RING_COUNT = 3
 _POP_MS = 200
@@ -38,6 +41,11 @@ def _panel(start: float, end: float) -> str:
     return _drawing(start, end, c.ASS_LAYER_CARD, (_LEFT, _TOP), c.CARD_PANEL_RGB, path)
 
 
+def _fit(text: str, size: int) -> int:
+    """`size`, shrunk so `text` fits one line of the _COLUMN_PX column."""
+    return min(size, int(_COLUMN_PX / (len(text) * _CHAR_WIDTH)))
+
+
 def _pop() -> str:
     return f"\\alpha&HFF&\\t(0,{_POP_MS},\\alpha&H00&)"
 
@@ -60,9 +68,8 @@ def _rows(items: list[tuple[str, str]], start: float, end: float, dots: bool) ->
             parts, offsets = [label_part, (value, c.CARD_LABEL_FONT_SIZE, accent)], (-0.22, 0.25)
         shown = [(part, off) for part, off in zip(parts, offsets, strict=True) if part[0]]
         for (text, size, rgb), off in shown:
-            size = min(size, int(_COLUMN_PX / (len(text) * _CHAR_WIDTH)))
             dy = row * off if len(shown) > 1 else 0
-            evs.append(text_event(text, t, end, _LAYER, (_TEXT_X, y + dy), size, rgb,
+            evs.append(text_event(text, t, end, _LAYER, (_TEXT_X, y + dy), _fit(text, size), rgb,
                                   "\\an4" + _pop()))
     if dots:
         length = int(row * (len(items) - 1))
@@ -96,9 +103,9 @@ def place_events(items: list[tuple[str, str]], start: float, end: float) -> list
         grow = (f"\\an5\\1a&HFF&\\3c{ass_colour(c.CARD_ACCENT_RGB)}\\bord4"
                 f"\\t(0,{ring_ms},\\fscx400\\fscy400\\3a&HFF&)")
         evs.append(_drawing(t, end, _LAYER, pin, c.CARD_ACCENT_RGB, _circle(24), grow))
-    evs.append(text_event(label, start, end, _LAYER, (_MID_X, _TOP + 420), c.CARD_FONT_SIZE,
-                          c.CARD_TEXT_RGB, _pop()))
+    evs.append(text_event(label, start, end, _LAYER, (_MID_X, _TOP + 420),
+                          _fit(label, c.CARD_FONT_SIZE), c.CARD_TEXT_RGB, _pop()))
     if value:
         evs.append(text_event(value, start, end, _LAYER, (_MID_X, _TOP + 580),
-                              c.CARD_LABEL_FONT_SIZE, c.CARD_ACCENT_RGB, _pop()))
+                              _fit(value, c.CARD_LABEL_FONT_SIZE), c.CARD_ACCENT_RGB, _pop()))
     return evs
