@@ -6,16 +6,25 @@ Task p2-validate. Pure function, no IO. Numbers come from pipeline/constants.py.
 import re
 import unicodedata
 from collections.abc import Iterator
+from typing import Any
 
 from pipeline.constants import (
+    CAMERA_MOVES,
     DESCRIPTION_MAX_CHARS,
     NARRATION_MAX_CHARS,
+    POSES,
     SCENES_MAX,
+    SET_IDS,
     TAG_MAX_CHARS,
     TAGS_MAX,
     TAGS_TOTAL_MAX_CHARS,
     TIKTOK_WORDS,
     TITLE_MAX_CHARS,
+    VISUAL_DATA_SCENES_MAX,
+    VISUAL_ITEMS_MAX,
+    VISUAL_LABEL_MAX_CHARS,
+    VISUAL_TEXT_MAX_CHARS,
+    VISUAL_VALUE_MAX_CHARS,
 )
 from pipeline.schema import Script
 
@@ -28,6 +37,11 @@ _NUMBER_CATEGORIES = {"Nd", "Nl", "No"}
 # A TLD needs 2+ letters, so "3.5", "U.S." and "a.m." pass; no letters follow the first dot in "wait...".
 # Unicode letters count too, so an internationalised domain ("пример.рф") is caught.
 _DOMAIN_LIKE = re.compile(r"[\w-]+\.[^\W\d_]{2,}")
+_VISUAL_CHOICES = {"set": SET_IDS, "pose": POSES, "camera": CAMERA_MOVES}
+_VISUAL_KEYS = {*_VISUAL_CHOICES, "items"}
+_ITEM_TYPES = {"chart", "steps", "map"}
+# ASCII digits only, thousands commas and one decimal part; "3,219" and "1997" pass, "lots" does not.
+_PLAIN_NUMBER = re.compile(r"[0-9][0-9,]*(\.[0-9]+)?")
 
 
 def _fields(script: Script) -> Iterator[tuple[str, str]]:
@@ -101,6 +115,68 @@ def _length_problems(script: Script) -> Iterator[str]:
         yield f"tags: {total} characters in total, at most {TAGS_TOTAL_MAX_CHARS}"
 
 
+def _item_problems(where: str, kind: str, items: Any) -> Iterator[str]:
+    """Rules for one scene's `items`; `where` is "scene N"."""
+    if kind not in _ITEM_TYPES:
+        yield f"{where} items: not allowed on a {kind} scene"
+        return
+    if not isinstance(items, list) or not 1 <= len(items) <= VISUAL_ITEMS_MAX:
+        yield f"{where} items: must be a list of 1 to {VISUAL_ITEMS_MAX} label and value pairs"
+        return
+    if kind == "map" and len(items) != 1:
+        yield f"{where} items: a map scene has exactly one item"
+    for number, item in enumerate(items, 1):
+        label = f"{where} item {number}"
+        if not (isinstance(item, dict) and set(item) == {"label", "value"}
+                and all(isinstance(item[k], str) for k in item)):
+            yield f"{label}: items must be label and value strings only"
+            continue
+        yield from _item_text_problems(label, item)
+    values = [i["value"] for i in items if isinstance(i, dict) and isinstance(i.get("value"), str)]
+    if kind == "steps" and len({bool(v) for v in values}) > 1:
+        yield f"{where} items value: steps values must be all empty or all set"
+    if kind == "chart" and len(items) >= 2:
+        for number, value in enumerate(values, 1):
+            if not _PLAIN_NUMBER.fullmatch(value):
+                yield f"{where} item {number} value: a chart with 2 or more items needs plain numbers"
+
+
+def _item_text_problems(label: str, item: dict[str, str]) -> Iterator[str]:
+    if not item["label"].strip():
+        yield f"{label} label: blank"
+    for field, cap in (("label", VISUAL_LABEL_MAX_CHARS), ("value", VISUAL_VALUE_MAX_CHARS)):
+        if len(item[field]) > cap:
+            yield f"{label} {field}: {len(item[field])} characters, at most {cap}"
+        if message := _text_problem(f"{label} {field}", item[field]):
+            yield message
+
+
+def _visual_problems(script: Script) -> Iterator[str]:
+    data_scenes = 0
+    text_chars = 0
+    for number, scene in enumerate(script.scenes, 1):
+        where = f"scene {number}"
+        for key, value in scene.visual.data.items():
+            if key not in _VISUAL_KEYS:
+                yield f"{where} {key!r}: not an allowed visual key"
+            elif key in _VISUAL_CHOICES and value not in _VISUAL_CHOICES[key]:
+                yield f"{where} {key}: not an approved {key}"
+        if "items" not in scene.visual.data:
+            continue
+        data_scenes += 1
+        items = scene.visual.data["items"]
+        yield from _item_problems(where, scene.visual.type, items)
+        if isinstance(items, list):
+            text_chars += sum(
+                len(item[k]) for item in items if isinstance(item, dict) for k in ("label", "value")
+                if isinstance(item.get(k), str)
+            )
+    if data_scenes > VISUAL_DATA_SCENES_MAX:
+        yield f"visual: {data_scenes} data scenes, at most {VISUAL_DATA_SCENES_MAX}"
+    if text_chars > VISUAL_TEXT_MAX_CHARS:
+        yield f"visual items: {text_chars} characters in total, at most {VISUAL_TEXT_MAX_CHARS}"
+
+
 def problems(script: Script) -> list[str]:
     """Every reason `script` may not be published, one short line each naming the field
     (for example "title: 104 characters, at most 100"). Empty means the script is fine.
@@ -127,7 +203,15 @@ def problems(script: Script) -> list[str]:
       Nl or No, or any character that NFKD-folds to an ASCII digit: full-width and Arabic-Indic
       digits, superscripts, fractions, Roman numerals, "1月" symbols), so the exact fact-check
       cannot be passed a wrong number it does not read. Checked on the raw text.
+    - Scene `visual.data` holds only set, pose, camera and items (all optional). Set, pose and
+      camera must be approved values (`HOST_BACKDROP_SET` is not a scene set). Items are allowed on
+      chart, steps and map only: 1 to `VISUAL_ITEMS_MAX` `{label, value}` strings, label non-blank
+      and at most `VISUAL_LABEL_MAX_CHARS`, value at most `VISUAL_VALUE_MAX_CHARS`, both through the
+      text checks above. A chart of 2 or more items needs plain-number values, steps values are all
+      empty or all set, a map has one item. At most `VISUAL_DATA_SCENES_MAX` scenes carry items and
+      their labels and values sum to at most `VISUAL_TEXT_MAX_CHARS`.
     """
     found = list(_length_problems(script))
     found += [m for label, text in _fields(script) if (m := _text_problem(label, text))]
+    found += _visual_problems(script)
     return found
