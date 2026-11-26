@@ -6,7 +6,7 @@ import pytest
 
 from pipeline import constants as c
 from pipeline.visuals import charts
-from tests.visuals.ass_parse import events, pos, shown_text
+from tests.visuals.ass_parse import drawing, events, pos, shown_text
 
 
 @pytest.mark.parametrize(
@@ -65,6 +65,30 @@ def test_values_exact_inside_panel_and_window(layout: object, items: list[tuple[
         assert any(label in t for t in texts) and any(value in t for t in texts)
     last = max(e.end for e in evs)
     assert last == 12.0, "the final value holds to the end"
+
+
+@pytest.mark.parametrize(
+    ("layout", "items"),
+    [
+        (charts.counter_events, [("Kilometres apart", "3,219")]),
+        (charts.bars_events, [("Bloop", "3,219"), ("Whale", "0"), ("Ship", "120")]),
+    ],
+)
+def test_override_tags_reach_libass(layout: object, items: list[tuple[str, str]]) -> None:
+    r"""Regression: tags written as "\an5" in a plain string become BEL, form feed or TAB bytes."""
+    lines = layout(items, 5.0, 12.0)  # type: ignore[operator]
+    assert not any(ord(ch) < 0x20 for line in lines for ch in line), "control byte in an event"
+    evs = events(lines)
+    texts = [e.text for e in evs if not drawing(e.text)]
+    assert texts
+    if layout is charts.counter_events:
+        assert all("\\an5" in t for t in texts), "counter and label are centred"
+        return
+    assert all("\\an4" in t for t in texts), "bar labels and values are left aligned"
+    bars = [e.text for e in evs if drawing(e.text) and "\\fscx1\\" in e.text]
+    assert len(bars) == len(items), "one growing bar per item"
+    for bar in bars:
+        assert "\\an7" in bar and re.search(r"\\t\([^)]*\\fscx100\)", bar), "bar grows from x 1% to 100%"
 
 
 def test_acceptance() -> None:
