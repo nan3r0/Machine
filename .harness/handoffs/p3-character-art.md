@@ -5,8 +5,8 @@ Design the original host character as data (`assets/character/host.yaml`) and ge
 
 ## Status
 partial, awaiting the owner's still-sheet approval (round 1).
-- Task branch `task/p3-character-art`: the asset, the licence row and this handoff. Committed, not pushed.
-- Throwaway branch `spike/p3-character-sheet`: the task commit plus the sheet renderer and a `render.yml` override. Committed, not pushed, never merged.
+- Task branch `task/p3-character-art`: the asset, the licence row and this handoff. Committed, not pushed. The asset and the licence row are at `16180a5`; this handoff's final wording is the commit after it.
+- Throwaway branch `spike/p3-character-sheet` at `aecf13b`: the task commits plus the sheet renderer and a `render.yml` override. Committed, not pushed, never merged. It holds the same `host.yaml`; the later handoff-only commit is not merged into it.
 
 ## What changed
 - **`assets/character/host.yaml`** (new). One frontal host at reference scale 1.0, in an art box of 609 x 822 px with the origin at the top-left (x right, y down).
@@ -52,6 +52,7 @@ What the design was built from, and what it avoids:
 - **`talking_mouths`** names the lip-sync cycle in the asset, so the animation code does not hard-code mouth names.
 - **Colours are RGB hex** (as people write them); the renderer converts to ASS BGR.
 - **The sha256 in LICENSES.md is of the LF file** as committed. Git converts to CRLF on Windows checkouts, so a local hash there differs.
+  - For p3-contracts: if a locked test checks this hash the way `test_font.py` checks the font, it fails on Windows checkouts with `autocrlf=true`, because the YAML is text and the font is binary. Hash LF-normalised bytes in the test, or add `assets/character/*.yaml eol=lf` to `.gitattributes` (outside this task's paths).
 
 ## Tried and abandoned
 - Mitred one-piece sleeves for sharp bends (think, surprised): the mitre turns into a spike. Bends over 100 degrees now draw a rounded upper arm with the forearm over it.
@@ -82,5 +83,6 @@ What the design was built from, and what it avoids:
 - `yaml.safe_load` of `host.yaml` gives the keys listed above.
 - Local Pillow preview of all 6 poses, 5 mouths and the closed eyes was viewed (rough, not libass).
 - `python tests/docs_check.py`: passed. `pytest .harness/tests -q`: 90 passed.
-- Spike branch commit `14e7077` (then the merge of this commit); `git show HEAD:assets/character/host.yaml | sha256sum` matches the LICENSES row.
+- `pytest -q tests/render/test_font.py` (reads LICENSES.md): 4 passed. `pytest -q tests` without `LOOM_TASK`: 1656 passed, 92 skipped (sibling worktree venv, lessons.md 2026-11-15).
+- Spike branch head `aecf13b`; `git show HEAD:assets/character/host.yaml | sha256sum` matches the LICENSES row.
 - No FFmpeg run locally (CLAUDE.md); the runner render is the owner step.
