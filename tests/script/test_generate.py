@@ -109,7 +109,7 @@ def test_builds_the_script_fields_itself(monkeypatch: pytest.MonkeyPatch) -> Non
     assert script.topic == SOURCE.topic
     assert script.publish_after == PUBLISH
     assert sorted(script.platforms) == ["instagram", "tiktok", "youtube"]
-    assert all(scene.visual.type == "story" and scene.visual.data == {} for scene in script.scenes)
+    assert all(scene.visual.type == "story" for scene in script.scenes)
     assert [scene.source_fact_ids for scene in script.scenes] == [[f.id] for f in SOURCE.facts[:7]]
 
 

@@ -8,43 +8,43 @@
     {
       "narration": "It was 1997. Researchers were listening for underwater volcanic activity in the southern Pacific. Then their hydrophones picked up something else.",
       "on_screen_text": "1997: the southern Pacific",
-      "visual": {"type": "steps", "data": {"step": 1, "label": "Listening for volcanoes"}},
+      "visual": {"type": "story", "data": {"set": "shore_night", "pose": "talk", "camera": "push_in"}},
       "source_fact_ids": [1, 2]
     },
     {
       "narration": "It was strange. It was powerful. Hydrophones more than 3,219 kilometres apart heard it. It earned a name. The Bloop.",
       "on_screen_text": "Heard 3,219+ km apart",
-      "visual": {"type": "steps", "data": {"step": 2, "label": "The Bloop"}},
+      "visual": {"type": "story", "data": {"set": "shore_night", "pose": "surprised"}},
       "source_fact_ids": [3, 4]
     },
     {
       "narration": "Then came the guesses. Secret military exercises. Ship engines. Whales. A giant squid. Or a sea creature unknown to science.",
       "on_screen_text": "Military? Whales? Something unknown?",
-      "visual": {"type": "steps", "data": {"step": 3, "label": "The guesses"}},
+      "visual": {"type": "story", "data": {"set": "lamp_room", "pose": "think", "camera": "still"}},
       "source_fact_ids": [5]
     },
     {
       "narration": "But the answer took eight years to find. And it was not alive.",
       "on_screen_text": "Eight years to find",
-      "visual": {"type": "steps", "data": {"step": 4, "label": "Keep listening"}},
+      "visual": {"type": "steps", "data": {"set": "lamp_room", "items": [{"label": "The Bloop heard", "value": "1997"}, {"label": "The source found", "value": "2005"}]}},
       "source_fact_ids": [6]
     },
     {
       "narration": "Scientists at NOAA's Pacific Marine Environmental Laboratory kept listening. They moved their hydrophones ever closer to Antarctica. Following the sound. South.",
       "on_screen_text": "Following the sound south",
-      "visual": {"type": "steps", "data": {"step": 5, "label": "Closer to Antarctica"}},
+      "visual": {"type": "story", "data": {"set": "shore_night", "pose": "point", "camera": "pan_left"}},
       "source_fact_ids": [6]
     },
     {
       "narration": "In 2005, they found it. The Bloop was an icequake. An iceberg, cracking and breaking away from an Antarctic glacier.",
       "on_screen_text": "2005: an icequake",
-      "visual": {"type": "steps", "data": {"step": 6, "label": "Ice breaking away"}},
+      "visual": {"type": "story", "data": {"set": "shore_night", "pose": "surprised"}},
       "source_fact_ids": [7, 8]
     },
     {
       "narration": "No monster. No secret weapon. Just ice, loud enough to be heard across the Pacific. And about 95 percent of the ocean is still unexplored.",
       "on_screen_text": "Just ice",
-      "visual": {"type": "steps", "data": {"step": 7, "label": "Solved"}},
+      "visual": {"type": "story", "data": {"set": "shore_night", "pose": "shrug"}},
       "source_fact_ids": [8, 9]
     }
   ],

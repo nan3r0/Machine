@@ -1,0 +1,57 @@
+{
+  "schema_version": 1,
+  "id": "demo-data",
+  "topic": "How the sailing stones of Death Valley move",
+  "template": "chart",
+  "hook": "In a dry lake in Death Valley, rocks move on their own.",
+  "scenes": [
+    {
+      "narration": "The lake bed is called Racetrack Playa. Scattered across it are heavy stones. Behind each one runs a long track, carved into the cracked mud.",
+      "on_screen_text": "Racetrack Playa",
+      "visual": {"type": "story", "data": {"set": "desert_rail", "pose": "talk", "camera": "push_in"}},
+      "source_fact_ids": [1]
+    },
+    {
+      "narration": "Some of these stones weigh more than 300 kilograms. Yet nobody had ever seen one move.",
+      "on_screen_text": "Over 300 kg",
+      "visual": {"type": "chart", "data": {"set": "desert_rail", "items": [{"label": "Heaviest stone, kg", "value": "300"}]}},
+      "source_fact_ids": [2]
+    },
+    {
+      "narration": "For decades, people guessed. Strong winds. Strange magnetic fields. Even pranksters, sneaking out at night.",
+      "on_screen_text": "Wind? Magnets? Pranks?",
+      "visual": {"type": "story", "data": {"set": "desert_rail", "pose": "think", "camera": "still"}},
+      "source_fact_ids": [3]
+    },
+    {
+      "narration": "In 2013, a team of scientists set up cameras and weather stations on the playa, and waited.",
+      "on_screen_text": "2013: cameras on the playa",
+      "visual": {"type": "map", "data": {"set": "desert_rail", "items": [{"label": "Racetrack Playa", "value": ""}]}},
+      "source_fact_ids": [4]
+    },
+    {
+      "narration": "That winter, they finally saw it. A thin sheet of ice formed on a shallow pond. Then the sun broke it into floating panels.",
+      "on_screen_text": "Thin ice",
+      "visual": {"type": "story", "data": {"set": "desert_rail", "pose": "surprised", "camera": "pan_right"}},
+      "source_fact_ids": [5]
+    },
+    {
+      "narration": "Light wind pushed the ice, and the ice pushed the stones. They crept along at two to five metres a minute.",
+      "on_screen_text": "2 to 5 m a minute",
+      "visual": {"type": "chart", "data": {"set": "desert_rail", "items": [{"label": "Slowest, m per minute", "value": "2"}, {"label": "Fastest, m per minute", "value": "5"}]}},
+      "source_fact_ids": [6]
+    },
+    {
+      "narration": "No aliens. No magnets. Just ice, wind and patience.",
+      "on_screen_text": "Just ice",
+      "visual": {"type": "story", "data": {"set": "desert_rail", "pose": "shrug"}},
+      "source_fact_ids": [6]
+    }
+  ],
+  "loop_line": "So next time you see a rock in the desert, look closely. It may be waiting for winter, ready to move on its own.",
+  "title": "The sailing stones of Death Valley, solved",
+  "description": "Demo script for the Phase 3 data scenes. Not for publishing.",
+  "tags": ["sailing stones", "death valley", "solved mysteries"],
+  "platforms": ["youtube"],
+  "publish_after": "2026-12-31"
+}

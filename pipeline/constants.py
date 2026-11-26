@@ -79,11 +79,91 @@ CAPTION_FONT_SIZE = 96
 CAPTION_MAX_WORDS_PER_LINE = 3
 FONTS_DIR = "assets/fonts"
 
+# Visuals (Phase 3 slice 1, method A: sets, host and data cards are libass events in one scenes.ass).
+# Numbers from the p3-spike run 45719091226 (.harness/handoffs/p3-spike.md) unless noted.
+HOST_ART_PATH = "assets/character/host.yaml"
+SETS_DIR = "assets/sets"
+SET_IDS = ("night_street", "desert_rail", "lamp_room", "shore_night", "forest", "archive")  # p3-plan D13
+# Owner 2026-11-26: the host opens and closes every video on one generic backdrop. It is drawn like a
+# set (assets/sets/host_backdrop.yaml) but is never a scene's set, so it is not in SET_IDS.
+HOST_BACKDROP_SET = "host_backdrop"
+POSES = ("talk", "wave", "point", "surprised", "think", "shrug")  # p3-plan D12, approved still sheet
+CAMERA_MOVES = ("push_in", "pan_left", "pan_right", "still")
+DEFAULT_POSE = "talk"
+DEFAULT_CAMERA = "push_in"
+DEFAULT_SET = {"story": "night_street", "chart": "archive", "steps": "lamp_room", "map": "shore_night"}
+HOST_INTRO_POSE = "talk"
+HOST_OUTRO_POSE = "wave"
+# Host intro (the hook) and outro (the end of the loop line), owner 2026-11-26. A longer hook or loop
+# line keeps its words; the story scene next to it takes the rest of the time.
+HOST_INTRO_MAX_S = 5.0
+HOST_OUTRO_MAX_S = 5.0
+HOST_TRANSITION_S = 0.5  # fade through black between the host backdrop and a story set
+SCENE_FADE_S = 0.3  # black fade-in at each story scene start
+SCENE_TAIL_S = 2.0  # the last span's events run this far past the last word; -shortest cuts the video
+
+# Set layers: drift per depth in px a second, capped per scene at the margin so no edge shows.
+SET_DEPTHS = ("far", "mid", "near")  # back to front
+SET_LAYERS = (2, 4)  # (min, max) layers per set
+SET_SHAPES_MAX = 25  # per set; render time grows with the shape count
+SET_LAYER_MARGIN_PX = 120  # set art may run this far past each side edge of the frame
+DRIFT_PX_PER_S = {"far": 6.0, "mid": 14.0, "near": 30.0}  # push_in
+PAN_PX_PER_S = {"far": 12.0, "mid": 28.0, "near": 60.0}  # pan_left and pan_right; same cap
+PUSH_IN_SCALE = 1.08  # scale reached at the end of each scene, about the frame centre
+SET_DIM_ALPHA = "60"  # ASS alpha of the black shape over the set in data scenes ("00" opaque)
+
+# ASS layers in scenes.ass, back to front. Host shapes add their art layer (0 to 19).
+ASS_LAYER_SET = 0
+ASS_LAYER_DIM = 10
+ASS_LAYER_CARD = 20
+ASS_LAYER_HOST = 40
+ASS_LAYER_FADE = 90
+
+# Host animation (deterministic, so a render is repeatable)
+BLINK_S = 0.2
+BLINK_EVERY_S = 3.6
+BLINK_FIRST_S = 2.2  # into each span
+BOB_PX = 10  # the host rises at most this far above its placement
+ARM_SWING_DEG = 15.0  # wave pose only
+IDLE_HALF_CYCLE_S = 0.4  # bob and arm swing
+
+# Layout. Captions sit in the lower half (p3-plan D2), inside the locked range
+# SAFE_TOP_PX + 2 * CAPTION_FONT_SIZE <= y <= SAFE_BOTTOM_PX - 2 * CAPTION_FONT_SIZE.
+CAPTION_POS_Y = 1240
+CAPTION_BAND_TOP_PX = CAPTION_POS_Y - 2 * CAPTION_FONT_SIZE  # nothing of the host or a card below it
+# The host's `ground` anchor sits here at HOST_SCALE of the art. At 0.85 the art box (609 x 822) spans
+# x 303 to 821 and y 338 to 1037, clear of the caption band and the right UI zone.
+HOST_SCALE = 0.85
+HOST_GROUND_X = 540
+HOST_GROUND_Y = 1020
+DATA_PANEL = (80, 400, 900, 1020)  # left, top, right, bottom of the data card panel
+CARD_FONT_SIZE = 72
+CARD_LABEL_FONT_SIZE = 48
+CARD_PANEL_RGB = "16202A"
+CARD_TEXT_RGB = "FFFFFF"
+CARD_ACCENT_RGB = "E3A332"
+COUNTER_STEPS = 30  # count-up frames, one event each
+COUNTER_STEP_S = 0.1
+
+# Scene data caps (validate.py). Arithmetic for the PR body is in tests/test_render_constants_visuals.py.
+VISUAL_ITEMS_MAX = 4  # per data scene
+VISUAL_DATA_SCENES_MAX = 3  # chart, steps or map scenes with items, per script
+VISUAL_LABEL_MAX_CHARS = 24
+VISUAL_VALUE_MAX_CHARS = 12
+VISUAL_TEXT_MAX_CHARS = 160  # every label and value of a script, summed
+
+# The compose call of a 90 s video must take under half of COMPOSE_TIMEOUT_S (the spike used 11%).
+RENDER_BUDGET_S = COMPOSE_TIMEOUT_S / 2
+
 # Golden render: frames extracted at these times for the visual-qa reviewer, plus one frame
 # GOLDEN_END_OFFSET_S before the video ends. Fixed times stay below TIKTOK_SECONDS[0], so they fit
 # every video that passes QA; the end frame covers the rest of a longer video.
 GOLDEN_FRAME_TIMES_S = (1.0, 10.0, 20.0, 30.0, 40.0, 50.0, 60.0)
 GOLDEN_END_OFFSET_S = 0.5
+# Phase 3: a strip of frames GOLDEN_STRIP_STEP_S apart across the first scene change, and as many
+# consecutive full-resolution frames from the middle of a scene, so visual QA can see motion.
+GOLDEN_STRIP_FRAMES = 8
+GOLDEN_STRIP_STEP_S = 0.25
 
 # Scripts (Phase 2). Published-field caps (CSO P1-3, owner decision D6): title is YouTube's limit.
 SCRIPTS_PER_BATCH = 7

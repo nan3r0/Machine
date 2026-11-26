@@ -9,7 +9,10 @@ from pipeline.schema import WordTiming
 ZWSP = "​"
 HIGHLIGHT_ON = "{\\1c&H0000FFFF&}"
 HIGHLIGHT_OFF = "{\\r}"
-POS = f"{{\\pos({(constants.SAFE_LEFT_PX + constants.SAFE_RIGHT_PX) / 2:g},{constants.HEIGHT / 2:g})}}"
+# p3-compose moves captions from the frame centre to CAPTION_POS_Y; both hold until it merges, then
+# the Architect narrows this to CAPTION_POS_Y (tests/render/test_compose_layers.py checks it).
+POSITIONS = {f"{{\\pos({(constants.SAFE_LEFT_PX + constants.SAFE_RIGHT_PX) / 2:g},{y:g})}}"
+             for y in (constants.HEIGHT / 2, constants.CAPTION_POS_Y)}
 
 
 @pytest.mark.parametrize(("word", "expected"), [
@@ -37,6 +40,8 @@ def test_only_the_current_word_is_highlighted() -> None:
     def on(word: str) -> str:
         return HIGHLIGHT_ON + word + HIGHLIGHT_OFF
 
+    POS = texts[0][: texts[0].index("}") + 1]
+    assert POS in POSITIONS
     assert texts == [
         POS + " ".join([on("one"), "\\{two\\}", "three"]),
         POS + " ".join(["one", on("\\{two\\}"), "three"]),

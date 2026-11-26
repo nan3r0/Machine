@@ -21,7 +21,7 @@ Non-goals:
 
 ## 3. Phasing
 
-Phases and their done-when lines are in PLAN.md section 11. Current phase: **Phase 4b, YouTube go-live** (Phase 1 closed 2026-11-16; Phase 2 code is closed and only the first Workflow A run by hand is left; Phase 4 code is merged and the Phase 4b follow-ups are built). Go-live waits on the gates in R18. Phase 0 (admin: Google Cloud project, YouTube audit, Meta and TikTok apps, Cloudflare) runs in parallel and is done by the owner.
+Phases and their done-when lines are in PLAN.md section 11. Current phase: **Phase 4b, YouTube go-live** (Phase 1 closed 2026-11-16; Phase 2 code is closed and only the first Workflow A run by hand is left; Phase 4 code is merged and the Phase 4b follow-ups are built). Go-live waits on the gates in R18, and also on Phase 3 slice 1 (M1 and M2, R22; p3-plan D7). Phase 3 (visual templates, slice 1: the host character, flat sets and data cards, all libass) is in progress: p3-spike and p3-character-art are done, and the contracts are written (`.harness/handoffs/p3-plan.md`). Phase 0 (admin: Google Cloud project, YouTube audit, Meta and TikTok apps, Cloudflare) runs in parallel and is done by the owner.
 
 ## 4. Functional requirements and acceptance criteria
 
@@ -103,6 +103,32 @@ Goal: Workflow A opens a real pull request of 7 fact-checked scripts, with flags
 - R13.5 Manual: the owner runs Workflow A; a PR with 7 scripts opens and its flags read well on the GitHub mobile app.
 - R13.6 Phase-end QA Lead, CSO and Auditor reviews are done, `docs/threat-model.md` covers Phase 2, and the owner has approved the audit report.
 - R13.7 CSO P2-1 to P2-6 are closed before the first live run of Workflow A: the key job installs only hash-checked packages, the PR adds only new id-named scripts, a read-only job re-checks the queue before the PR opens, runs never overlap, published fields reject bare domains and look-alike URL forms, and the Gemini client refuses redirects.
+
+### Phase 3: visual templates (slice 1)
+
+Goal: every video shows the recurring host, flat parallax sets and, where the script has numbers, data cards, so two videos on similar topics look clearly different (PLAN.md section 11). Planned 2026-11-25 (`.harness/handoffs/p3-plan.md`), method A from p3-spike. Painted sets (Flux, slice 2) and b-roll (D10) are out of this slice.
+
+**R19. Scene data and fallbacks.**
+- R19.1 `visual.data` holds only the optional keys `set` (one of `SET_IDS`; never `HOST_BACKDROP_SET`), `pose` (`POSES`), `camera` (`CAMERA_MOVES`) and `items` (1 to `VISUAL_ITEMS_MAX` `{label, value}` strings, only on chart, steps and map scenes). No schema change; Phase 2 scripts with `{}` stay valid.
+- R19.2 Caps: label `VISUAL_LABEL_MAX_CHARS`, value `VISUAL_VALUE_MAX_CHARS`, at most `VISUAL_DATA_SCENES_MAX` data scenes and `VISUAL_TEXT_MAX_CHARS` of item text a script. Chart with 2 or more items needs plain-number values; steps values are all empty or all set; map has exactly one item. Every label and value passes the published-field text rules.
+- R19.3 Fallbacks: `{}` gives the template's default set, `talk` and `push_in`; a data type without items is drawn as a story scene.
+
+**R20. Layers, layout and timing.**
+- R20.1 One `scenes.ass` under the captions holds the set layers, the host and the data cards, all libass; no new dependency, no FFmpeg drawtext.
+- R20.2 Every video: the host intro (the hook, at most `HOST_INTRO_MAX_S`) on the generic host backdrop, a fade of `HOST_TRANSITION_S` into the story scenes, then the host outro (at most the last `HOST_OUTRO_MAX_S`) on the same backdrop (owner 2026-11-26). Spans run in order, contiguous, from 0 to the last word.
+- R20.3 The host stands at the same place and size in every scene, fully in frame, clear of two caption lines at `CAPTION_POS_Y` and of the right UI zone. Its mouth moves on the word timings; blinks and bob follow fixed timings.
+- R20.4 Set layers drift by depth, capped at `SET_LAYER_MARGIN_PX` per scene, with a centred push-in and a fade at each scene start. Data scenes dim the set and hide the host; card text is the script's exact string, inside `DATA_PANEL`.
+- R20.5 The compose call stays under `RENDER_BUDGET_S` (half of `COMPOSE_TIMEOUT_S`) for both demo scripts.
+
+**R21. Writer and PR body.**
+- R21.1 The writer picks each scene's visual in the same single Gemini call; a broken visual falls back in code with no retry.
+- R21.2 The PR body shows each scene's set, pose and items as same-line code spans and stays under `PR_BODY_MAX_CHARS` at every cap.
+- R21.3 An item label or value that the scene's cited facts do not back is flagged and the scene becomes a story scene keeping its set (D4).
+
+**R22. Manual milestones.**
+- R22.1 M0: spike stills and the host still sheet approved by the owner (done 2026-11-25 and 2026-11-26).
+- R22.2 M1: the owner dispatches `render.yml` on the p3-wiring branch for `sample-65s` and `tests/fixtures/scripts/demo-data.json`, visual QA reviews the frames, and the owner watches the mp4.
+- R22.3 M2: the first Workflow A run (R13.5) opens a PR whose scripts choose sets and poses.
 
 ### Phase 4: publishing (YouTube first)
 
@@ -220,6 +246,9 @@ Assumed by Claude (owner can overrule):
 - 2026-11-22: The record job checks `run_id` only; the upload job checks `run_id` and `run_attempt`. If the upload succeeded and only the record job failed, a re-run of just that job can still finish the record, and the duplicate-upload risk sits in the upload job, which refuses another attempt. The upload guards still fail without writing `sent=false`.
 - 2026-11-22: API facts, read on Google's and GitHub's pages: since 2026-11-02 YouTube needs no API audit for public uploads from an unverified project ([revision history](https://developers.google.com/youtube/v3/revision_history)); since 2026-11-16 `hasPaidProductPlacement` no longer defaults to false (same page). `github.run_id` does not change on a re-run and `github.run_attempt` starts at 1 and increments ([contexts reference](https://docs.github.com/en/actions/reference/workflows-and-actions/contexts)). Whether "re-run failed jobs" counts as a re-run is confirmed live the first time it happens; the runbook says not to do it on purpose.
 - 2026-11-22: The P1-4 lock method adds no new tool: `pip download` plus `pip hash`, as `requirements-generate.txt` already does. `requirements-render-torch.txt` and `requirements-render.txt` serve the daily render job and `render.yml`; `ci.yml` keeps its unhashed install because it holds no secret and publishes nothing. Its `lock-resolve` job resolves the render and generate locks on every push and PR (a dry run; only torch is really installed).
+- 2026-11-25: The owner approved the Phase 3 plan (`.harness/handoffs/p3-plan.md`) with its defaults: D1 (character and flat sets first, Flux later behind the same layer interface), D2 (captions in the lower half, the host above them), D3 (no new drawing package), D4 (an unbacked data value is flagged and the card becomes a story scene), D5 (`map` is a place card), D6 (hold the first Workflow A run until M2), D7 (go-live waits for slice 1, not Flux), D10 (b-roll deferred out of Phase 3), D11 (captions keep the script's case), D12 (one original host, poses talk, wave, point, surprised, think, shrug), D13 (sets night_street, desert_rail, lamp_room, shore_night, forest, archive). D8 and D9 wait for slice 2.
+- 2026-11-25: Method A chosen after p3-spike: sets, host and cards are libass events in one `scenes.ass` (64 s render for 70 s of video against 140 s for PNG layers, and smoother).
+- 2026-11-26: The owner approved the host still sheet (`assets/character/host.yaml`) and made the host the channel mascot: every video opens with the host saying the hook on one generic backdrop (no house set), fades into the story scenes, and ends with a short host outro. The intro and outro reuse the hook and loop line, so the schema does not change; a long hook or loop line keeps its words and the next story scene shows for the rest.
 
 ## 8. Open questions
 

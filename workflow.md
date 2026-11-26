@@ -97,6 +97,15 @@ Locked by p1-contracts. Every task's acceptance test is `test_acceptance` in its
 | R16.1 to R16.4 | `tests/test_daily_publish_workflow.py`, `tests/test_daily_publish_ledger.py` (ledger branch, task p4b-ledger-workflow), `tests/test_schema_publish.py` (PublishRecord), `tests/test_workflow_safety.py` (allowlists, environment) |
 | R17 | Manual, owner, first dispatch of Workflow B |
 | R18 | Handoffs of p4-cso, p4-audit; owner approves |
+| Phase 3 numbers and host asset (p3-contracts) | `tests/test_render_constants_visuals.py::test_acceptance` |
+| R19.1 to R19.3 | `tests/script/test_validate_visuals.py::test_acceptance`, `tests/visuals/test_router.py::test_empty_data_falls_back_to_defaults` |
+| R20.1, R20.2 | `tests/visuals/test_router.py::test_spans_intro_scenes_outro_contiguous`, `tests/render/test_compose_layers.py::test_acceptance`, `tests/visuals/test_ass_kit.py::test_acceptance` |
+| R20.3 | `tests/visuals/test_character.py::test_acceptance`, `tests/test_render_constants_visuals.py::test_host_is_in_frame_and_clear_of_the_captions` |
+| R20.4 | `tests/visuals/test_sets.py::test_acceptance`, `tests/visuals/test_sets_art.py::test_acceptance`, `tests/visuals/test_cards.py::test_acceptance`, `tests/visuals/test_charts.py::test_acceptance` |
+| R20.5 | `tests/test_render_one_visuals.py::test_acceptance` (heavy; writes golden frames, the strip and consecutive frames) |
+| R21.1 | `tests/script/test_generate_visuals.py::test_acceptance` |
+| R21.2, R21.3 | `tests/script/test_batch_visuals.py::test_acceptance`, `tests/test_render_constants_visuals.py::test_seven_scripts_at_every_cap_fit_the_pr_body` |
+| R22.1 to R22.3 | Manual, owner (M0, M1, M2) |
 
 Phase 2 rows without backticks name test files that do not exist yet; the task that writes each file adds the backticks, so the docs check starts checking them.
 
@@ -285,3 +294,32 @@ wave 8: p4b-docs
 ```
 
 Specialist reviews: security for p4b-youtube, p4b-pick-ledger, p4b-ledger-workflow, p4b-render-lock and p4b-weekly-audit. No visual QA: no render code changes, only how it is installed. Status rows for these tasks go in the `### Phase 4 status` table above.
+
+## Phase 3 module order
+
+Planned 2026-11-25 by the Architect (`.harness/handoffs/p3-plan.md`, revision 3, method A from `.harness/handoffs/p3-spike.md`), owner addendum 2026-11-26 (host intro and outro on a generic backdrop). Slice 1 only. Task files: `.harness/tasks/phase3/00_*.yaml` to `17_*.yaml`. At most two at once; no two tasks in a wave share a path. The contracts PR merges to main before any implementer starts (lessons.md 2026-11-25).
+
+```
+wave 1: p3-spike                              (M0 stills)
+wave 2: p3-character-art                      (owner approves the still sheet)
+wave 3: p3-contracts on plan/p3-contracts     (owner merges it)
+wave 4: p3-validate-visuals, p3-ass-kit
+wave 5: p3-character, p3-sets
+wave 6: p3-sets-art, p3-cards                 (owner approves the set stills)
+wave 7: p3-charts, p3-compose
+wave 8: p3-router
+wave 9: p3-wiring                             (M1: render.yml on sample-65s and demo-data)
+wave 10: p3-writer-visuals, p3-batch-visuals  (M2: first Workflow A run)
+wave 11: p3-cso, p3-qa-lead
+wave 12: p3-phase-review
+```
+
+Specialist reviews: visual QA for every task touching `pipeline/visuals/**`, `pipeline/render/**` or `assets/**`; security for p3-compose, p3-validate-visuals and p3-batch-visuals.
+
+### Phase 3 status
+
+| Task | Status | Notes |
+|---|---|---|
+| p3-spike | built, close-out pending | method A chosen by the owner 2026-11-25 |
+| p3-character-art | built, close-out pending | owner approved the still sheet 2026-11-26 (PR #187) |
+| p3-contracts | built on `plan/p3-contracts`, not merged | constants, art model, stubs, locked tests, fixtures, sample-65s visuals |
