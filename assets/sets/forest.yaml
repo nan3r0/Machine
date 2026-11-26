@@ -1,0 +1,31 @@
+# A pine forest at night: a soft moon glow, fog bands, two close trunks.
+# An original set made for this project (assets/LICENSES.md). Frame coordinates:
+# x -120 to 1200 (the drift margin), y 0 to 1920. Layers go back to front; within a
+# layer, list order is draw order. Paths are ASS drawing commands (m, l, b), RGB hex colours.
+name: forest
+outline_colour: outline
+palette:
+  outline: "060B0D"
+  sky: "14252C"
+  glow: "3F5B5E"
+  fog: "4A6466"
+  pines: "0E1C21"
+  floor: "0C1416"
+  trunk: "080E10"
+  fern: "0F1C1A"
+layers:
+  - depth: far
+    shapes:
+      - {layer: 0, fill: sky, outline: 0, path: "m -120 0 l 1200 0 l 1200 1920 l -120 1920"}
+      - {layer: 0, fill: glow, outline: 0, alpha: "B0", path: "m 750 430 b 750 546 656 640 540 640 b 424 640 330 546 330 430 b 330 314 424 220 540 220 b 656 220 750 314 750 430"}
+      - {layer: 0, fill: fog, outline: 0, alpha: "A8", path: "m -120 760 l 1200 760 l 1200 900 l -120 900"}
+  - depth: mid
+    shapes:
+      - {layer: 1, fill: pines, outline: 0, path: "m -120 960 l -120 700 l -40 540 l 40 690 l 120 600 l 200 720 l 290 560 l 380 700 l 470 640 l 560 740 l 650 610 l 740 700 l 830 540 l 920 690 l 1010 600 l 1100 720 l 1200 580 l 1200 960"}
+      - {layer: 1, fill: fog, outline: 0, alpha: "B8", path: "m -120 880 l 1200 880 l 1200 960 l -120 960"}
+  - depth: near
+    shapes:
+      - {layer: 2, fill: floor, outline: 0, path: "m -120 960 l 1200 960 l 1200 1920 l -120 1920"}
+      - {layer: 2, fill: trunk, outline: 0, path: "m -60 0 l 90 0 l 90 1010 l -60 1010"}
+      - {layer: 2, fill: trunk, outline: 0, path: "m 990 0 l 1120 0 l 1120 1000 l 990 1000"}
+      - {layer: 2, fill: fern, outline: 0, path: "m -120 1060 l -20 960 l 40 1010 l 110 950 l 170 1060"}

@@ -1,0 +1,38 @@
+# A dark room lit by one hanging lamp: a moonlit window, a rug, a side table.
+# An original set made for this project (assets/LICENSES.md). Frame coordinates:
+# x -120 to 1200 (the drift margin), y 0 to 1920. Layers go back to front; within a
+# layer, list order is draw order. Paths are ASS drawing commands (m, l, b), RGB hex colours.
+name: lamp_room
+outline_colour: outline
+palette:
+  outline: "120F16"
+  wall: "2B2532"
+  panel: "221D29"
+  glass: "3A4B6C"
+  frame: "1A1620"
+  shade: "C08A3A"
+  light: "F2C66D"
+  cord: "120F16"
+  floor: "19141A"
+  rug: "3A1F2A"
+  table: "16121A"
+layers:
+  - depth: far
+    shapes:
+      - {layer: 0, fill: wall, outline: 0, path: "m -120 0 l 1200 0 l 1200 1920 l -120 1920"}
+      - {layer: 0, fill: panel, outline: 0, path: "m -120 700 l 1200 700 l 1200 960 l -120 960"}
+      - {layer: 0, fill: glass, outline: 4, path: "m 40 380 l 290 380 l 290 690 l 40 690"}
+      - {layer: 0, fill: frame, outline: 0, path: "m 159 380 l 171 380 l 171 690 l 159 690"}
+      - {layer: 0, fill: frame, outline: 0, path: "m 40 529 l 290 529 l 290 541 l 40 541"}
+  - depth: mid
+    shapes:
+      - {layer: 1, fill: cord, outline: 0, path: "m 538 0 l 542 0 l 542 190 l 538 190"}
+      - {layer: 1, fill: light, outline: 0, alpha: "D4", path: "m 470 250 l 610 250 l 900 960 l 180 960"}
+      - {layer: 1, fill: shade, outline: 4, path: "m 480 190 l 600 190 l 640 254 l 440 254"}
+  - depth: near
+    shapes:
+      - {layer: 2, fill: floor, outline: 0, path: "m -120 960 l 1200 960 l 1200 1920 l -120 1920"}
+      - {layer: 2, fill: rug, outline: 0, path: "m 940 1010 b 940 1039 761 1062 540 1062 b 319 1062 140 1039 140 1010 b 140 981 319 958 540 958 b 761 958 940 981 940 1010"}
+      - {layer: 2, fill: table, outline: 3, path: "m 860 760 l 1110 760 l 1110 782 l 860 782"}
+      - {layer: 2, fill: table, outline: 3, path: "m 884 782 l 902 782 l 902 990 l 884 990"}
+      - {layer: 2, fill: table, outline: 3, path: "m 1068 782 l 1086 782 l 1086 990 l 1068 990"}
