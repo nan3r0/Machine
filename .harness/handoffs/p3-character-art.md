@@ -4,7 +4,7 @@
 Design the original host character as data (`assets/character/host.yaml`) and get the owner's approval from a still sheet rendered in libass on the runner (p3-plan "Character", D12; method A from p3-spike).
 
 ## Status
-partial, awaiting the owner's still-sheet approval (round 1).
+done. Owner approved the still sheet on 2026-11-26 (render run #11, "I like it"). Owner also wants this character as the channel mascot: host opens the video with the hook in his house, then the scene transitions to the story's environment; he returns for an outro. That goes into p3-contracts (house set, transition, outro), not this task. No change to host.yaml, so no sha256 recompute.
 - Task branch `task/p3-character-art`: the asset, the licence row and this handoff. Committed, not pushed. The asset and the licence row are at `16180a5`; this handoff's final wording is the commit after it.
 - Throwaway branch `spike/p3-character-sheet` at `aecf13b`: the task commits plus the sheet renderer and a `render.yml` override. Committed, not pushed, never merged. It holds the same `host.yaml`; the later handoff-only commit is not merged into it.
 
