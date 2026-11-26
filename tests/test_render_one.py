@@ -33,6 +33,7 @@ class Fakes:
         self.report = PASS
         self.voice_error: Exception | None = None
         self.compose_error: Exception | None = None
+        self.compose_kwargs: dict[str, Any] = {}
 
     def synthesize(self, text: str, out_path: Path, cache_dir: Path, *args: Any, **kwargs: Any) -> Path:
         self.calls.append(("voice", (text, out_path, cache_dir)))
@@ -48,8 +49,10 @@ class Fakes:
         self.calls.append(("captions", (timings,)))
         return "[Script Info]\n"
 
-    def compose(self, voice: Path, captions: Path, out: Path, fonts_dir: Path, log_path: Path) -> Path:
+    def compose(self, voice: Path, captions: Path, out: Path, fonts_dir: Path, log_path: Path,
+                **kwargs: Any) -> Path:
         self.calls.append(("compose", (voice, captions, out, fonts_dir, log_path)))
+        self.compose_kwargs = kwargs  # p3-wiring passes scenes=
         if self.compose_error:
             raise self.compose_error
         out.write_bytes(b"mp4")

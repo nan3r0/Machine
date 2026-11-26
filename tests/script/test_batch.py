@@ -339,7 +339,9 @@ def capped_script(n: int, src: SourceFile) -> Script:
 def test_body_at_every_cap_fits(tmp_path: Path) -> None:
     """Worst case per script: title 100 (twice), narration 1500, 10 facts of 160 + 100, description
     1000, tags 10 * 30, 11 flags of 120: about 6900 characters, 48500 for 7, which leaves about
-    11000 for headings, labels and fences under PR_BODY_MAX_CHARS."""
+    11000 for headings, labels and fences under PR_BODY_MAX_CHARS. Phase 3 scene visuals use part
+    of that: arithmetic in tests/test_render_constants_visuals.py, real body in
+    tests/script/test_batch_visuals.py."""
     written = [(capped_script(n, src), src) for n in range(1, 8) for src in [capped_source(n)]]
     reason = "r" * constants.REASON_MAX_CHARS
     flags = [Flag(script_id=s.id, scene=i, reason=reason)
