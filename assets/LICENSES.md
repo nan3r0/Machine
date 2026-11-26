@@ -1,10 +1,11 @@
 # Asset licences
 
-Every font, music and SFX file under `assets/` has an entry here. The models the pipeline downloads at run time are listed under Models.
+Every font, art, music and SFX file under `assets/` has an entry here. The models the pipeline downloads at run time are listed under Models.
 
 | File | Source | Licence | sha256 | Used for |
 |---|---|---|---|---|
 | `fonts/Montserrat-Bold.ttf` (static Bold) | https://github.com/JulietaUla/Montserrat/raw/master/fonts/ttf/Montserrat-Bold.ttf | SIL Open Font License 1.1, full text in `fonts/OFL.txt` | `bc6e854971cea46b463be6f9eef4d9cd52f51cfc1fc0dd90c9d3e6483dc0ec61` | Burned-in captions |
+| `character/host.yaml` | Original work made for this project (ASS vector paths drawn by the project's agents; no third-party image, character or template used) | Project's own work, no third-party licence | `412b8ad8dd02628b183f50a9d338eafe134797b243200980aae738a61a2d5b33` (LF line endings, as committed) | On-screen host character |
 
 ## Models
 
