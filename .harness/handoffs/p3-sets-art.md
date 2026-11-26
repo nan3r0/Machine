@@ -60,7 +60,8 @@ What visual QA should check on the stills: no black edge at either side in `push
 - **Not yet seen in libass.** The design was checked with a rough local Pillow preview, which was not committed. The runner stills are the first real look.
 - **Push-in pivot.** `sets.set_events` sets `\org(540,960)`, but libass may scale `\fscx`/`\fscy` about the event position (0, 0) rather than `\org`. In that case the floor edge at y 960 drops to about y 1037 at the end of a push-in, 17 px below the feet, so the host would look like he stands just behind the floor edge. `pushin_NN.png` shows which case holds. If it is the bad one, the fix belongs in `sets.py` or the constants, not in the art.
 - **Data-scene sets under the dim.** archive, lamp_room and shore_night have detail on the sides; `dim_NN` shows whether card text in `DATA_PANEL` stays calm over them.
-- **Local test env.** A stray `tests` package in the global site-packages shadows the repo's `tests/` namespace, so 63 test modules that import `tests.*` fail to collect locally. That is not caused by this branch, and CI is not affected.
+- **Negative x.** No libass render has yet checked that shapes with negative x land where they are drawn. If libass aligned a drawing by its bounding box, they would shift by up to 120 px. Spot-check in `start_NN`: the forest's left trunk is a narrow strip at the left edge, the archive's left shelf starts off-frame, and the night_street moon sits near x 180. A shift would be a `sets.py` or `ass_kit` issue, not an art one.
+- **Local test env.** A stray `tests/__init__.py` in the global site-packages (`...\Python311\Lib\site-packages\tests\`) shadows the repo's `tests/` namespace, so a plain local `pytest` fails to collect 63 modules that import `tests.*`. It does not come from this branch and does not affect CI. A workaround that seeds the namespace first is in Evidence.
 
 ## Next step
 Owner runs the stills (Owner steps above) and approves or asks for changes. After approval: visual QA on the stills, Gate 2, merge `task/p3-sets-art`, and delete the spike branch.
@@ -72,6 +73,6 @@ Owner runs the stills (Owner steps above) and approves or asks for changes. Afte
 ## Evidence
 - `LOOM_TASK=p3-sets-art python -m pytest -q tests/visuals/test_sets_art.py`: 8 passed (7 sets plus acceptance).
 - `ruff check .`: clean. `mypy --strict pipeline/`: no issues in 33 files. `python tests/docs_check.py`: passed.
-- Full `pytest` with `--continue-on-collection-errors`: 251 passed, 47 skipped, 63 collection errors, all `ModuleNotFoundError`/`ImportError` on `tests.*` from the site-packages shadow (see Known risks).
-- Licence hashes come from the LF bytes (`read_bytes().replace(b"\r\n", b"\n")`, the same rule as `test_host_asset_is_the_approved_file`). There were no CR bytes in the written files.
+- Full suite, with the repo's `tests` namespace seeded before pytest starts (to get around the site-packages shadow): `LOOM_TASK=p3-sets-art python -c "import sys,types,pathlib; t=types.ModuleType('tests'); t.__path__=[str(pathlib.Path('tests').resolve())]; sys.modules['tests']=t; import pytest; sys.exit(pytest.main(['-q','--tb=short']))"` gave 1677 passed and 237 skipped (heavy and not-yet-done tasks). That covers the other tests that read sets: `tests/visuals/test_router.py`, `tests/test_render_constants_visuals.py` and `tests/script/test_*_visuals.py`.
+- The licence hashes match the committed blobs: `git cat-file blob 9d3d477:assets/sets/<id>.yaml` hashed for all 7 files.
 - `spike/stills.py --dry` ran locally: it wrote 17 scene `.ass` files plus caption files and `order.txt` (5144 events in the 20 s push_in archive file). The `render.yml` sed extraction was run locally: 6 packages, all with hashes. No FFmpeg was run locally (CLAUDE.md).
