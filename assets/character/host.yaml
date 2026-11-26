@@ -1,0 +1,193 @@
+# The host: an original character made for this project (assets/LICENSES.md).
+# Art box: origin at the top-left, x right, y down, in pixels at reference scale 1.0.
+# Paths are ASS drawing commands (m, l, b) in that box. Colours are RGB hex.
+# A higher layer draws over a lower one. Arms rotate about their shoulder anchor.
+name: host
+size: {width: 609, height: 822}
+outline_colour: outline
+palette:
+  outline: "1F1A24"
+  skin: "EDB993"
+  blush: "EE9A8C"
+  hair: "4B2E4F"
+  lens: "E4EEF2"
+  eye: "1F1A24"
+  eye_light: "FFFFFF"
+  coat: "E3A332"
+  coat_dark: "B97C1E"
+  scarf: "1F7A73"
+  trousers: "3A3F4B"
+  boots: "6B4226"
+  mouth: "5A1E2A"
+  tongue: "E0707A"
+  teeth: "FFFFFF"
+  shadow: "000000"
+anchors:
+  neck: [279, 350]
+  shoulder_left: [199, 388]
+  shoulder_right: [359, 388]
+  mouth: [279, 292]
+  ground: [279, 802]
+body:
+  - {layer: 0, fill: shadow, outline: 0, alpha: "A0", path: "m 129 806 b 129 797 196 790 279 790 b 362 790 429 797 429 806 b 429 815 362 822 279 822 b 196 822 129 815 129 806"}
+  - {layer: 1, fill: trousers, outline: 5, path: "m 211 630 l 265 630 l 263 772 l 215 772"}
+  - {layer: 1, fill: trousers, outline: 5, path: "m 347 630 l 293 630 l 295 772 l 343 772"}
+  - {layer: 2, fill: boots, outline: 5, path: "m 205 760 l 267 760 l 267 802 l 179 802 b 171 790 179 764 205 760"}
+  - {layer: 2, fill: boots, outline: 5, path: "m 353 760 l 291 760 l 291 802 l 379 802 b 387 790 379 764 353 760"}
+  - {layer: 3, fill: coat, outline: 5, path: "m 217 360 b 187 368 183 396 181 430 l 163 652 b 229 668 329 668 395 652 l 377 430 b 375 396 371 368 341 360"}
+  - {layer: 4, fill: coat_dark, outline: 0, path: "m 276 392 l 282 392 l 282 660 l 276 660"}
+  - {layer: 4, fill: coat_dark, outline: 0, path: "m 191 560 l 245 560 l 245 568 l 191 568"}
+  - {layer: 4, fill: coat_dark, outline: 0, path: "m 367 560 l 313 560 l 313 568 l 367 568"}
+  - {layer: 4, fill: boots, outline: 3, path: "m 292 450 b 292 445 296 441 301 441 b 306 441 310 445 310 450 b 310 455 306 459 301 459 b 296 459 292 455 292 450"}
+  - {layer: 4, fill: boots, outline: 3, path: "m 292 520 b 292 515 296 511 301 511 b 306 511 310 515 310 520 b 310 525 306 529 301 529 b 296 529 292 525 292 520"}
+  - {layer: 5, fill: scarf, outline: 5, path: "m 205 346 b 219 330 339 330 353 346 b 359 362 355 384 343 392 b 309 402 249 402 215 392 b 203 384 199 362 205 346"}
+  - {layer: 5, fill: scarf, outline: 5, path: "m 309 388 l 343 384 l 351 486 l 319 492"}
+  - {layer: 5, fill: scarf, outline: 0, path: "m 319 492 l 351 486 l 353 500 l 321 506"}
+  - {layer: 10, fill: skin, outline: 5, path: "m 109 218 b 109 200 119 186 131 186 b 143 186 153 200 153 218 b 153 236 143 250 131 250 b 119 250 109 236 109 218"}
+  - {layer: 10, fill: skin, outline: 5, path: "m 449 218 b 449 200 439 186 427 186 b 415 186 405 200 405 218 b 405 236 415 250 427 250 b 439 250 449 236 449 218"}
+  - {layer: 11, fill: skin, outline: 5, path: "m 129 205 b 129 125 196 60 279 60 b 362 60 429 125 429 205 b 429 285 362 350 279 350 b 196 350 129 285 129 205"}
+  - {layer: 12, fill: blush, outline: 0, path: "m 161 270 b 161 264 170 259 181 259 b 192 259 201 264 201 270 b 201 276 192 281 181 281 b 170 281 161 276 161 270"}
+  - {layer: 12, fill: blush, outline: 0, path: "m 397 270 b 397 264 388 259 377 259 b 366 259 357 264 357 270 b 357 276 366 281 377 281 b 388 281 397 276 397 270"}
+  - {layer: 13, fill: lens, outline: 6, path: "m 180 215 b 180 191 200 171 224 171 b 248 171 268 191 268 215 b 268 239 248 259 224 259 b 200 259 180 239 180 215"}
+  - {layer: 13, fill: lens, outline: 6, path: "m 378 215 b 378 191 358 171 334 171 b 310 171 290 191 290 215 b 290 239 310 259 334 259 b 358 259 378 239 378 215"}
+  - {layer: 13, fill: outline, outline: 0, path: "m 266 210 l 292 210 l 292 217 l 266 217"}
+  - {layer: 13, fill: outline, outline: 0, path: "m 139 204 l 181 206 l 181 212 l 139 211"}
+  - {layer: 13, fill: outline, outline: 0, path: "m 419 204 l 377 206 l 377 212 l 419 211"}
+  - {layer: 16, fill: hair, outline: 5, path: "m 123 214 b 113 96 199 44 283 44 b 371 44 449 98 437 206 b 423 156 393 128 351 120 b 311 140 255 152 205 140 b 171 152 143 180 123 214"}
+  - {layer: 16, fill: hair, outline: 5, path: "m 265 50 b 255 14 295 0 317 14 b 297 14 287 30 295 48"}
+eyes:
+  open:
+    - {layer: 14, fill: eye, outline: 0, path: "m 211 218 b 211 208 217 200 224 200 b 231 200 237 208 237 218 b 237 228 231 236 224 236 b 217 236 211 228 211 218"}
+    - {layer: 14, fill: eye, outline: 0, path: "m 347 218 b 347 208 341 200 334 200 b 327 200 321 208 321 218 b 321 228 327 236 334 236 b 341 236 347 228 347 218"}
+    - {layer: 15, fill: eye_light, outline: 0, path: "m 225 210 b 225 207 227 205 229 205 b 231 205 233 207 233 210 b 233 213 231 215 229 215 b 227 215 225 213 225 210"}
+    - {layer: 15, fill: eye_light, outline: 0, path: "m 333 210 b 333 207 331 205 329 205 b 327 205 325 207 325 210 b 325 213 327 215 329 215 b 331 215 333 213 333 210"}
+  closed:
+    - {layer: 14, fill: eye, outline: 0, path: "m 207 216 b 215 226 233 226 241 216 b 233 232 215 232 207 216"}
+    - {layer: 14, fill: eye, outline: 0, path: "m 351 216 b 343 226 325 226 317 216 b 325 232 343 232 351 216"}
+  wide:
+    - {layer: 14, fill: eye, outline: 0, path: "m 207 216 b 207 203 215 193 224 193 b 233 193 241 203 241 216 b 241 229 233 239 224 239 b 215 239 207 229 207 216"}
+    - {layer: 14, fill: eye, outline: 0, path: "m 351 216 b 351 203 343 193 334 193 b 325 193 317 203 317 216 b 317 229 325 239 334 239 b 343 239 351 229 351 216"}
+    - {layer: 15, fill: eye_light, outline: 0, path: "m 225 206 b 225 203 227 200 230 200 b 233 200 235 203 235 206 b 235 209 233 212 230 212 b 227 212 225 209 225 206"}
+    - {layer: 15, fill: eye_light, outline: 0, path: "m 333 206 b 333 203 331 200 328 200 b 325 200 323 203 323 206 b 323 209 325 212 328 212 b 331 212 333 209 333 206"}
+  up:
+    - {layer: 14, fill: eye, outline: 0, path: "m 218 204 b 218 195 224 187 231 187 b 238 187 244 195 244 204 b 244 213 238 221 231 221 b 224 221 218 213 218 204"}
+    - {layer: 14, fill: eye, outline: 0, path: "m 340 204 b 340 195 334 187 327 187 b 320 187 314 195 314 204 b 314 213 320 221 327 221 b 334 221 340 213 340 204"}
+    - {layer: 15, fill: eye_light, outline: 0, path: "m 231 197 b 231 194 233 192 235 192 b 237 192 239 194 239 197 b 239 200 237 202 235 202 b 233 202 231 200 231 197"}
+    - {layer: 15, fill: eye_light, outline: 0, path: "m 327 197 b 327 194 325 192 323 192 b 321 192 319 194 319 197 b 319 200 321 202 323 202 b 325 202 327 200 327 197"}
+brows:
+  neutral:
+    - {layer: 17, fill: hair, outline: 0, path: "m 199 160 b 211 150 237 150 251 158 l 249 166 b 235 160 213 160 201 168"}
+    - {layer: 17, fill: hair, outline: 0, path: "m 359 160 b 347 150 321 150 307 158 l 309 166 b 323 160 345 160 357 168"}
+  raised:
+    - {layer: 17, fill: hair, outline: 0, path: "m 197 142 b 209 128 237 128 253 140 l 249 148 b 235 140 213 140 201 150"}
+    - {layer: 17, fill: hair, outline: 0, path: "m 361 142 b 349 128 321 128 305 140 l 309 148 b 323 140 345 140 357 150"}
+  furrowed:
+    - {layer: 17, fill: hair, outline: 0, path: "m 199 150 b 215 152 237 160 253 170 l 249 178 b 235 168 215 162 201 160"}
+    - {layer: 17, fill: hair, outline: 0, path: "m 359 150 b 343 152 321 160 305 170 l 309 178 b 323 168 343 162 357 160"}
+  quizzical:
+    - {layer: 17, fill: hair, outline: 0, path: "m 197 142 b 209 128 237 128 253 140 l 249 148 b 235 140 213 140 201 150"}
+    - {layer: 17, fill: hair, outline: 0, path: "m 359 150 b 343 152 321 160 305 170 l 309 178 b 323 168 343 162 357 160"}
+mouths:
+  rest:
+    - {layer: 18, fill: outline, outline: 0, path: "m 253 284 b 265 298 293 298 305 284 b 295 306 263 306 253 284"}
+  flat:
+    - {layer: 18, fill: outline, outline: 0, path: "m 259 290 l 299 290 l 299 296 l 259 296"}
+  open:
+    - {layer: 18, fill: mouth, outline: 4, path: "m 257 294 b 257 285 267 278 279 278 b 291 278 301 285 301 294 b 301 303 291 310 279 310 b 267 310 257 303 257 294"}
+    - {layer: 19, fill: tongue, outline: 0, path: "m 268 302 b 268 299 273 297 279 297 b 285 297 290 299 290 302 b 290 305 285 307 279 307 b 273 307 268 305 268 302"}
+  wide:
+    - {layer: 18, fill: mouth, outline: 4, path: "m 247 282 l 311 282 b 311 318 247 318 247 282"}
+    - {layer: 19, fill: teeth, outline: 0, path: "m 252 284 l 306 284 l 304 292 l 254 292"}
+  o:
+    - {layer: 18, fill: mouth, outline: 4, path: "m 264 296 b 264 285 271 276 279 276 b 287 276 294 285 294 296 b 294 307 287 316 279 316 b 271 316 264 307 264 296"}
+talking_mouths: [rest, open, wide, o]
+poses:
+  talk:
+    eyes: open
+    brows: neutral
+    mouth: rest
+    arm_left:
+      - {layer: 6, fill: coat, outline: 5, path: "m 181 385 l 164 484 l 154 576 l 190 580 l 199 489 l 217 391"}
+      - {layer: 8, fill: coat_dark, outline: 4, path: "m 153 566 l 152 576 l 192 580 l 193 570"}
+      - {layer: 8, fill: skin, outline: 4, path: "m 141 594 b 141 589 145 585 150 585 b 155 585 159 589 159 594 b 159 599 155 603 150 603 b 145 603 141 599 141 594"}
+      - {layer: 9, fill: skin, outline: 4, path: "m 146 600 b 146 587 157 576 170 576 b 183 576 194 587 194 600 b 194 613 183 624 170 624 b 157 624 146 613 146 600"}
+    arm_right:
+      - {layer: 6, fill: coat, outline: 5, path: "m 342 395 l 384 497 l 484 514 l 490 479 l 409 465 l 376 381"}
+      - {layer: 8, fill: coat_dark, outline: 4, path: "m 474 515 l 484 516 l 491 477 l 481 475"}
+      - {layer: 8, fill: skin, outline: 4, path: "m 499 480 b 499 475 503 471 508 471 b 513 471 517 475 517 480 b 517 485 513 489 508 489 b 503 489 499 485 499 480"}
+      - {layer: 9, fill: skin, outline: 4, path: "m 485 501 b 485 488 496 477 509 477 b 522 477 533 488 533 501 b 533 514 522 525 509 525 b 496 525 485 514 485 501"}
+  wave:
+    eyes: open
+    brows: raised
+    mouth: wide
+    arm_left:
+      - {layer: 6, fill: coat, outline: 5, path: "m 181 385 l 164 484 l 154 576 l 190 580 l 199 489 l 217 391"}
+      - {layer: 8, fill: coat_dark, outline: 4, path: "m 153 566 l 152 576 l 192 580 l 193 570"}
+      - {layer: 8, fill: skin, outline: 4, path: "m 141 594 b 141 589 145 585 150 585 b 155 585 159 589 159 594 b 159 599 155 603 150 603 b 145 603 141 599 141 594"}
+      - {layer: 9, fill: skin, outline: 4, path: "m 146 600 b 146 587 157 576 170 576 b 183 576 194 587 194 600 b 194 613 183 624 170 624 b 157 624 146 613 146 600"}
+    arm_right:
+      - {layer: 6, fill: coat, outline: 5, path: "m 367 404 l 462 360 l 511 275 l 480 257 l 437 332 l 351 372"}
+      - {layer: 8, fill: coat_dark, outline: 4, path: "m 508 285 l 513 276 l 478 256 l 473 265"}
+      - {layer: 8, fill: skin, outline: 4, path: "m 478 240 b 478 235 482 231 487 231 b 492 231 496 235 496 240 b 496 245 492 249 487 249 b 482 249 478 245 478 240"}
+      - {layer: 9, fill: skin, outline: 4, path: "m 483 247 b 483 234 494 223 507 223 b 520 223 531 234 531 247 b 531 260 520 271 507 271 b 494 271 483 260 483 247"}
+  point:
+    eyes: open
+    brows: neutral
+    mouth: open
+    arm_left:
+      - {layer: 6, fill: coat, outline: 5, path: "m 181 385 l 164 484 l 154 576 l 190 580 l 199 489 l 217 391"}
+      - {layer: 8, fill: coat_dark, outline: 4, path: "m 153 566 l 152 576 l 192 580 l 193 570"}
+      - {layer: 8, fill: skin, outline: 4, path: "m 141 594 b 141 589 145 585 150 585 b 155 585 159 589 159 594 b 159 599 155 603 150 603 b 145 603 141 599 141 594"}
+      - {layer: 9, fill: skin, outline: 4, path: "m 146 600 b 146 587 157 576 170 576 b 183 576 194 587 194 600 b 194 613 183 624 170 624 b 157 624 146 613 146 600"}
+    arm_right:
+      - {layer: 6, fill: coat, outline: 5, path: "m 355 406 l 455 427 l 548 430 l 549 394 l 459 391 l 363 370"}
+      - {layer: 8, fill: coat_dark, outline: 4, path: "m 538 432 l 548 432 l 549 392 l 539 392"}
+      - {layer: 9, fill: skin, outline: 4, path: "m 544 413 b 544 401 553 392 565 392 b 577 392 586 401 586 413 b 586 425 577 434 565 434 b 553 434 544 425 544 413"}
+      - {layer: 9, fill: skin, outline: 4, path: "m 564 420 l 608 422 l 609 407 l 565 405"}
+  surprised:
+    eyes: wide
+    brows: raised
+    mouth: o
+    arm_left:
+      - {layer: 6, fill: coat, outline: 5, path: "m 184 378 l 131 463 l 161 482 l 214 398"}
+      - {layer: 6, fill: coat, outline: 5, path: "m 128 473 b 128 463 136 455 146 455 b 156 455 164 463 164 473 b 164 483 156 491 146 491 b 136 491 128 483 128 473"}
+      - {layer: 7, fill: coat, outline: 5, path: "m 163 468 l 140 379 l 105 389 l 129 477"}
+      - {layer: 8, fill: coat_dark, outline: 4, path: "m 144 388 l 142 379 l 103 389 l 105 399"}
+      - {layer: 8, fill: skin, outline: 4, path: "m 128 361 b 128 356 132 352 137 352 b 142 352 146 356 146 361 b 146 366 142 370 137 370 b 132 370 128 366 128 361"}
+      - {layer: 9, fill: skin, outline: 4, path: "m 93 363 b 93 350 104 339 117 339 b 130 339 141 350 141 363 b 141 376 130 387 117 387 b 104 387 93 376 93 363"}
+    arm_right:
+      - {layer: 6, fill: coat, outline: 5, path: "m 344 398 l 397 482 l 427 463 l 374 378"}
+      - {layer: 6, fill: coat, outline: 5, path: "m 394 473 b 394 463 402 455 412 455 b 422 455 430 463 430 473 b 430 483 422 491 412 491 b 402 491 394 483 394 473"}
+      - {layer: 7, fill: coat, outline: 5, path: "m 429 477 l 453 389 l 418 379 l 395 468"}
+      - {layer: 8, fill: coat_dark, outline: 4, path: "m 453 399 l 455 389 l 416 379 l 414 388"}
+      - {layer: 8, fill: skin, outline: 4, path: "m 412 361 b 412 356 416 352 421 352 b 426 352 430 356 430 361 b 430 366 426 370 421 370 b 416 370 412 366 412 361"}
+      - {layer: 9, fill: skin, outline: 4, path: "m 417 363 b 417 350 428 339 441 339 b 454 339 465 350 465 363 b 465 376 454 387 441 387 b 428 387 417 376 417 363"}
+  think:
+    eyes: up
+    brows: quizzical
+    mouth: flat
+    arm_left:
+      - {layer: 6, fill: coat, outline: 5, path: "m 181 385 l 164 484 l 154 576 l 190 580 l 199 489 l 217 391"}
+      - {layer: 8, fill: coat_dark, outline: 4, path: "m 153 566 l 152 576 l 192 580 l 193 570"}
+      - {layer: 8, fill: skin, outline: 4, path: "m 141 594 b 141 589 145 585 150 585 b 155 585 159 589 159 594 b 159 599 155 603 150 603 b 145 603 141 599 141 594"}
+      - {layer: 9, fill: skin, outline: 4, path: "m 146 600 b 146 587 157 576 170 576 b 183 576 194 587 194 600 b 194 613 183 624 170 624 b 157 624 146 613 146 600"}
+    arm_right:
+      - {layer: 6, fill: coat, outline: 5, path: "m 341 390 l 346 449 l 382 446 l 377 386"}
+      - {layer: 6, fill: coat, outline: 5, path: "m 346 448 b 346 438 354 430 364 430 b 374 430 382 438 382 448 b 382 458 374 466 364 466 b 354 466 346 458 346 448"}
+      - {layer: 7, fill: coat, outline: 5, path: "m 381 440 l 342 357 l 309 372 l 348 455"}
+      - {layer: 8, fill: coat_dark, outline: 4, path: "m 348 365 l 343 356 l 307 373 l 311 382"}
+      - {layer: 9, fill: skin, outline: 4, path: "m 298 350 b 298 338 307 329 319 329 b 331 329 340 338 340 350 b 340 362 331 371 319 371 b 307 371 298 362 298 350"}
+  shrug:
+    eyes: open
+    brows: raised
+    mouth: flat
+    arm_left:
+      - {layer: 6, fill: coat, outline: 5, path: "m 187 375 l 122 433 l 52 396 l 35 428 l 127 477 l 211 401"}
+      - {layer: 8, fill: coat_dark, outline: 4, path: "m 62 399 l 53 394 l 34 429 l 43 434"}
+      - {layer: 8, fill: skin, outline: 4, path: "m 28 386 b 28 381 32 377 37 377 b 42 377 46 381 46 386 b 46 391 42 395 37 395 b 32 395 28 391 28 386"}
+      - {layer: 9, fill: skin, outline: 4, path: "m 0 401 b 0 388 11 377 24 377 b 37 377 48 388 48 401 b 48 414 37 425 24 425 b 11 425 0 414 0 401"}
+    arm_right:
+      - {layer: 6, fill: coat, outline: 5, path: "m 347 401 l 431 477 l 523 428 l 506 396 l 436 433 l 371 375"}
+      - {layer: 8, fill: coat_dark, outline: 4, path: "m 515 434 l 524 429 l 505 394 l 496 399"}
+      - {layer: 8, fill: skin, outline: 4, path: "m 512 386 b 512 381 516 377 521 377 b 526 377 530 381 530 386 b 530 391 526 395 521 395 b 516 395 512 391 512 386"}
+      - {layer: 9, fill: skin, outline: 4, path: "m 510 401 b 510 388 521 377 534 377 b 547 377 558 388 558 401 b 558 414 547 425 534 425 b 521 425 510 414 510 401"}
