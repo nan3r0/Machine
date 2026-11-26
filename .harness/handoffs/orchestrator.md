@@ -26,23 +26,25 @@ You are the Stage 0 orchestrator (HARNESS.md section 10, Stage 0). Model: Sonnet
 - Phase-end reviews follow HARNESS.md section 6b "Phase-end review policy": launch the full set only at its triggers, and put findings in `.harness/backlog.md`, not straight into new tasks.
 - Weekly limit near (the owner says so, or a limit message appears): finish the current task's close-out, then stop. Do not start a new wave or a new review. Write the State block so the next session can resume. HARNESS.md section 10b describes the 5-hour and weekly freeze; this session only does the close-out part by hand.
 
-## State (2026-11-25, 27th session, replaces all earlier State blocks)
+## State (2026-11-26, 28th session, replaces all earlier State blocks)
 - Phase 4c and `p4d-gemini-quota-guard` are done and merged (#181, #182, #183). Required checks on main: `check` and `lock-resolve`, up to date.
 - Phase 3 (visuals) is planned and owner-approved, merged in #184 and #185. Plan: `.harness/handoffs/p3-plan.md`. Task YAMLs: `.harness/tasks/phase3/`. Look: an original round-head host character on flat parallax sets, bold captions, Flux paintings later (slice 2). Reference style: the owner's screenshots and the browser mock at https://claude.ai/artifact/DqwmzkpCP8LrNSyCZ3xToN. Do not copy any creator's character.
-- p3-spike is done (`.harness/handoffs/p3-spike.md`, branch `docs/p3-spike`; owner pushes, then PR).
-  - Run 45719091226: method A (all libass) took 64 s; method B (PNG layers plus libass) took 140 s. Limit: 600 s per FFmpeg call.
-  - Owner decision 2026-11-25: **method A**, because it is clearly smoother. p3-background is deferred to slice 2 (Flux image layers); the plan and YAMLs on `docs/p3-spike` say so.
-  - M0 is satisfied by the spike stills.
-  - `spike/p3-look` is throwaway and never merged. Delete it (remote and local, including the `spike-p3-look` worktree) once the spike handoff lands on main.
+- Method A (all libass), owner 2026-11-25: 64 s vs 140 s for PNG layers. p3-background is deferred to slice 2 (Flux image layers). M0 is satisfied.
+- Merged on 2026-11-26: p3-spike handoff (#186), p3-character-art (#187), p3-contracts (#188, main at `fbec8b0`). Owner approved the host still sheet. All spike branches are deleted everywhere.
+- Mascot direction (owner 2026-11-26): the host is the channel mascot. Every video is host intro (hook, max 5 s, one generic backdrop, no house set), a 0.5 s transition, the story scenes, then a short host outro. Already in constants, the router contract and PRD R19 to R22.
+- p3-contracts decisions (handoff `.harness/handoffs/p3-contracts.md`):
+  - The host is drawn at 0.85 of the approved size to clear the captions. Visual QA must check it.
+  - New cap of 3 data scenes per script. The p3-validate-visuals YAML does not say so yet.
+  - `test_captions_exact.py` now accepts the frame centre or `CAPTION_POS_Y`. An Architect task narrows it after p3-compose merges.
+  - YAML notes owed at close-out: 03, 07, 11, 13, 14 (handoff Docs section).
 - Next:
-  1. Launch p3-character-art (Architect). The owner approves its still sheet.
-  2. Then p3-contracts on `plan/p3-contracts`. It merges to main BEFORE any implementer, with import stubs.
-  3. Then the build waves, M1 (two render.yml runs), the writer tasks, M2 (first weekly-scripts run), CSO, QA lead and phase review.
+  1. Close-out on a docs branch: mark p3-spike, p3-character-art and p3-contracts done (status.yaml, workflow.md Phase 3 status table, CLAUDE.md Status, outcome log) through a Scribe window. Apply the owed YAML notes.
+  2. Launch the first build wave: p3-validate-visuals and p3-ass-kit (`git checkout -B task/<id> origin/main`). Then the rest in workflow.md module order, M1 (two render.yml runs, the owner watches), the writer tasks, M2 (first weekly-scripts run), CSO, QA lead and phase review.
 - `weekly-scripts` is ACTIVE (Sunday cron). The 2026-11-25 manual run failed on Gemini 503 overload; the quota guard stopped it after 3 errors (6 requests). Owner decided (D6): do not run it again for real until M2, because sources are single-use. Free limit: 20 requests a day for `gemini-3.8-flash` per model. If 503s persist later: longer retry wait, or spread writes over days.
 - Owner steps open: R17, threat model v3.1 sign-off, re-enable `daily-publish` (go-live waits for Phase 3 slice 1, D7). Dependabot rfc3986/csvw ignores stay bare (narrowing gains nothing).
 - Non-blocking: ci.yml `check` and `reports` jobs install torch without `--require-hashes` (about lines 90 and 149); `error.read()` in gemini.py has no size cap (negligible).
 - Process: owner pushes (agents have no push). Contracts commit (task YAML, locked tests, import stubs) merges to main on a `plan/<id>` branch BEFORE the implementer starts; then merge main into the task branch, never rebase (lessons.md). Implementers: `git checkout -B task/<id> <base>`. Never hand the owner a `worktree-agent-*` name. `gh pr create` is allowed; `gh workflow run` is denied (give Actions page steps). Agents cannot watch video: visual QA reads still frames and an 8-frame strip; the owner watches M1. Gate 2 plus security reviewer in parallel for security-trigger files. A done task needs a row in a workflow.md status table. Match `^## State \(` by line when scripting edits.
-- Launch recipe: `Agent` with `isolation: worktree` and `run_in_background` (implementer has a shell); architect for tests, task YAMLs and locked files. First action next session: after the `docs/p3-spike` PR merges, launch p3-character-art (Architect, see its YAML).
+- Launch recipe: `Agent` with `isolation: worktree` and `run_in_background` (implementer has a shell); architect for tests, task YAMLs and locked files. A subagent that runs out of turns can be resumed with SendMessage (its worktree holds the branch). Agents cannot delete remote branches; give the owner the command.
 
 ## Open items
 Owner:
