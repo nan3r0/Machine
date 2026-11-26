@@ -10,7 +10,9 @@ notes: |
     map; chart with 2 or more items needs plain-number values; steps values are all empty or
     all set; map has exactly one item;
   - every label and value goes through the existing published-field text check;
-  - caps come from constants only.
+  - caps come from constants only: also `VISUAL_DATA_SCENES_MAX` (data scenes per script) and
+    the `VISUAL_TEXT_MAX_CHARS` total over all labels and values;
+  - `HOST_BACKDROP_SET` is the host intro and outro backdrop only and is rejected as a scene set.
   Messages name the scene and the field. Phase 2 scripts with {} stay valid. The existing
   validate tests and tests/test_queue_scripts.py must keep passing. They are not listed under
   `tests`, so they keep running on main.

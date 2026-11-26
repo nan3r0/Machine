@@ -4,7 +4,8 @@ depends_on: [p3-contracts]
 role: architect
 notes: |
   p3-plan "Sets" and D13. Write one assets/sets/<id>.yaml per set id in constants, each with 2 to
-  4 layers that fit the art.py model.
+  4 layers that fit the art.py model, plus `assets/sets/host_backdrop.yaml` (the generic backdrop
+  for the host intro and outro, no house set).
   - Flat shapes and soft bands, no gradients that need new tools.
   - A dark, slow, mysterious palette (PLAN.md section 4).
   - Room for the character's placement and for the caption band to stay readable.

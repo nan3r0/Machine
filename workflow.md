@@ -320,6 +320,6 @@ Specialist reviews: visual QA for every task touching `pipeline/visuals/**`, `pi
 
 | Task | Status | Notes |
 |---|---|---|
-| p3-spike | built, close-out pending | method A chosen by the owner 2026-11-25 |
-| p3-character-art | built, close-out pending | owner approved the still sheet 2026-11-26 (PR #187) |
-| p3-contracts | built on `plan/p3-contracts`, not merged | constants, art model, stubs, locked tests, fixtures, sample-65s visuals |
+| p3-spike | done | method A chosen by the owner 2026-11-25 |
+| p3-character-art | done | owner approved the still sheet 2026-11-26 (PR #187) |
+| p3-contracts | done (PR #188) | constants, art model, stubs, locked tests, fixtures, sample-65s visuals |

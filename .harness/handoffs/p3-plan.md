@@ -181,7 +181,7 @@ These are my calls; the owner can overrule them. D ids here are p3-plan ids, not
   - No test enforces the import boundary (grep of `tests/`), so nothing locked changes.
   - Text is drawn only through ASS, never FFmpeg `drawtext`.
 - **Compose** gets keyword-only arguments that default to today's behaviour, so the existing locked compose tests stay true. New behaviour is tested in new files. p3-contracts edits two existing locked tests so they hold both before and after the change: `tests/script/test_generate.py:112` and the fake compose in `tests/test_render_one.py:51`.
-- **Scene timing** is a pure function in the router. It counts the words of the hook, each scene and the loop line and maps them onto the word timings. The hook and the loop line use the first and last scene's set, with the `talk` pose.
+- **Scene timing** is a pure function in the router. It counts the words of the hook, each scene and the loop line and maps them onto the word timings. The hook and the loop line use the first and last scene's set, with the `talk` pose. (Superseded by the owner's mascot addendum of 2026-11-26: the hook is the host intro on the generic `HOST_BACKDROP_SET` backdrop, max 5 s, then a 0.5 s transition and the story scenes, then a short host outro.)
 - **Captions keep the script's exact words and case.** The mock is all caps, but spec.md section 4 says a caption word never differs from the script word. Forced capitals would be a rule change (D11).
 
 ## Owner decisions
