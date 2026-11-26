@@ -1,20 +1,20 @@
-# CONTRACT_CHANGE: tests/visuals/test_charts.py (task p3-charts, review round 1)
+# CONTRACT_CHANGE: tests/visuals/test_router.py
 
-Request: add a regression test to the locked `tests/visuals/test_charts.py`. The existing tests check no ASS override tags, so a bug where the tags were plain strings with single backslashes (`"\an5"` turns `\a` into BEL, `\f` into form feed, `\t` into TAB) passed all of them. PLAN.md needs the bars to grow, labels left aligned and pop-ins, so libass must receive real tags.
+Which test: every test that builds a script through the `script()` helper or the inline
+`Script.model_validate({**BASE, ...})` (lines 48 and 163), so all 7 tests in the file.
 
-Proposed test (fails on the round 1 code, passes on the fix). `evs` is the raw dialogue lines:
+Why: `BASE` is read with `json.loads`, so `publish_after` is the string `"2026-11-23"`.
+`Script` is strict (`ConfigDict(strict=True)`), and `model_validate` on a python dict rejects a
+str for a `date` field (pydantic 2.14.4, the pinned version):
+`publish_after: Input should be a valid date [type=date_type]`. schema.py's own docstring says to
+parse script files with `Script.model_validate_json(text)`. So the tests fail at fixture
+construction, before reaching router code, locally and in CI.
 
-```python
-@pytest.mark.parametrize(
-    ("layout", "items", "tags"),
-    [
-        (charts.counter_events, [("Kilometres apart", "3,219")], ["\\an5"]),
-        (charts.bars_events, [("Bloop", "3,219"), ("Whale", "0")], ["\\an4", "\\an7", "\\fscx1", "\\t("]),
-    ],
-)
-def test_override_tags_are_real_tags(layout: object, items: list[tuple[str, str]], tags: list[str]) -> None:
-    lines = layout(items, 5.0, 12.0)  # type: ignore[operator]
-    assert not any(ord(ch) < 0x20 for line in lines for ch in line), "control byte in an event"
-    joined = "".join(lines)
-    assert all(tag in joined for tag in tags)
-```
+What it should say: build the model from JSON, for example in both places
+
+    Script.model_validate_json(json.dumps({...}))
+
+(or `Script.model_validate({...}, strict=False)`).
+
+Evidence the router is correct: with `Script.model_validate` patched in memory to go through
+`model_validate_json` (no file change), all 7 tests in test_router.py pass.
