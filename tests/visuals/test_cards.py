@@ -1,5 +1,6 @@
 """Data cards (task p3-cards): text exact, inside the panel and window, staggered."""
 
+import re
 from collections.abc import Callable
 
 import pytest
@@ -48,6 +49,42 @@ def test_items_appear_one_after_another(layout: Layout, items: list[tuple[str, s
 def test_steps_are_numbered() -> None:
     texts = [shown_text(e.text).strip() for e in events(cards.steps_events(STEPS, 0, 8))]
     assert all(str(n) in texts for n in range(1, len(STEPS) + 1))
+
+
+BADGE_X = c.DATA_PANEL[0] + 60
+# Advance of "A" in Montserrat Bold per unit of font size (Pillow, em-based). libass draws smaller,
+# since it sizes the font to ascent + descent (1.219 em), so this over-estimates the drawn width.
+CAP_EM = 0.756
+LONG_LABELS = ["A" * 24, "THE MARY CELESTE MYSTERY"]
+
+
+def font_size(text: str) -> float:
+    found = re.search(r"\\fs([\d.]+)", text)
+    assert found, text[:60]
+    return float(found.group(1))
+
+
+@pytest.mark.parametrize("label", LONG_LABELS)
+@pytest.mark.parametrize("layout", [cards.steps_events, cards.timeline_events])
+def test_long_label_fits_between_badge_and_panel_edge(layout: Layout, label: str) -> None:
+    evs = events(layout([(label, "1997")], 0.0, 8.0))
+    shown = [e for e in evs if label in shown_text(e.text)]
+    assert shown
+    for e in shown:
+        x = pos(e.text)[0]  # type: ignore[index]
+        assert "\\an4" in e.text and x > BADGE_X + 18
+        assert x + font_size(e.text) * len(label) * CAP_EM <= c.DATA_PANEL[2]
+
+
+@pytest.mark.parametrize("label", LONG_LABELS)
+def test_long_place_name_fits_the_panel(label: str) -> None:
+    left, _, right, _ = c.DATA_PANEL
+    shown = [e for e in events(cards.place_events([(label, "")], 0.0, 8.0)) if label in shown_text(e.text)]
+    assert shown
+    for e in shown:
+        half = font_size(e.text) * len(label) * CAP_EM / 2
+        x = pos(e.text)[0]  # type: ignore[index]
+        assert left <= x - half and x + half <= right
 
 
 def test_acceptance() -> None:
