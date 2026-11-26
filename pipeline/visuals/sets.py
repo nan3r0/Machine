@@ -62,5 +62,8 @@ def set_events(art: SetArt, start: float, end: float, camera: str, dim: bool = F
     if dim:
         out.append(_frame_black(start, end, c.ASS_LAYER_DIM, c.SET_DIM_ALPHA))
     if fade_in > 0:
-        out.append(_frame_black(start, end, c.ASS_LAYER_FADE, "00", f"\\fad(0,{round(fade_in * 1000)})"))
+        # \fad's second argument fades out at the event's end, so the event must end with the fade.
+        fade_end = min(end, start + fade_in)
+        fade_ms = round((fade_end - start) * 1000)
+        out.append(_frame_black(start, fade_end, c.ASS_LAYER_FADE, "00", f"\\fad(0,{fade_ms})"))
     return out

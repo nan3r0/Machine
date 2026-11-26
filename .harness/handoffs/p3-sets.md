@@ -14,6 +14,8 @@ done. Not heavy; all tests in tests/visuals/test_sets.py ran and passed.
 - The dim and fade shapes are built as a `Shape` with a local black palette, so they go through the same `shape_event`.
 - ASS layer is ASS_LAYER_SET plus the layer's index in `art.layers`.
 
+- Gate 2 fix: the fade event ends at min(end, start + fade_in) and `\fad(0,ms)` uses that duration, because `\fad`'s second argument fades out at the event end (a full-scene event would stay black).
+
 ## Tried and abandoned
 none
 
