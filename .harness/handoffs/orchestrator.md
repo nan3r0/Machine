@@ -26,37 +26,34 @@ You are the Stage 0 orchestrator (HARNESS.md section 10, Stage 0). Model: Sonnet
 - Phase-end reviews follow HARNESS.md section 6b "Phase-end review policy": launch the full set only at its triggers, and put findings in `.harness/backlog.md`, not straight into new tasks.
 - Weekly limit near (the owner says so, or a limit message appears): finish the current task's close-out, then stop. Do not start a new wave or a new review. Write the State block so the next session can resume. HARNESS.md section 10b describes the 5-hour and weekly freeze; this session only does the close-out part by hand.
 
-## State (2026-11-26, 28th session, replaces all earlier State blocks)
-- Phase 4c and `p4d-gemini-quota-guard` are done and merged (#181, #182, #183). Required checks on main: `check` and `lock-resolve`, up to date.
-- Phase 3 (visuals) is planned and owner-approved, merged in #184 and #185. Plan: `.harness/handoffs/p3-plan.md`. Task YAMLs: `.harness/tasks/phase3/`. Look: an original round-head host character on flat parallax sets, bold captions, Flux paintings later (slice 2). Reference style: the owner's screenshots and the browser mock at https://claude.ai/artifact/DqwmzkpCP8LrNSyCZ3xToN. Do not copy any creator's character.
-- Method A (all libass), owner 2026-11-25: 64 s vs 140 s for PNG layers. p3-background is deferred to slice 2 (Flux image layers). M0 is satisfied.
-- Merged on 2026-11-26: p3-spike handoff (#186), p3-character-art (#187), p3-contracts (#188, main at `fbec8b0`). Owner approved the host still sheet. All spike branches are deleted everywhere.
-- Mascot direction (owner 2026-11-26): the host is the channel mascot. Every video is host intro (hook, max 5 s, one generic backdrop, no house set), a 0.5 s transition, the story scenes, then a short host outro. Already in constants, the router contract and PRD R19 to R22.
-- p3-contracts decisions (handoff `.harness/handoffs/p3-contracts.md`):
-  - The host is drawn at 0.85 of the approved size to clear the captions. Visual QA must check it.
-  - New cap of 3 data scenes per script. The p3-validate-visuals YAML does not say so yet.
-  - `test_captions_exact.py` now accepts the frame centre or `CAPTION_POS_Y`. An Architect task narrows it after p3-compose merges.
-  - YAML notes owed at close-out: 03, 07, 11, 13, 14 (handoff Docs section).
-- Next:
-  1. Close-out done on branch `docs/p3-closeout` (status.yaml, workflow.md, CLAUDE.md, YAML notes 03/07/11/13/14, p3-plan line). Owner pushes and merges it. Outcome log not written (no result data yet).
-  2. Wave 4 (p3-validate-visuals, p3-ass-kit) is merged. Wave 5 built and approved 2026-11-26, owner to push and merge: `task/p3-character` (Gate 2 and visual QA approve) and `task/p3-sets` (round 1 fixed a full-scene black fade, round 2 approve; the push-in anchoring risk is in the backlog for M1). Next wave 6: p3-sets-art (Architect, owner approves set stills) and p3-cards; then wave 7 p3-charts, p3-compose, and so on.
-- `weekly-scripts` is ACTIVE (Sunday cron). The 2026-11-25 manual run failed on Gemini 503 overload; the quota guard stopped it after 3 errors (6 requests). Owner decided (D6): do not run it again for real until M2, because sources are single-use. Free limit: 20 requests a day for `gemini-3.8-flash` per model. If 503s persist later: longer retry wait, or spread writes over days.
-- Owner steps open: R17, threat model v3.1 sign-off, re-enable `daily-publish` (go-live waits for Phase 3 slice 1, D7). Dependabot rfc3986/csvw ignores stay bare (narrowing gains nothing).
-- Non-blocking: ci.yml `check` and `reports` jobs install torch without `--require-hashes` (about lines 90 and 149); `error.read()` in gemini.py has no size cap (negligible).
-- Process: owner pushes (agents have no push). Contracts commit (task YAML, locked tests, import stubs) merges to main on a `plan/<id>` branch BEFORE the implementer starts; then merge main into the task branch, never rebase (lessons.md). Implementers: `git checkout -B task/<id> <base>`. Never hand the owner a `worktree-agent-*` name. `gh pr create` is allowed; `gh workflow run` is denied (give Actions page steps). Agents cannot watch video: visual QA reads still frames and an 8-frame strip; the owner watches M1. Gate 2 plus security reviewer in parallel for security-trigger files. A done task needs a row in a workflow.md status table. Match `^## State \(` by line when scripting edits.
-- Launch recipe: `Agent` with `isolation: worktree` and `run_in_background` (implementer has a shell); architect for tests, task YAMLs and locked files. A subagent that runs out of turns can be resumed with SendMessage (its worktree holds the branch). Agents cannot delete remote branches; give the owner the command.
+## State (2026-11-26, 29th session, replaces all earlier State blocks)
+- Phase 3 waves 1 to 7 merged: p3-spike, p3-character-art, p3-contracts, p3-validate-visuals, p3-ass-kit, p3-character, p3-sets, p3-sets-art (owner approved stills), p3-cards, p3-charts, p3-compose. Close-out docs for waves 4 to 7 are on `docs/p3-wave7` (not pushed).
+- Wave 8: p3-router is running on `task/p3-router` (implementer, started from main `a3a2c2c`).
+- Next: wave 9 p3-wiring is M1 (render.yml on sample-65s and demo-data; owner watches). Then wave 10 p3-writer-visuals and p3-batch-visuals (M2, first Workflow A run), wave 11 p3-cso and p3-qa-lead, wave 12 p3-phase-review.
+- Mascot direction (owner 2026-11-26): the host is the channel mascot. Every video is host intro (hook, max 5 s, one generic backdrop, no house set), 0.5 s transition, story scenes, short host outro. In constants, the router contract and PRD R19 to R22.
+- Method A (all libass), owner 2026-11-25: 64 s vs 140 s for PNG layers. p3-background deferred to slice 2 (Flux image layers).
+- p3-contracts decisions (`.harness/handoffs/p3-contracts.md`): the host is drawn at 0.85 of the approved size to clear the captions (visual QA checks it); cap of 3 data scenes per script.
+- Owner steps open: R17, threat model v3.1 sign-off, re-enable `daily-publish` (go-live waits for Phase 3 slice 1, D7). `weekly-scripts` is active (Sunday cron); owner decided (D6) no real run until M2.
+- Non-blocking: ci.yml `check` and `reports` install torch without `--require-hashes`; `error.read()` in gemini.py has no size cap.
+- Process: owner pushes (agents have no push). Owner has pushed everything with `git push` and `gh pr create` as one-line `!` commands. Paths in `git -C` are absolute and typed on one line (pasted text adds a hidden leading space). Contracts commit merges to main on `plan/<id>` BEFORE the implementer starts. Locked-test fixes from review go on `plan/<id>-tests`, merged to main first, then main is merged into the task branch (never rebase). Review round cap hit on p3-cards; the Architect fixed it. Implementers: `git checkout -B task/<id> <base>`. Never hand the owner a `worktree-agent-*` name. `gh workflow run` is denied (give Actions page steps). Agents cannot watch video: visual QA reads still frames and an 8-frame strip. Gate 2 plus security reviewer in parallel for security-trigger files. A done task needs a row in a workflow.md status table. Match `^## State \(` by line when scripting edits.
+- Owner is considering removing `git push` from the global deny list, and later `gh pr merge` once main has a ruleset requiring `check`. Not done; do not assume it.
+- Launch recipe: `Agent` with `isolation: worktree` and `run_in_background` (implementer has a shell); architect for tests, task YAMLs and locked files. A subagent out of turns can be resumed with SendMessage. Agents cannot delete remote branches; give the owner the command.
 
 ## Open items
 Owner:
-- Push and merge each implementer branch the orchestrator names, dispatch `render.yml` on main after the lock fix merges, answer the Gemini quota question, then R17 by hand, then re-enable `daily-publish`.
-- Approve the Phase 4 audit; sign off threat model v3.1 (its section 7 lists the settings, now done). Confirm the credit line text ("Narrated with a synthetic voice." after the sources line).
+- Push and merge each branch the orchestrator names, including `docs/p3-wave7`. Dispatch `render.yml` for M1 (sample-65s and demo-data) from the Actions page. Then R17 by hand, then re-enable `daily-publish`.
+- Sign off threat model v3.1. Approve the Phase 4 audit. Confirm the credit line text ("Narrated with a synthetic voice." after the sources line).
 - Create the reusable harness skill: expand `graph-engineering` or make a new one with `skill-creator` in an owner admin window (`~/.claude/skills` is protected). It bakes in: caveman for chat, ponytail for code, model per role, rotation (orchestrator ~50%, tasks 60%), one watcher per task, one review pass chasing only blocking findings, the round cap and the phase-end review policy; contracts-first locked tests, lock hook plus scope check, `LOOM_ADMIN`, read-only reviewers, clean child environments; handoff Docs section, Scribe close-out, docs check; $0 rule, heavy tests in CI only, limit pause and resume, at most 2 parallel sessions.
-- Pin `huggingface_hub` in `requirements-heavy.txt` (outside any task's paths, needs the owner).
+- Pin `huggingface_hub` in `requirements-heavy.txt` (outside any task's paths).
+- Decide on `git push` in the global deny list (see State).
+- Uninstall the stray `tests` package in global site-packages (backlog).
 - To-do artifact (stale, republish when tasks change): https://claude.ai/artifact/JAc72genBdoDjz2NaWqrpZ.
 
 Orchestrator:
+- Architect task owed: `test_captions_exact.py` accepts the frame centre or `CAPTION_POS_Y`; narrow it now that p3-compose is merged.
+- lessons.md entries for waves 4 to 7 were not written by the Scribe (its rules forbid it). Write them: p3-charts (plain-string ASS tags), p3-cards (measure real font widths), and the `plan/<id>-tests` branch rule.
 - Save the weekly usage-limit message to `.harness/tests/fixtures/limit_messages/` when it happens (only `session_5h-2026-11-15.txt` exists).
-- Clean up stale worktrees under `.claude/worktrees/` (many, including merged task and docs branches). `git worktree remove` fails on path length: retry with `\\?\`.
+- Clean up stale worktrees under `.claude/worktrees/`. `git worktree remove` fails on path length: retry with `\\?\`.
 - Doc follow-ups not applied: architecture.md line 54 and HARNESS.md section 11 tree comment for `docs_check.py` (add handoff Docs sections, lessons entries, required headings).
-- Known risk: pip-audit ignores two setuptools 81.0.0 advisories (torch 2.11 caps setuptools below 82) and torch PYSEC-2025-194 (fixed in 2.13, no matching torchaudio, stable-ts imports torchaudio at load); drop the ignores and move the pins when torch or torchaudio ships.
-- Older non-blocking follow-ups moved to `.harness/backlog.md` (the owner picks which become tasks).
+- Known risk: pip-audit ignores two setuptools 81.0.0 advisories and torch PYSEC-2025-194; drop the ignores when torch or torchaudio ships.
+- Non-blocking follow-ups live in `.harness/backlog.md` (the owner picks which become tasks).
