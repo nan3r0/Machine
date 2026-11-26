@@ -1,0 +1,36 @@
+# A desert at dusk: glow bands on the horizon, flat-topped buttes, a rail line, a pole.
+# An original set made for this project (assets/LICENSES.md). Frame coordinates:
+# x -120 to 1200 (the drift margin), y 0 to 1920. Layers go back to front; within a
+# layer, list order is draw order. Paths are ASS drawing commands (m, l, b), RGB hex colours.
+name: desert_rail
+outline_colour: outline
+palette:
+  outline: "120C14"
+  sky: "2A1F3D"
+  glow: "6E3C52"
+  ember: "A2564C"
+  moon: "E8D9C0"
+  butte: "1D1528"
+  ground: "24191F"
+  bed: "18111A"
+  rail: "5C4B55"
+  pole: "120C14"
+layers:
+  - depth: far
+    shapes:
+      - {layer: 0, fill: sky, outline: 0, path: "m -120 0 l 1200 0 l 1200 1920 l -120 1920"}
+      - {layer: 0, fill: glow, outline: 0, alpha: "60", path: "m -120 640 l 1200 640 l 1200 900 l -120 900"}
+      - {layer: 0, fill: ember, outline: 0, alpha: "70", path: "m -120 810 l 1200 810 l 1200 900 l -120 900"}
+      - {layer: 0, fill: moon, outline: 0, path: "m 898 400 b 898 421 881 438 860 438 b 839 438 822 421 822 400 b 822 379 839 362 860 362 b 881 362 898 379 898 400"}
+  - depth: mid
+    shapes:
+      - {layer: 1, fill: butte, outline: 0, path: "m -120 900 l -120 790 l 60 790 l 90 730 l 330 730 l 370 800 l 640 800 l 700 760 l 760 700 l 980 700 l 1030 780 l 1200 780 l 1200 900"}
+  - depth: near
+    shapes:
+      - {layer: 2, fill: ground, outline: 0, path: "m -120 880 l 1200 880 l 1200 1920 l -120 1920"}
+      - {layer: 2, fill: bed, outline: 0, path: "m -120 940 l 1200 940 l 1200 1000 l -120 1000"}
+      - {layer: 2, fill: rail, outline: 0, path: "m -120 950 l 1200 950 l 1200 958 l -120 958"}
+      - {layer: 2, fill: rail, outline: 0, path: "m -120 984 l 1200 984 l 1200 992 l -120 992"}
+      - {layer: 2, fill: pole, outline: 0, path: "m 110 520 l 126 520 l 126 950 l 110 950"}
+      - {layer: 2, fill: pole, outline: 0, path: "m 70 540 l 166 540 l 166 552 l 70 552"}
+      - {layer: 2, fill: pole, outline: 0, path: "m 80 552 l -20 590 l -120 584 l -120 588 l -20 594 l 80 556"}

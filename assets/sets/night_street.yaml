@@ -1,0 +1,36 @@
+# A city street at night: moon, skyline with a few lit windows, a street lamp.
+# An original set made for this project (assets/LICENSES.md). Frame coordinates:
+# x -120 to 1200 (the drift margin), y 0 to 1920. Layers go back to front; within a
+# layer, list order is draw order. Paths are ASS drawing commands (m, l, b), RGB hex colours.
+name: night_street
+outline_colour: outline
+palette:
+  outline: "0A0D18"
+  sky: "1D2546"
+  haze: "34406A"
+  moon: "D8DCE8"
+  skyline: "121831"
+  window: "E0B35A"
+  street: "0E1222"
+  curb: "262E4A"
+  lamp: "F2C66D"
+  post: "0A0D18"
+layers:
+  - depth: far
+    shapes:
+      - {layer: 0, fill: sky, outline: 0, path: "m -120 0 l 1200 0 l 1200 1920 l -120 1920"}
+      - {layer: 0, fill: moon, outline: 0, path: "m 244 470 b 244 505 215 534 180 534 b 145 534 116 505 116 470 b 116 435 145 406 180 406 b 215 406 244 435 244 470"}
+      - {layer: 0, fill: haze, outline: 0, alpha: "80", path: "m -120 690 l 1200 690 l 1200 960 l -120 960"}
+  - depth: mid
+    shapes:
+      - {layer: 1, fill: skyline, outline: 0, path: "m -120 960 l -120 600 l 40 600 l 40 520 l 210 520 l 210 660 l 330 660 l 330 560 l 470 560 l 470 700 l 640 700 l 640 540 l 800 540 l 800 620 l 930 620 l 930 480 l 1090 480 l 1090 640 l 1200 640 l 1200 960"}
+      - {layer: 1, fill: window, outline: 0, alpha: "30", path: "m 80 560 l 110 560 l 110 600 l 80 600"}
+      - {layer: 1, fill: window, outline: 0, alpha: "50", path: "m 860 580 l 890 580 l 890 610 l 860 610"}
+      - {layer: 1, fill: window, outline: 0, alpha: "30", path: "m 990 520 l 1020 520 l 1020 560 l 990 560"}
+  - depth: near
+    shapes:
+      - {layer: 2, fill: street, outline: 0, path: "m -120 960 l 1200 960 l 1200 1920 l -120 1920"}
+      - {layer: 2, fill: curb, outline: 0, path: "m -120 960 l 1200 960 l 1200 978 l -120 978"}
+      - {layer: 2, fill: lamp, outline: 0, alpha: "C8", path: "m 1110 470 b 1110 531 1061 580 1000 580 b 939 580 890 531 890 470 b 890 409 939 360 1000 360 b 1061 360 1110 409 1110 470"}
+      - {layer: 2, fill: post, outline: 0, path: "m 992 470 l 1008 470 l 1008 1000 l 992 1000"}
+      - {layer: 2, fill: lamp, outline: 3, path: "m 976 450 l 1024 450 l 1024 478 l 976 478"}

@@ -1,0 +1,42 @@
+# A records archive: tall shelves of boxes, a filing cabinet, a pale light shaft.
+# An original set made for this project (assets/LICENSES.md). Frame coordinates:
+# x -120 to 1200 (the drift margin), y 0 to 1920. Layers go back to front; within a
+# layer, list order is draw order. Paths are ASS drawing commands (m, l, b), RGB hex colours.
+name: archive
+outline_colour: outline
+palette:
+  outline: "0E0B0A"
+  wall: "25201F"
+  shelf: "1A1614"
+  box: "3A2E27"
+  shaft: "C9B48A"
+  floor: "15110F"
+  cabinet: "2B2420"
+  drawer: "352C26"
+  handle: "B89A68"
+layers:
+  - depth: far
+    shapes:
+      - {layer: 0, fill: wall, outline: 0, path: "m -120 0 l 1200 0 l 1200 1920 l -120 1920"}
+      - {layer: 0, fill: shelf, outline: 0, path: "m -120 280 l 330 280 l 330 960 l -120 960"}
+      - {layer: 0, fill: shelf, outline: 0, path: "m 750 280 l 1200 280 l 1200 960 l 750 960"}
+      - {layer: 0, fill: box, outline: 0, path: "m -120 440 l -120 340 l -20 340 l -20 360 l 90 360 l 90 330 l 200 330 l 200 370 l 310 370 l 310 440"}
+      - {layer: 0, fill: box, outline: 0, path: "m -120 640 l -120 560 l 30 560 l 30 530 l 160 530 l 160 570 l 310 570 l 310 640"}
+      - {layer: 0, fill: box, outline: 0, path: "m -120 840 l -120 750 l 60 750 l 60 770 l 220 770 l 220 740 l 310 740 l 310 840"}
+      - {layer: 0, fill: box, outline: 0, path: "m 770 440 l 770 350 l 900 350 l 900 330 l 1040 330 l 1040 370 l 1200 370 l 1200 440"}
+      - {layer: 0, fill: box, outline: 0, path: "m 770 640 l 770 540 l 880 540 l 880 570 l 1010 570 l 1010 530 l 1200 530 l 1200 640"}
+      - {layer: 0, fill: box, outline: 0, path: "m 770 840 l 770 760 l 950 760 l 950 740 l 1090 740 l 1090 770 l 1200 770 l 1200 840"}
+  - depth: mid
+    shapes:
+      - {layer: 1, fill: shaft, outline: 0, alpha: "E0", path: "m 620 0 l 820 0 l 700 960 l 380 960"}
+  - depth: near
+    shapes:
+      - {layer: 2, fill: floor, outline: 0, path: "m -120 960 l 1200 960 l 1200 1920 l -120 1920"}
+      - {layer: 2, fill: shaft, outline: 0, alpha: "D8", path: "m 870 1000 b 870 1025 722 1046 540 1046 b 358 1046 210 1025 210 1000 b 210 975 358 954 540 954 b 722 954 870 975 870 1000"}
+      - {layer: 2, fill: cabinet, outline: 3, path: "m 880 700 l 1110 700 l 1110 1000 l 880 1000"}
+      - {layer: 2, fill: drawer, outline: 2, path: "m 900 720 l 1090 720 l 1090 850 l 900 850"}
+      - {layer: 2, fill: drawer, outline: 2, path: "m 900 862 l 1090 862 l 1090 985 l 900 985"}
+      - {layer: 2, fill: handle, outline: 0, path: "m 970 778 l 1020 778 l 1020 790 l 970 790"}
+      - {layer: 2, fill: handle, outline: 0, path: "m 970 918 l 1020 918 l 1020 930 l 970 930"}
+      - {layer: 2, fill: box, outline: 3, path: "m -40 900 l 160 900 l 160 1000 l -40 1000"}
+      - {layer: 2, fill: box, outline: 3, path: "m -10 830 l 140 830 l 140 900 l -10 900"}

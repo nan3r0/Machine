@@ -1,0 +1,39 @@
+# A beach at night: moon over a dark sea, a lighthouse on a far headland.
+# An original set made for this project (assets/LICENSES.md). Frame coordinates:
+# x -120 to 1200 (the drift margin), y 0 to 1920. Layers go back to front; within a
+# layer, list order is draw order. Paths are ASS drawing commands (m, l, b), RGB hex colours.
+name: shore_night
+outline_colour: outline
+palette:
+  outline: "0A1219"
+  sky: "17243C"
+  halo: "9FB0CC"
+  moon: "E6E9F0"
+  sea: "102B38"
+  shine: "C9D3E0"
+  headland: "0B1620"
+  tower: "2C3747"
+  lamp: "F2D58A"
+  sand: "1D1F26"
+  foam: "3A4A58"
+  rock: "13171D"
+layers:
+  - depth: far
+    shapes:
+      - {layer: 0, fill: sky, outline: 0, path: "m -120 0 l 1200 0 l 1200 1920 l -120 1920"}
+      - {layer: 0, fill: halo, outline: 0, alpha: "D0", path: "m 350 420 b 350 492 292 550 220 550 b 148 550 90 492 90 420 b 90 348 148 290 220 290 b 292 290 350 348 350 420"}
+      - {layer: 0, fill: moon, outline: 0, path: "m 280 420 b 280 453 253 480 220 480 b 187 480 160 453 160 420 b 160 387 187 360 220 360 b 253 360 280 387 280 420"}
+      - {layer: 0, fill: sea, outline: 0, path: "m -120 780 l 1200 780 l 1200 960 l -120 960"}
+      - {layer: 0, fill: shine, outline: 0, alpha: "90", path: "m 170 800 l 270 800 l 270 812 l 170 812"}
+      - {layer: 0, fill: shine, outline: 0, alpha: "A8", path: "m 195 840 l 245 840 l 245 850 l 195 850"}
+  - depth: mid
+    shapes:
+      - {layer: 1, fill: headland, outline: 0, path: "m 760 800 l 830 730 l 960 712 l 1080 700 l 1200 690 l 1200 800"}
+      - {layer: 1, fill: lamp, outline: 0, alpha: "DC", path: "m 928 546 l 300 470 l 300 640"}
+      - {layer: 1, fill: tower, outline: 3, path: "m 928 560 l 962 560 l 974 716 l 916 716"}
+      - {layer: 1, fill: lamp, outline: 3, path: "m 926 538 l 964 538 l 964 560 l 926 560"}
+  - depth: near
+    shapes:
+      - {layer: 2, fill: sand, outline: 0, path: "m -120 960 l 1200 960 l 1200 1920 l -120 1920"}
+      - {layer: 2, fill: foam, outline: 0, alpha: "40", path: "m -120 960 l 1200 960 l 1200 984 l -120 984"}
+      - {layer: 2, fill: rock, outline: 3, path: "m -120 1000 l -60 900 l 40 880 l 120 930 l 150 1000"}

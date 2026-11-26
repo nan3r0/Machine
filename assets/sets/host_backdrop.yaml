@@ -1,0 +1,25 @@
+# The host's intro and outro backdrop: no place, a soft stepped spotlight and a floor.
+# An original set made for this project (assets/LICENSES.md). Frame coordinates:
+# x -120 to 1200 (the drift margin), y 0 to 1920. Layers go back to front; within a
+# layer, list order is draw order. Paths are ASS drawing commands (m, l, b), RGB hex colours.
+name: host_backdrop
+outline_colour: outline
+palette:
+  outline: "0E0C16"
+  back: "1E1A2E"
+  ring1: "2A2440"
+  ring2: "352D50"
+  ring3: "40375E"
+  floor: "15121F"
+  spot: "2A2440"
+layers:
+  - depth: far
+    shapes:
+      - {layer: 0, fill: back, outline: 0, path: "m -120 0 l 1200 0 l 1200 1920 l -120 1920"}
+      - {layer: 0, fill: ring1, outline: 0, path: "m 1060 640 b 1060 927 827 1160 540 1160 b 253 1160 20 927 20 640 b 20 353 253 120 540 120 b 827 120 1060 353 1060 640"}
+      - {layer: 0, fill: ring2, outline: 0, path: "m 920 640 b 920 850 750 1020 540 1020 b 330 1020 160 850 160 640 b 160 430 330 260 540 260 b 750 260 920 430 920 640"}
+      - {layer: 0, fill: ring3, outline: 0, path: "m 790 640 b 790 778 678 890 540 890 b 402 890 290 778 290 640 b 290 502 402 390 540 390 b 678 390 790 502 790 640"}
+  - depth: near
+    shapes:
+      - {layer: 1, fill: floor, outline: 0, path: "m -120 960 l 1200 960 l 1200 1920 l -120 1920"}
+      - {layer: 1, fill: spot, outline: 0, path: "m 840 1012 b 840 1036 706 1056 540 1056 b 374 1056 240 1036 240 1012 b 240 988 374 968 540 968 b 706 968 840 988 840 1012"}
