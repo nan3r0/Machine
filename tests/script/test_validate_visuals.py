@@ -19,10 +19,15 @@ SAMPLE = json.loads((ROOT / "queue" / "approved" / "sample-65s.json").read_text(
 DEMO = ROOT / "tests" / "fixtures" / "scripts" / "demo-data.json"
 
 
+def build(data: dict[str, Any]) -> Script:
+    # Script is strict, so dates must come in as JSON strings, the way the pipeline loads them.
+    return Script.model_validate_json(json.dumps(data))
+
+
 def with_visual(index: int, kind: str, data: dict[str, Any]) -> Script:
     scenes = [dict(s) for s in SAMPLE["scenes"]]
     scenes[index] = {**scenes[index], "visual": {"type": kind, "data": data}}
-    return Script.model_validate({**SAMPLE, "scenes": scenes})
+    return build({**SAMPLE, "scenes": scenes})
 
 
 def items(*pairs: tuple[str, str]) -> list[dict[str, str]]:
@@ -35,7 +40,7 @@ def problems_for(script: Script, scene: int, field: str) -> list[str]:
 
 def test_phase2_empty_data_stays_valid() -> None:
     scenes = [{**s, "visual": {"type": "story", "data": {}}} for s in SAMPLE["scenes"]]
-    assert validate.problems(Script.model_validate({**SAMPLE, "scenes": scenes})) == []
+    assert validate.problems(build({**SAMPLE, "scenes": scenes})) == []
 
 
 @pytest.mark.parametrize(
@@ -91,7 +96,7 @@ def test_data_scene_and_text_totals_are_capped() -> None:
     scenes = [dict(s) for s in SAMPLE["scenes"]]
     for i in range(c.VISUAL_DATA_SCENES_MAX + 1):
         scenes[i] = {**scenes[i], "visual": {"type": "chart", "data": {"items": items(("A", "1"))}}}
-    too_many = Script.model_validate({**SAMPLE, "scenes": scenes})
+    too_many = build({**SAMPLE, "scenes": scenes})
     assert any("data scenes" in p for p in validate.problems(too_many))
     label = "x" * c.VISUAL_LABEL_MAX_CHARS
     value = "1" * c.VISUAL_VALUE_MAX_CHARS
@@ -101,7 +106,7 @@ def test_data_scene_and_text_totals_are_capped() -> None:
             **scenes[i],
             "visual": {"type": "chart", "data": {"items": items(*[(label, value)] * 4)}},
         }
-    long_text = Script.model_validate({**SAMPLE, "scenes": scenes})
+    long_text = build({**SAMPLE, "scenes": scenes})
     assert 2 * 4 * (len(label) + len(value)) > c.VISUAL_TEXT_MAX_CHARS
     assert any("items" in p and str(c.VISUAL_TEXT_MAX_CHARS) in p for p in validate.problems(long_text))
 
@@ -112,7 +117,7 @@ def test_demo_fixture_is_valid() -> None:
 
 def test_acceptance() -> None:
     test_phase2_empty_data_stays_valid()
-    assert validate.problems(Script.model_validate(SAMPLE)) == []
+    assert validate.problems(build(SAMPLE)) == []
     test_demo_fixture_is_valid()
     test_bad_visual_named_by_scene_and_field("story", {"set": c.HOST_BACKDROP_SET}, "set")
     test_data_scene_and_text_totals_are_capped()
