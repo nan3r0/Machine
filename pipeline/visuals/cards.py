@@ -10,7 +10,11 @@ from pipeline.visuals.ass_kit import ass_colour, dialogue, text_event
 
 _LEFT, _TOP, _RIGHT, _BOTTOM = c.DATA_PANEL
 _MID_X = (_LEFT + _RIGHT) / 2
-_ROW_MAX = 190  # a row holds a wrapped label of about two lines plus its value
+_BADGE_X = _LEFT + 60
+_TEXT_X = _LEFT + 100  # label column starts right of the badge
+_COLUMN_PX = _RIGHT - _TEXT_X
+_CHAR_WIDTH = 0.6  # of the font size, bold, wide-ish estimate
+_ROW_MAX = 190
 _RING_COUNT = 3
 _POP_MS = 200
 _LAYER = c.ASS_LAYER_CARD + 1
@@ -46,25 +50,24 @@ def _rows(items: list[tuple[str, str]], start: float, end: float, dots: bool) ->
     accent = c.CARD_ACCENT_RGB
     for k, (label, value) in enumerate(items):
         t, y = start + k * step, _TOP + row * (k + 0.5)
+        label_part = (label, c.CARD_LABEL_FONT_SIZE, c.CARD_TEXT_RGB)
         if dots:
-            evs.append(_drawing(t, end, _LAYER, (_LEFT + 60, y), accent, _circle(18), _pop()))
-            if value:
-                evs.append(text_event(value, t, end, _LAYER, (_MID_X, y - row * 0.25),
-                                      c.CARD_FONT_SIZE, accent, _pop()))
-            label_y = y + (row * 0.2 if value else 0)
+            evs.append(_drawing(t, end, _LAYER, (_BADGE_X, y), accent, _circle(18), "\\an5" + _pop()))
+            parts, offsets = [(value, c.CARD_FONT_SIZE, accent), label_part], (-0.28, 0.22)
         else:
-            evs.append(text_event(str(k + 1), t, end, _LAYER, (_LEFT + 60, y), c.CARD_FONT_SIZE,
+            evs.append(text_event(str(k + 1), t, end, _LAYER, (_BADGE_X, y), c.CARD_FONT_SIZE,
                                   accent, _pop()))
-            if value:
-                evs.append(text_event(value, t, end, _LAYER, (_MID_X, y + row * 0.3),
-                                      c.CARD_LABEL_FONT_SIZE, accent, _pop()))
-            label_y = y
-        evs.append(text_event(label, t, end, _LAYER, (_MID_X, label_y), c.CARD_LABEL_FONT_SIZE,
-                              c.CARD_TEXT_RGB, _pop()))
+            parts, offsets = [label_part, (value, c.CARD_LABEL_FONT_SIZE, accent)], (-0.22, 0.25)
+        shown = [(part, off) for part, off in zip(parts, offsets, strict=True) if part[0]]
+        for (text, size, rgb), off in shown:
+            size = min(size, int(_COLUMN_PX / (len(text) * _CHAR_WIDTH)))
+            dy = row * off if len(shown) > 1 else 0
+            evs.append(text_event(text, t, end, _LAYER, (_TEXT_X, y + dy), size, rgb,
+                                  "\\an4" + _pop()))
     if dots:
         length = int(row * (len(items) - 1))
         line = f"m 0 0 l 6 0 6 {length} 0 {length}"
-        evs.insert(1, _drawing(start, end, c.ASS_LAYER_CARD, (_LEFT + 57, _TOP + row * 0.5),
+        evs.insert(1, _drawing(start, end, c.ASS_LAYER_CARD, (_BADGE_X - 3, _TOP + row * 0.5),
                                c.CARD_TEXT_RGB, line))
     return evs
 
@@ -85,16 +88,17 @@ def place_events(items: list[tuple[str, str]], start: float, end: float) -> list
     """A pin with sonar rings, the single item's label (the place) and its value if not empty."""
     label, value = items[0]
     pin = (_MID_X, _TOP + 200)
-    evs = [_panel(start, end), _drawing(start, end, _LAYER, pin, c.CARD_ACCENT_RGB, _circle(24), _pop())]
+    evs = [_panel(start, end), _drawing(start, end, _LAYER, pin, c.CARD_ACCENT_RGB, _circle(24),
+                                            "\\an5" + _pop())]
     ring_ms = round((end - start) * 1000 / _RING_COUNT)
     for k in range(_RING_COUNT):
         t = start + k * (end - start) / _RING_COUNT
-        grow = (f"\\1a&HFF&\\3c{ass_colour(c.CARD_ACCENT_RGB)}\\bord4"
+        grow = (f"\\an5\\1a&HFF&\\3c{ass_colour(c.CARD_ACCENT_RGB)}\\bord4"
                 f"\\t(0,{ring_ms},\\fscx400\\fscy400\\3a&HFF&)")
         evs.append(_drawing(t, end, _LAYER, pin, c.CARD_ACCENT_RGB, _circle(24), grow))
     evs.append(text_event(label, start, end, _LAYER, (_MID_X, _TOP + 420), c.CARD_FONT_SIZE,
                           c.CARD_TEXT_RGB, _pop()))
     if value:
-        evs.append(text_event(value, start, end, _LAYER, (_MID_X, _TOP + 540),
+        evs.append(text_event(value, start, end, _LAYER, (_MID_X, _TOP + 580),
                               c.CARD_LABEL_FONT_SIZE, c.CARD_ACCENT_RGB, _pop()))
     return evs

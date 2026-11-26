@@ -9,6 +9,13 @@ done (no heavy test in this task; skipped heavy tests elsewhere in the suite are
 ## What changed (and why)
 - `pipeline/visuals/cards.py`: `steps_events`, `timeline_events`, `place_events`. Shared `_rows` builds panel + staggered rows (number or dot, label, value). Place card: pin, three staggered sonar rings (scale and fade via `\t`), place name, optional value. All events use layer ASS_LAYER_CARD or +1, `\pos` inside DATA_PANEL, times inside the window. Labels use CARD_STYLE text_event so long labels wrap within the panel margins.
 
+## Review round 1 fixes
+- Labels and values left-aligned (`\an4`) at x=180, right of the badge (x=140); font shrinks so a label fits the 720 px column (no wrap, no overlap).
+- Value placed from fixed row offsets around the label, not `y + 0.3*row`.
+- Place value moved to `_TOP + 580`.
+- Dot, pin and rings use `\an5` so they centre on `\pos` and scale about their centre.
+- Regression test needs a locked test file: proposed in `CONTRACT_CHANGE.md`, not added. Stopped there.
+
 ## Decisions made
 - Signatures keep the locked stub (items, start, end); no palette parameter, colours come from the CARD_*_RGB constants.
 - Panel, dots, line and rings are raw drawings via `ass_kit.dialogue` (shape_event needs art Shape objects, not worth it for primitives).
