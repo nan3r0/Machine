@@ -22,7 +22,7 @@ partial, awaiting the owner's still-sheet approval (round 1).
 - **Throwaway branch only:**
   - `spike/draw_host.py`: the authoring helper that writes `host.yaml` (arm geometry from angles, mirrored left and right parts, the bounding-box shift). The YAML is the asset; this only saves hand maths. Keep it on the spike branch for the next round.
   - `spike/sheet.py`: checks the asset (colour keys resolve, poses name real variants, paths parse, every point and anchor inside the box), then renders with libass on a plain two-tone backdrop with a sample caption at y 1230.
-  - `.github/workflows/render.yml`: overridden to install FFmpeg and PyYAML 6.0.3 and run the sheet (the same pattern as p3-spike; the file is outside `paths_allowed`, which is why it lives only on the throwaway branch).
+  - `.github/workflows/render.yml`: overridden to install FFmpeg and PyYAML (the hash-pinned 6.0.4 block of `requirements-render.txt`, `--require-hashes`) and run the sheet (the same pattern as p3-spike; the file is outside `paths_allowed`, which is why it lives only on the throwaway branch).
 
 ## Design (originality)
 No owner reference set is in the repo, so the comparison against the owner's references has not been done. **The owner does it on the sheet, and that check is part of the approval.**
@@ -63,7 +63,7 @@ What the design was built from, and what it avoids:
 - **Resemblance** (above): the owner's reference check is still open.
 - **`size` is the bounding box of path points;** outlines reach up to 6 px past it. Placement leaves room for that.
 - **Shape count:** a pose is 41 to 45 shapes, against about 20 for the spike host. Each shape is one event per animation segment, so p3-character should keep segments long or merge static parts. The timed heavy test from p3-spike catches a slow render.
-- **`render.yml` on the spike branch** pins setup-python by SHA but installs PyYAML by version, not hash. Acceptable for a throwaway branch that has no secrets and no write token.
+- **`render.yml` on the spike branch** was not run through actionlint locally (not installed); it parses as YAML and the PyYAML extract was checked against `requirements-render.txt` (76 lines, all hashes). A red run shows in the Actions log.
 
 ## Next step
 1. Owner: steps 1 to 4 above.
@@ -82,4 +82,5 @@ What the design was built from, and what it avoids:
 - `yaml.safe_load` of `host.yaml` gives the keys listed above.
 - Local Pillow preview of all 6 poses, 5 mouths and the closed eyes was viewed (rough, not libass).
 - `python tests/docs_check.py`: passed. `pytest .harness/tests -q`: 90 passed.
+- Spike branch commit `14e7077` (then the merge of this commit); `git show HEAD:assets/character/host.yaml | sha256sum` matches the LICENSES row.
 - No FFmpeg run locally (CLAUDE.md); the runner render is the owner step.
