@@ -56,21 +56,24 @@ def parse_loudnorm_json(stderr: str) -> dict[str, str]:
 
 
 def build_ffmpeg_args(voice: Path, captions: Path, out: Path, fonts_dir: Path,
-                      measured: dict[str, str] | None = None) -> list[str]:
+                      measured: dict[str, str] | None = None, *,
+                      scenes: Path | None = None) -> list[str]:
     """Return the FFmpeg argument list for the main render, starting with "ffmpeg".
 
     Solid BACKGROUND_COLOR at WIDTH x HEIGHT and FPS, captions burned in with the subtitles
     filter (fonts from `fonts_dir`), libx264 with yuv420p, AAC audio normalised with loudnorm to
     LOUDNESS_LUFS, `-hide_banner -loglevel error`, and `out` as the last argument. The video ends
     with the voice. With `measured` (from `parse_loudnorm_json`) loudnorm runs as pass 2 in linear
-    mode, which lands on the target; without it, single pass.
+    mode, which lands on the target; without it, single pass. With `scenes` (an .ass file), it is
+    burned in first, so the captions sit on top of it.
     """
     loudnorm = _loudnorm_target()
     if measured:
         loudnorm += "".join(f":{option}={value}" for option, value in measured.items())
         loudnorm += ":linear=true"
-    subtitles = (f"subtitles=filename={subtitles_filter_value(captions)}"
-                 f":fontsdir={_quote_filter_arg(fonts_dir)}")
+    fontsdir = f":fontsdir={_quote_filter_arg(fonts_dir)}"
+    layers = ([scenes] if scenes else []) + [captions]
+    subtitles = ",".join(f"subtitles=filename={subtitles_filter_value(layer)}{fontsdir}" for layer in layers)
     size = f"{constants.WIDTH}x{constants.HEIGHT}"
     background = f"color=c={constants.BACKGROUND_COLOR}:s={size}:r={constants.FPS}"
     return [
@@ -86,20 +89,22 @@ def build_ffmpeg_args(voice: Path, captions: Path, out: Path, fonts_dir: Path,
     ]
 
 
-def compose(voice: Path, captions: Path, out: Path, fonts_dir: Path, log_path: Path) -> Path:
-    """Render `out` from `voice` and `captions` and return `out`.
+def compose(voice: Path, captions: Path, out: Path, fonts_dir: Path, log_path: Path, *,
+            scenes: Path | None = None) -> Path:
+    """Render `out` from `voice`, `captions` and the optional `scenes` .ass, and return `out`.
 
     FFmpeg's full stderr goes to `log_path` (parent folders created). Raises ComposeError, with
     the stderr tail in the message, if an input is missing, FFmpeg exits non-zero or `out` is
     missing or empty afterwards.
     """
-    for name in (voice, captions):
+    for name in (voice, captions, *([scenes] if scenes else [])):
         if not name.is_file():
             raise ComposeError(f"input missing: {name}")
     log_path.parent.mkdir(parents=True, exist_ok=True)
     log_path.write_text("", encoding="utf-8")
     measured = parse_loudnorm_json(_run_ffmpeg(build_measure_args(voice), log_path))
-    render_log = _run_ffmpeg(build_ffmpeg_args(voice, captions, out, fonts_dir, measured), log_path)
+    render_log = _run_ffmpeg(build_ffmpeg_args(voice, captions, out, fonts_dir, measured, scenes=scenes),
+                              log_path)
     if not out.is_file() or out.stat().st_size == 0:
         raise ComposeError(f"ffmpeg wrote no output at {out}:\n{_tail(render_log)}")
     return out

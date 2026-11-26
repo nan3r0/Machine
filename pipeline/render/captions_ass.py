@@ -4,6 +4,7 @@ from pipeline.constants import (
     CAPTION_FONT_NAME,
     CAPTION_FONT_SIZE,
     CAPTION_MAX_WORDS_PER_LINE,
+    CAPTION_POS_Y,
     HEIGHT,
     SAFE_LEFT_PX,
     SAFE_RIGHT_PX,
@@ -17,7 +18,7 @@ WHITE = "&H00FFFFFF"
 HIGHLIGHT = "&H0000FFFF"
 BLACK = "&H00000000"
 POS_X = (SAFE_LEFT_PX + SAFE_RIGHT_PX) / 2
-POS_Y = HEIGHT / 2
+POS_Y = CAPTION_POS_Y
 # Zero-width space: stops a backslash from forming a control code (\N, \n, \h) with the next character.
 ZWSP = "​"
 
