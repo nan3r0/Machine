@@ -14,6 +14,9 @@ notes: |
     scene's.
   - `build_scenes_ass(script, timings) -> str`: each scene's set with its camera; the character
     in story scenes; in data scenes, the data card with the character hidden and the set dimmed.
+  - Host intro and outro: the hook span (max 5 s) and the closing span show the host on the
+    `HOST_BACKDROP_SET` backdrop, with the 0.5 s transition before the story scenes. The
+    tests fake `art.load_set`.
   Trusts validated input. The only file reads are the art loaders in art.py.
 paths_allowed:
   - pipeline/visuals/router.py

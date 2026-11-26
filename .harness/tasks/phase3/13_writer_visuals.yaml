@@ -12,6 +12,8 @@ notes: |
   - A scene whose visual breaks a validate rule falls back to the plan's defaults in code: no
     GenerateError, no extra call.
   - rewrite_line keeps the visual.
+  - A data scene beyond `VISUAL_DATA_SCENES_MAX` (3 a script) falls back to a story scene in
+    code, with the same no-call rule.
   - Update the docstrings.
   The existing generate and prompt_data tests must keep passing (not listed under `tests`).
 paths_allowed:

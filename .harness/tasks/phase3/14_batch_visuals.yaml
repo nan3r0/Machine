@@ -8,8 +8,8 @@ notes: |
     (`_code`).
   - After any rewrite, `exact.unsupported` checks each item's label and value against that
     scene's cited facts. A miss becomes a Flag naming the scene and the missing values, and
-    (p3-plan D4) replaces the scene's data with a story scene, keeping its set. There is no
-    Gemini call and no stop.
+    (p3-plan D4) replaces the scene's data with a story scene, keeping its set (`{"set": ...}`
+    only). There is no Gemini call and no stop.
   - The PR body stays under PR_BODY_MAX_CHARS at every cap (locked arithmetic test).
   The existing batch tests must keep passing (not listed under `tests`).
 paths_allowed:
