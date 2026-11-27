@@ -393,3 +393,30 @@ How it was caught: CI on the task PR.
 Fix: the contracts commit went to main first as its own PR, then main was merged into the task branch.
 Rule going forward: the contracts commit (task YAML, locked tests, and empty import stubs so the tests collect; conftest skips them until the task is done) merges to main before the implementer starts. Merge main into the task branch, never rebase.
 Test added: none (process rule).
+
+### 2026-11-26: ASS override tags written as plain Python strings reached libass as control bytes
+
+What happened: p3-charts built tags like "\an5", "\alpha&HFF&\t(...)" and "\an7\fscx1\t(...)" as ordinary Python strings. Python read \a as BEL, \f as form feed and \t as TAB, so libass would have received control characters: bars never grow, labels lose their alignment, pop-ins vanish.
+Why it happened (root cause, not symptom): ruff does not flag valid escapes, and the locked layout tests read only the shown text and \pos, never the tags.
+How it was caught: the Gate 2 reviewer and visual QA, both by reading the code.
+Fix: double backslashes (or reuse cards._pop), and a regression test on a plan branch (PR #200).
+Rule going forward: build ASS tags with doubled backslashes or raw strings. Every layout task needs a test that no event text has a character below 0x20 and that the expected tags appear.
+Test added: `tests/visuals/test_charts.py::test_override_tags_reach_libass`.
+
+### 2026-11-26: card text fit was guessed instead of measured
+
+What happened: p3-cards sized label text with a 0.6 em average character width. An all-caps 24-character label ran past the panel edge, and two review rounds were spent before the width was measured.
+Why it happened (root cause, not symptom): capitals in Montserrat Bold average about 0.735 em and the widest ("A") is 0.756 em, so a guess based on lowercase text is too small.
+How it was caught: Gate 2 round 2 by geometry, then confirmed by measuring the font with Pillow.
+Fix: width estimate 0.76 em, one shared fit helper, and tests with all-caps labels (PR #197).
+Rule going forward: measure text widths from the real font file, and test the widest valid input (all capitals at the length cap).
+Test added: `tests/visuals/test_cards.py::test_long_label_fits_between_badge_and_panel_edge`.
+
+### 2026-11-26: tests added during review need to reach main before the task branch
+
+What happened: p3-cards and p3-charts needed regression tests in locked files, so their scope checks failed on the task branch.
+Why it happened (root cause, not symptom): CI reads locks and task YAML from main, and implementers may not edit locked tests.
+How it was caught: the scope check on the task PR.
+Fix: the Architect rules on CONTRACT_CHANGE.md and the test goes on a `plan/<id>-tests` branch that merges to main first; then main is merged into the task branch.
+Rule going forward: do this for every locked-test addition from review.
+Test added: none (process rule).

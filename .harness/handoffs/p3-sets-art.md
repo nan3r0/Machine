@@ -4,7 +4,7 @@
 Draw the six starting sets (D13) and the generic host backdrop as flat layered art in `assets/sets/`, log them in `assets/LICENSES.md`, and get the owner's approval from stills rendered with the host on the runner (p3-plan "Sets", owner mascot addendum 2026-11-26).
 
 ## Status
-partial, awaiting the owner's approval of the runner stills. The assets pass `tests/visuals/test_sets_art.py` locally; nobody has seen them in libass yet.
+done. The owner approved the runner stills on 2026-11-26 (PR #199) and the spike branch is deleted. The assets pass `tests/visuals/test_sets_art.py`.
 - Task branch `task/p3-sets-art`: `9d3d477` has the 7 YAMLs and the licence rows. This handoff is the commit after it. Committed, not pushed.
 - Throwaway branch `spike/p3-sets-stills` at `84ffb9f` (task commit `9d3d477` plus the stills script and a `render.yml` override). Committed, not pushed, never merged.
 
@@ -44,7 +44,7 @@ partial, awaiting the owner's approval of the runner stills. The assets pass `te
 What visual QA should check on the stills: no black edge at either side in `pushin_NN` and `panleft_NN`; the host's feet sit on the floor (not floating above its top edge) in both `start_NN` and `pushin_NN`; the caption reads clearly on every set; the host's dark outline and hair stand out from what is behind the head.
 
 ## Decisions made
-- **One layout for every set.** The floor's top edge is at y 960 everywhere, so the host's feet (y 1020, `HOST_GROUND_Y`) stand on it. Everything below that is a dark flat floor, so the caption band (y 1048 to about 1430) sits on a plain dark field.
+- **One shared floor layout.** The floor's top edge is at y 960, except desert_rail, whose ground starts at y 880. The host's feet (y 1020, `HOST_GROUND_Y`) stand on the floor either way. Everything below the floor edge is a dark flat floor, so the caption band (y 1048 to about 1430) sits on a plain dark field.
 - **Behind the head is mid-dark, never near-black.** The host's outline and hair are near-black purple, so each set puts a softer value behind the head (moon glow, haze, light cone, rings).
 - **Cool dark hues.** Each set has its own hue (indigo, dusk purple, plum, navy, deep green, brown) so two videos on similar topics look different (PLAN.md section 11). Warm accents are small and low-contrast. The host's orange coat stays the brightest thing on screen.
 - **Soft bands, no gradients.** Haze, glow and fog are flat shapes at an ASS alpha of 60 to D8. A gradient would need new tools.
@@ -64,7 +64,7 @@ What visual QA should check on the stills: no black edge at either side in `push
 - **Local test env.** A stray `tests/__init__.py` in the global site-packages (`...\Python311\Lib\site-packages\tests\`) shadows the repo's `tests/` namespace, so a plain local `pytest` fails to collect 63 modules that import `tests.*`. It does not come from this branch and does not affect CI. A workaround that seeds the namespace first is in Evidence.
 
 ## Next step
-Owner runs the stills (Owner steps above) and approves or asks for changes. After approval: visual QA on the stills, Gate 2, merge `task/p3-sets-art`, and delete the spike branch.
+None. Approved 2026-11-26; the push-in and negative-x checks move to the M1 render (backlog).
 
 ## Docs
 - `assets/LICENSES.md`: done in this task.
