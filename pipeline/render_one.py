@@ -19,7 +19,7 @@ from pipeline.render import captions_ass, compose, qa
 from pipeline.schema import QAReport, Script
 from pipeline.script import validate
 from pipeline.visuals import router
-from pipeline.voice import align, kokoro
+from pipeline.voice import align, kokoro, levels
 
 DEFAULT_CACHE_DIR = Path(".cache/models")
 
@@ -49,7 +49,8 @@ def render(script_path: Path, out_dir: Path, cache_dir: Path) -> QAReport:
     kokoro.synthesize(script.narration_text(), voice_path, cache_dir)
     timings = align.align_words(voice_path, script.narration_text(), cache_dir)
     captions_path.write_text(captions_ass.build_ass(timings), encoding="utf-8")
-    scenes_path.write_text(router.build_scenes_ass(script, timings), encoding="utf-8")
+    voice_levels = levels.voice_levels(voice_path)
+    scenes_path.write_text(router.build_scenes_ass(script, timings, levels=voice_levels), encoding="utf-8")
     compose.compose(
         voice_path,
         captions_path,

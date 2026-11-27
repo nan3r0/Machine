@@ -139,7 +139,7 @@ def build_scenes_ass(script: Script, timings: list[WordTiming], *,
             fade = c.HOST_TRANSITION_S if sp.kind == "outro" else 0.0
             lines += set_events(load(c.HOST_BACKDROP_SET), sp.start, end, "still", fade_in=fade)
             pose = c.HOST_INTRO_POSE if sp.kind == "intro" else c.HOST_OUTRO_POSE
-            lines += host_events(host, sp.start, end, pose, timings)
+            lines += host_events(host, sp.start, end, pose, timings, levels=levels)
             continue
         plan = plans[sp.index]
         fade = c.HOST_TRANSITION_S if sp.index == 0 else c.SCENE_FADE_S
@@ -148,5 +148,5 @@ def build_scenes_ass(script: Script, timings: list[WordTiming], *,
         if data:
             lines += _CARDS[plan.layout](list(plan.items), sp.start, end)
         else:
-            lines += host_events(host, sp.start, end, plan.pose, timings)
+            lines += host_events(host, sp.start, end, plan.pose, timings, levels=levels)
     return header() + "\n".join(lines) + "\n"
