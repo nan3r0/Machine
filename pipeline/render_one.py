@@ -3,9 +3,10 @@
 Usage: python -m pipeline.render_one SCRIPT_JSON OUT_DIR [--cache-dir DIR]
 
 Wiring only. Steps are called through their modules (`kokoro.synthesize`, `align.align_words`,
-`captions_ass.build_ass`, `compose.compose`, `qa.run_qa`), never imported by name, so tests can
-replace them with fakes. `--cache-dir` (default DEFAULT_CACHE_DIR) holds the model weights for
-both voice and alignment; the Actions workflow caches it between runs.
+`captions_ass.build_ass`, `router.build_scenes_ass`, `compose.compose`,
+`qa.run_qa`), never imported by name, so tests can replace them with fakes. `--cache-dir`
+(default DEFAULT_CACHE_DIR) holds the model weights for both voice and alignment; the Actions
+workflow caches it between runs.
 """
 
 import argparse
@@ -17,6 +18,7 @@ from pipeline.constants import FONTS_DIR
 from pipeline.render import captions_ass, compose, qa
 from pipeline.schema import QAReport, Script
 from pipeline.script import validate
+from pipeline.visuals import router
 from pipeline.voice import align, kokoro
 
 DEFAULT_CACHE_DIR = Path(".cache/models")
@@ -29,7 +31,7 @@ class ScriptRejected(Exception):
 def render(script_path: Path, out_dir: Path, cache_dir: Path) -> QAReport:
     """Validate the script, then voice, align, captions, compose and QA.
 
-    Writes voice.wav, captions.ass, final.mp4 and qa.json to `out_dir` (created if missing), and
+    Writes voice.wav, captions.ass, scenes.ass, final.mp4 and qa.json to `out_dir` (created if missing), and
     FFmpeg's log to `out_dir/logs/compose.log`. qa.json is written whether QA passes or fails.
     Raises pydantic.ValidationError for an invalid script before any step runs, and lets step
     errors (VoiceError, AlignError, ComposeError) propagate.
@@ -41,12 +43,21 @@ def render(script_path: Path, out_dir: Path, cache_dir: Path) -> QAReport:
     out_dir.mkdir(parents=True, exist_ok=True)
     voice_path = out_dir / "voice.wav"
     captions_path = out_dir / "captions.ass"
+    scenes_path = out_dir / "scenes.ass"
     video_path = out_dir / "final.mp4"
 
     kokoro.synthesize(script.narration_text(), voice_path, cache_dir)
     timings = align.align_words(voice_path, script.narration_text(), cache_dir)
     captions_path.write_text(captions_ass.build_ass(timings), encoding="utf-8")
-    compose.compose(voice_path, captions_path, video_path, Path(FONTS_DIR), out_dir / "logs" / "compose.log")
+    scenes_path.write_text(router.build_scenes_ass(script, timings), encoding="utf-8")
+    compose.compose(
+        voice_path,
+        captions_path,
+        video_path,
+        Path(FONTS_DIR),
+        out_dir / "logs" / "compose.log",
+        scenes=scenes_path,
+    )
     report = qa.run_qa(video_path, voice_path, timings, script.narration_words())
     (out_dir / "qa.json").write_text(report.model_dump_json(indent=2), encoding="utf-8")
     return report
