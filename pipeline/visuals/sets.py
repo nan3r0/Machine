@@ -34,10 +34,12 @@ def set_events(art: SetArt, start: float, end: float, camera: str, dim: bool = F
     """Dialogue lines drawing every shape of `art` from `start` to `end`.
 
     - Each shape is one event spanning the window, on ASS layer ASS_LAYER_SET plus its layer's
-      index (back to front), moved with `\\move(x0,y,x1,y)` where x1 - x0 is
-      drift_px(depth, camera, end - start).
-    - push_in adds `\\org(WIDTH/2,HEIGHT/2)` and a `\\t(` to `\\fscx` and `\\fscy` of
-      PUSH_IN_SCALE * 100 over the window; other cameras do not scale.
+      index (back to front), moved with `\\move(0,0,dx,0)`, dx = drift_px(depth, camera, end - start).
+    - push_in adds a `\\t(` over the whole window to `\\fscx` and `\\fscy` of PUSH_IN_SCALE * 100.
+      libass scales a drawing about its `\\pos`/`\\move` point (`\\org` only moves the rotation
+      centre), so push_in moves that point from (0,0) to (dx + WIDTH/2 * (1 - S), HEIGHT/2 * (1 - S)),
+      S = PUSH_IN_SCALE: the frame centre stays put (plus the drift) instead of the set growing down
+      and right from its top-left corner. Other cameras do not scale.
     - With `dim`, a full-frame black shape at alpha SET_DIM_ALPHA on ASS_LAYER_DIM.
     - With `fade_in` > 0, a full-frame black shape on ASS_LAYER_FADE starting at `start` with
       `\\fad(0,<fade_in in ms>)`.

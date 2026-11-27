@@ -1,6 +1,7 @@
 """The host character as ASS events (task p3-character). Pure functions, no IO."""
 
 import math
+from collections.abc import Sequence
 
 from pipeline import constants as c
 from pipeline.schema import WordTiming
@@ -48,7 +49,7 @@ def _blinking(t: float, start: float) -> bool:
 
 
 def host_events(art: HostArt, start: float, end: float, pose: str,
-                timings: list[WordTiming]) -> list[str]:
+                timings: list[WordTiming], *, levels: Sequence[float] | None = None) -> list[str]:
     """Dialogue lines (ass_kit) drawing the host in `pose` from `start` to `end` seconds.
 
     - Every event lies inside [start, end]. Shapes use SHAPE_STYLE on ASS layer
@@ -57,9 +58,19 @@ def host_events(art: HostArt, start: float, end: float, pose: str,
     - Body and the pose's arms show for the whole window. The bob is always on: positions move
       on IDLE_HALF_CYCLE_S half-cycles. Only `wave` swings its right arm, by ARM_SWING_DEG about
       the `shoulder_right` anchor.
-    - Mouth: while a word of `timings` inside the window is spoken, a talking mouth other than
-      "rest" shows (changing word to word through art.talking_mouths); between words the pose's
-      own mouth shows. Exactly one mouth shows at any time.
+    - Mouth (lip flap, p3b-plan): exactly one mouth shows at any time. `levels[i]` is the voice's
+      loudness (0 to 1, voice_levels) over [i, i + 1) * MOUTH_WINDOW_S; past its end the level is 0.
+      With `levels` None a window's level is 1 if its midpoint is inside a word span, else 0.
+      A state machine over those windows decides the mouth:
+      - Closed outside the narration [timings[0].start, timings[-1].end] whatever the level.
+        Closed shows the pose's mouth if it is in HOST_CLOSED_MOUTHS, else "rest".
+      - Closed opens at a level >= MOUTH_OPEN_LEVEL; open closes below MOUTH_CLOSE_LEVEL.
+      - An open mouth closes for MOUTH_HOLD_S once it has been open MOUTH_OPEN_MAX_S.
+      - No mouth state (closed or one open shape) shows for less than MOUTH_HOLD_S.
+      - The open shape is the first MOUTH_SHAPES entry whose level the window reaches.
+      Mouth events are cut only where the mouth changes and on bob half-cycles, not the body:
+      the body, eyes, brows and arms are not re-cut at mouth changes. At any moment every host
+      shape sits at the same bob height.
     - Eyes: the pose's eyes, except closed for BLINK_S at start + BLINK_FIRST_S + k * BLINK_EVERY_S.
       Exactly one eyes variant shows at any time. No randomness: same input, same output.
     Raises ValueError for a pose not in art.poses or end < start.

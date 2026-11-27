@@ -7,6 +7,7 @@ called through the `art` module so tests can replace them.
 """
 
 import re
+from collections.abc import Sequence
 from dataclasses import dataclass
 from typing import Literal
 
@@ -109,8 +110,11 @@ _CARDS = {
 
 
 
-def build_scenes_ass(script: Script, timings: list[WordTiming]) -> str:
+def build_scenes_ass(script: Script, timings: list[WordTiming], *,
+                     levels: Sequence[float] | None = None) -> str:
     """The complete scenes.ass: ass_kit.header() then events, back to front.
+
+    `levels` (voice_levels of voice.wav) goes unchanged to every host_events call as `levels`.
 
     - Intro and outro spans: HOST_BACKDROP_SET (camera still) and the host in HOST_INTRO_POSE
       or HOST_OUTRO_POSE, talking on the words inside the span.

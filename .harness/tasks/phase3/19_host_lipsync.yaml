@@ -1,0 +1,36 @@
+id: p3b-host-lipsync
+title: Host lip flap from voice loudness - closed in silence and between syllables
+depends_on: [p3-character]
+role: implementer
+notes: |
+  Owner 2026-11-27: the mouth stays open too long and looks random. Design and evidence in
+  .harness/handoffs/p3b-plan.md. Implement the mouth rules in the `host_events` docstring
+  (the `levels` keyword is already in the signature as a stub):
+  - A deterministic state machine over MOUTH_WINDOW_S windows: closed, or one open shape from
+    MOUTH_SHAPES. Opens at MOUTH_OPEN_LEVEL, closes below MOUTH_CLOSE_LEVEL, closes for
+    MOUTH_HOLD_S after MOUTH_OPEN_MAX_S open, every state lasts at least MOUTH_HOLD_S, closed
+    outside [timings[0].start, timings[-1].end]. `levels=None` uses 1 inside word spans.
+  - Closed shows the pose's mouth when it is in HOST_CLOSED_MOUTHS, else "rest" (so wave,
+    point and surprised no longer hold an open mouth through pauses and the outro tail).
+  - Event count: scenes.ass is already about 15k lines. Do not re-cut the body, eyes, brows and
+    arms at mouth changes. Emit the mouth as its own runs, cut at mouth changes and bob
+    half-cycles, each with its own bob `\move`, so every shape stays at one bob height. Body
+    segments stop being cut at word edges.
+  Keep blinks, bob and the wave arm as they are. Update the docstring only if the behaviour
+  needs a clearer word, never to loosen it.
+paths_allowed:
+  - pipeline/visuals/character.py
+tests:
+  - tests/visuals/test_host_lipsync.py
+acceptance: tests/visuals/test_host_lipsync.py::test_acceptance
+context_files:
+  - .harness/handoffs/p3b-plan.md
+  - .harness/handoffs/p3-character.md
+  - pipeline/visuals/character.py
+  - pipeline/visuals/ass_kit.py
+  - pipeline/visuals/art.py
+  - pipeline/constants.py
+  - assets/character/host.yaml
+  - tests/visuals/test_host_lipsync.py
+  - tests/visuals/test_character.py
+max_turns: 40
