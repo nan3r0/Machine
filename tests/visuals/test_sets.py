@@ -70,7 +70,8 @@ def test_every_shape_moves_by_its_drift(camera: str) -> None:
         assert (e.start, e.end) == (10.0, 17.0)
         depth = next(layer.depth for layer in ART.layers if drawing(e.text) in {s.path for s in layer.shapes})
         x0, y0, x1, y1 = move(e.text)  # type: ignore[misc]
-        assert x1 - x0 == pytest.approx(sets.drift_px(depth, camera, 7.0), abs=0.5) and y0 == y1
+        if camera != "push_in":  # push_in also moves the scale anchor: tests/visuals/test_push_in.py
+            assert x1 - x0 == pytest.approx(sets.drift_px(depth, camera, 7.0), abs=0.5) and y0 == y1
     far = [e.layer for e in shapes if drawing(e.text) in {s.path for s in ART.layers[0].shapes}]
     near = [e.layer for e in shapes if drawing(e.text) in {s.path for s in ART.layers[1].shapes}]
     assert c.ASS_LAYER_SET <= max(far) < min(near) < c.ASS_LAYER_DIM
@@ -80,7 +81,8 @@ def test_push_in_is_centred_and_other_cameras_do_not_scale() -> None:
     scale = f"\\fscx{c.PUSH_IN_SCALE * 100:g}"
     for e in events(sets.set_events(ART, 0, 7, "push_in")):
         if drawing(e.text) in SHAPE_PATHS:
-            assert f"\\org({c.WIDTH // 2},{c.HEIGHT // 2})" in e.text and "\\t(" in e.text and scale in e.text
+            # No \org check: \org is only the rotation centre. Centring is in test_push_in.py.
+            assert "\\t(" in e.text and scale in e.text
     for camera in ("still", "pan_left", "pan_right"):
         assert not any("\\t(" in e.text for e in events(sets.set_events(ART, 0, 7, camera)))
 

@@ -1,0 +1,32 @@
+id: p3b-lipsync-wiring
+title: Read voice.wav loudness and pass it through the router to the host
+depends_on: [p3b-host-lipsync, p3-wiring]
+role: implementer
+notes: |
+  Starts only after PR #206 (p3-wiring) is merged, because render_one on main does not build
+  scenes.ass yet. Design in .harness/handoffs/p3b-plan.md.
+  - `pipeline/voice/levels.py`: implement `voice_levels` (stub in place) with stdlib `wave` and
+    numpy (both approved, spec.md section 7). No new dependency.
+  - `router.build_scenes_ass` already takes `levels=` (stub); pass it to every host_events call.
+  - `render_one.render`: after the voice is written, `levels.voice_levels(voice_path)` through
+    the module (tests replace it), then `router.build_scenes_ass(script, timings, levels=...)`.
+  Then the owner dispatches render.yml on this branch for sample-65s and watches the mouth.
+  The MOUTH_* thresholds are tuning knobs in constants.py (locked): if the render shows the mouth
+  too lazy or too busy, say so in the handoff with the numbers you would use; do not edit them.
+paths_allowed:
+  - pipeline/voice/levels.py
+  - pipeline/visuals/router.py
+  - pipeline/render_one.py
+tests:
+  - tests/voice/test_levels.py
+  - tests/test_lipsync_wiring.py
+acceptance: tests/test_lipsync_wiring.py::test_acceptance
+context_files:
+  - .harness/handoffs/p3b-plan.md
+  - pipeline/voice/levels.py
+  - pipeline/visuals/router.py
+  - pipeline/render_one.py
+  - pipeline/voice/kokoro.py
+  - tests/voice/test_levels.py
+  - tests/test_lipsync_wiring.py
+max_turns: 30
