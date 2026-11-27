@@ -33,7 +33,7 @@ def test_writes_scenes_ass_and_passes_it_to_compose(
 ) -> None:
     seen: list[tuple[Script, list[WordTiming]]] = []
 
-    def build(script: Script, timings: list[WordTiming]) -> str:
+    def build(script: Script, timings: list[WordTiming], **_: Any) -> str:  # p3b adds levels=
         seen.append((script, timings))
         fakes.calls.append(("scenes", (script,)))
         return SCENES_TEXT

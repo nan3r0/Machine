@@ -127,6 +127,16 @@ BOB_PX = 10  # the host rises at most this far above its placement
 ARM_SWING_DEG = 15.0  # wave pose only
 IDLE_HALF_CYCLE_S = 0.4  # bob and arm swing
 
+# Lip flap from the voice's loudness (p3b-plan): closed in silence and between syllables.
+MOUTH_WINDOW_S = 0.04  # one loudness level per window of voice.wav
+MOUTH_LEVEL_PERCENTILE = 95  # levels are window RMS over this percentile of all windows, capped at 1
+MOUTH_OPEN_LEVEL = 0.35  # a closed mouth opens at or above this level
+MOUTH_CLOSE_LEVEL = 0.2  # an open mouth closes below this level (hysteresis, so no chatter)
+MOUTH_HOLD_S = 0.08  # every mouth state shows at least this long
+MOUTH_OPEN_MAX_S = 0.24  # an open mouth closes for MOUTH_HOLD_S after this long, even mid-vowel
+MOUTH_SHAPES = ((0.75, "wide"), (0.5, "o"), (0.0, "open"))  # (level at or above, open mouth); first match
+HOST_CLOSED_MOUTHS = ("rest", "flat")  # the host's closed mouths; any other mouth counts as open
+
 # Layout. Captions sit in the lower half (p3-plan D2), inside the locked range
 # SAFE_TOP_PX + 2 * CAPTION_FONT_SIZE <= y <= SAFE_BOTTOM_PX - 2 * CAPTION_FONT_SIZE.
 CAPTION_POS_Y = 1240

@@ -42,8 +42,11 @@ def test_events_stay_in_the_window_and_host_layers() -> None:
 def test_mouth_talks_on_words_and_rests_between() -> None:
     evs = host()
     for word in WORDS:
-        keys = part_key(HOST.mouths, visible(evs, (word.start + word.end) / 2))
-        assert len(keys) == 1 and keys[0] in HOST.talking_mouths and keys[0] != "rest", word
+        # The mouth flaps inside a word (p3b-host-lipsync), so it need not be open at the midpoint.
+        steps = [word.start + k * 0.01 + 0.005 for k in range(round((word.end - word.start) * 100))]
+        keys = [part_key(HOST.mouths, visible(evs, t)) for t in steps]
+        assert all(len(k) == 1 for k in keys), word
+        assert any(k[0] in HOST.talking_mouths and k[0] != "rest" for k in keys), word
     assert part_key(HOST.mouths, visible(evs, 5.2)) == [HOST.poses["talk"].mouth]
 
 

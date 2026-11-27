@@ -1,0 +1,28 @@
+id: p3b-host-placement
+title: push_in zooms about the frame centre, so the set's ground stays under the host
+depends_on: [p3-sets]
+role: implementer
+notes: |
+  Owner saw the host standing too high in the first M1 render. Diagnosis in
+  .harness/handoffs/p3b-plan.md: the host itself is placed as designed (feet measured at
+  y 1009 to 1019 on the golden frames), but push_in scales each set about its top-left corner.
+  libass scales a drawing about its `\pos`/`\move` point; `\org` only moves the rotation centre.
+  So during a push_in the ground slides down by up to (PUSH_IN_SCALE - 1) * y (about 77 px at the
+  sand line) while the host stays put, and he looks like he floats above it.
+  Fix in `set_events`: keep the linear `\t(0,<window ms>,\fscx..\fscy..)` and make the `\move`
+  end point dx + WIDTH/2 * (1 - S), HEIGHT/2 * (1 - S); both are linear over the same window, so
+  the frame centre stays exactly put (plus the drift). Drop the `\org`, it does nothing for scale.
+  Other cameras are unchanged. character.py needs no change.
+paths_allowed:
+  - pipeline/visuals/sets.py
+tests:
+  - tests/visuals/test_push_in.py
+acceptance: tests/visuals/test_push_in.py::test_acceptance
+context_files:
+  - .harness/handoffs/p3b-plan.md
+  - pipeline/visuals/sets.py
+  - pipeline/visuals/ass_kit.py
+  - pipeline/constants.py
+  - tests/visuals/test_push_in.py
+  - tests/visuals/test_sets.py
+max_turns: 20
