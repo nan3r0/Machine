@@ -24,6 +24,8 @@ none
 
 ## Known risks
 - MOUTH_* values are not retuned (the locked tests pass with the constants as they are). The owner should check the first render from p3b-lipsync-wiring.
+- The state machine restarts per scene (each `host_events` call starts closed with no hold carried over), so a mouth open at a scene cut closes and reopens.
+- Gate 2 round 1 fixes: mouth cuts de-duplicated after rounding (a start like 1.201 crashed with a KeyError), window lookup clamped to the computed range, and shape changes are no longer allowed once they would still be inside their hold at the open cap (open runs now peak at 0.24 s, was 0.28 s). Checked by hand with start 1.201, 0.0 and 0.333: no error and no zero-length events. There is no locked regression test yet (the Architect adds it on plan/p3b-host-lipsync-tests).
 - Mouth events are now separate from the face events, so a mouth cut adds only mouth events.
 
 ## Next step

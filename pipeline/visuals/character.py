@@ -64,7 +64,8 @@ def _mouth_states(first: int, last: int, levels: Sequence[float] | None,
             elif level < c.MOUTH_CLOSE_LEVEL or open_for >= cap:
                 want = None
             else:
-                want = _open_shape(level)
+                # A late shape change would still be inside its hold at the cap and overrun it.
+                want = _open_shape(level) if open_for + hold <= cap else shape
         if want != shape and (force or held >= hold):
             shape, held = want, 1
         else:
@@ -113,11 +114,15 @@ def host_events(art: HostArt, start: float, end: float, pose: str,
     sx, sy = art.anchors["shoulder_right"]
     closed = spec.mouth if spec.mouth in c.HOST_CLOSED_MOUTHS else "rest"
     cuts = _boundaries(start, end)
+    # Windows sit on the absolute voice timeline (t / MOUTH_WINDOW_S), the same as the timings.
     states = _mouth_states(math.floor(start / c.MOUTH_WINDOW_S), math.ceil(end / c.MOUTH_WINDOW_S),
                            levels, timings)
 
+    first, last = min(states), max(states)
+
     def mouth_at(t: float) -> str:
-        return states[math.floor(t / c.MOUTH_WINDOW_S)] or closed
+        # Clamped: float error at a window edge must not leave the computed range.
+        return states[min(max(math.floor(t / c.MOUTH_WINDOW_S), first), last)] or closed
 
     mouth_cuts = {start, end, *cuts}
     for i in states:
@@ -151,7 +156,7 @@ def host_events(art: HostArt, start: float, end: float, pose: str,
             (art.body, move), ([*art.eyes[eyes], *art.brows[spec.brows]], move),
             (spec.arm_left, move), (spec.arm_right, wave if pose == "wave" else move),
         ])
-    cuts_m = sorted(round(t, 2) for t in mouth_cuts)
+    cuts_m = sorted({round(t, 2) for t in mouth_cuts})
     for t0, t1 in zip(cuts_m, cuts_m[1:], strict=False):
         y0, _, move = bob(t0, t1)
         emit(t0, t1, y0, [(art.mouths[mouth_at((t0 + t1) / 2)], move)])
