@@ -28,19 +28,19 @@ How `host_events` works today:
 
 Why this looks wrong:
 1. **The mouth is held open for whole words.** Whisper words usually touch (end == next start), so the mouth never closes within a sentence. It just swaps shapes at word edges, and the shape choice is effectively random.
-2. **Whisper timings are loose against the sound.** "listening." runs to 39.78 s, but the RMS of voice.wav is 0 from about 39.2 s. So the mouth stays open through about 0.5 s of silence. In the 1.0 s golden frame, "the" is highlighted while the mouth is closed.
+2. **The word timings were not checked against the sound.** The render does not save the whisper timings. captions.ass cannot stand in for them: `build_ass` stretches each caption to the next word's start, so a caption ending at 39.78 s says nothing about where "listening." really ends. The RMS of voice.wav is 0 from about 39.2 s. In the 1.0 s golden frame, "the" is highlighted while the mouth is closed, so the frame falls between the word's whisper end and the next word's start. Whisper word edges are usually tens of ms off the sound. Driving the mouth from the sound removes that error instead of depending on it.
 3. **Some poses hold an open mouth through every pause.** wave (`wide`), point (`open`) and surprised (`o`) do this, including the 2 s SCENE_TAIL_S after the last word of the outro, which uses wave.
 
 ## Lip-sync options compared
 | | A: voice loudness (recommended) | B: syllables from the text |
 |---|---|---|
 | Input | RMS of voice.wav per 40 ms window, normalised | vowel groups per word, spread over whisper word spans |
-| Silence and pauses | closed, because it follows the real sound | still open wherever whisper spans run into silence (fault 2 above) |
+| Silence and pauses | closed, because it follows the real sound | only as good as the whisper word edges |
 | Rhythm | follows the real syllable energy | even and guessed; a word like "1947" counts as one syllable |
 | Shapes | by loudness: open (small), o (round), wide | by vowel letter |
 | Cost | stdlib `wave` plus numpy (already approved, spec.md section 7); needs wiring through router and render_one | character.py only |
 
-I recommend A. B cannot fix the mouth being open during silence, and that is the owner's main complaint. A dry run on this render's voice.wav, using the prototype state machine with the constants below, gave:
+I recommend A. It follows the sound the viewer hears, the owner prefers it, and B can only be as accurate as whisper's word edges. A dry run on this render's voice.wav, using the prototype state machine with the constants below, gave:
 - 4.9 openings a second over the whole video, pauses included
 - the mouth open 49% of the time
 - all three open shapes used (124 open, 116 o, 98 wide)
@@ -75,6 +75,11 @@ Bilabial closure (m, b, p) is skipped. Loudness dips already close the mouth on 
 ## Tried and abandoned
 - Writing a light test asserting the host's feet at HOST_GROUND_Y. It would pass on the current code, because the event math is right. The existing `test_same_anchor_in_every_scene` already guards this, so I added nothing.
 - A heavy render test of feet placement. The golden-frame measurement settled the question without one.
+
+## Other modules checked for the same anchor bug
+- cards.py: the sonar rings scale a `\p1` circle under `\an5`, which centres on the drawing. That is correct.
+- charts.py: bars grow `\fscx` from 1 to 100 under `\an7`, from the left edge. That is intended.
+- Neither module uses `\org`.
 
 ## Known risks
 - The MOUTH_* values are tuned on one voice and one render. The owner should look at the first render from p3b-lipsync-wiring, and the implementer reports any retune numbers.

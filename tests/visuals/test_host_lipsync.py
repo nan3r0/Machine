@@ -2,8 +2,8 @@
 
 Owner 2026-11-27: closed in silence and between syllables, a few mouth shapes, changing at about
 syllable rate, never held open long. The levels below stand in for voice_levels(voice.wav): one
-value per MOUTH_WINDOW_S. The word timings are whisper-like: the first word starts before the
-sound and the last word ends 0.5 s into silence, as in render run 45917646665.
+value per MOUTH_WINDOW_S. The word timings are deliberately off the sound, as aligner timings
+can be: the first word starts before the sound and the last word ends 0.5 s into silence.
 """
 
 import re
