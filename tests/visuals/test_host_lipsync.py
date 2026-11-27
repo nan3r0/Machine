@@ -13,7 +13,7 @@ import pytest
 from pipeline import constants as c
 from pipeline.schema import WordTiming
 from pipeline.visuals import character
-from tests.visuals.ass_parse import Event, events, visible
+from tests.visuals.ass_parse import Event, drawing, events, visible
 from tests.visuals.test_character import HOST, WORDS, part_key
 
 W = c.MOUTH_WINDOW_S
@@ -155,6 +155,28 @@ def test_mouth_events_do_not_recut_the_body() -> None:
 def test_repeatable() -> None:
     once = character.host_events(HOST, 0.0, END, "wave", TIMINGS, levels=LEVELS)
     assert once == character.host_events(HOST, 0.0, END, "wave", TIMINGS, levels=list(LEVELS))
+
+
+def test_scene_start_off_the_centisecond_grid() -> None:
+    """Aligner times carry 3 decimals; the mouth must still show exactly once, never a 0 s event."""
+    evs = events(character.host_events(HOST, 1.201, 5.0, "talk", TIMINGS, levels=LEVELS))
+    mouth_paths = {s.path for shapes in HOST.mouths.values() for s in shapes}
+    mouth_evs = [e for e in evs if drawing(e.text) in mouth_paths]
+    assert mouth_evs and all(e.end > e.start for e in mouth_evs)
+    for t in (1.205, 1.215, *STEPS[121:500:7]):
+        assert len(part_key(HOST.mouths, visible(evs, t))) == 1, t
+
+
+def test_shape_change_just_before_the_cap_still_closes_on_time() -> None:
+    """A wide-to-o change one window before MOUTH_OPEN_MAX_S must not hold the mouth open longer."""
+    cap = round(c.MOUTH_OPEN_MAX_S / W)
+    levels = windows(0.4, 0.0) + windows((cap - 1) * W, 0.9) + windows(1.0, 0.6)
+    keys = host(levels=levels, timings=[WordTiming(word="long", start=0.0, end=2.0)])
+    assert {"wide", "o"} <= set(keys), "the mouth changes shape while open"
+    longest = max(e - s for s, e, k in runs([str(is_open(k)) for k in keys]) if k == "True")
+    assert longest <= c.MOUTH_OPEN_MAX_S + 0.02, f"open for {longest:.2f} s"
+    for s, e, key in runs(keys)[1:-1]:
+        assert e - s >= c.MOUTH_HOLD_S - 0.011, (s, e, key)
 
 
 def test_acceptance() -> None:
