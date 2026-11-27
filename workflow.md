@@ -331,3 +331,8 @@ Specialist reviews: visual QA for every task touching `pipeline/visuals/**`, `pi
 | p3-cards | done (PR #198) | needed 3 rounds; Architect fixed the text-fit estimate; regression tests via PR #197 |
 | p3-charts | done (PR #201) | round 1 fixed unescaped ASS override tags; regression test via PR #200 |
 | p3-compose | done (PR #202) | heavy test ran in CI |
+| p3-router | done | wave 8; locked test fixture needed `model_validate_json` (CONTRACT_CHANGE) |
+| p3-wiring | done (PR #206) | wave 9; render_one writes scenes.ass and passes it to compose; heavy acceptance ran in CI |
+| p3b-host-placement | done | push_in zooms about the frame centre via `\move`, `\org` dropped; render check is the owner's M1 re-render |
+| p3b-host-lipsync | done (PR #210) | mouth state machine over loudness windows; body cuts only at bob half-cycles and blinks |
+| p3b-lipsync-wiring | done (PR #214) | `voice_levels` reads voice.wav and the router passes levels to the host; acceptance test fixed on `plan/p3b-lipsync-wiring-tests` (PR #213); owner still watches the mouth in a render |

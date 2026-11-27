@@ -420,3 +420,43 @@ How it was caught: the scope check on the task PR.
 Fix: the Architect rules on CONTRACT_CHANGE.md and the test goes on a `plan/<id>-tests` branch that merges to main first; then main is merged into the task branch.
 Rule going forward: do this for every locked-test addition from review.
 Test added: none (process rule).
+
+### 2026-11-27: libass `\org` is not a scale pivot
+What happened: p3-sets wrote push_in with `\org` as the zoom centre, and the locked test asserted the `\org` tag. In a render the set drifted down and right (the centre ended at (541.2, 1036.8) instead of (498, 960)).
+Why it happened (root cause, not symptom): libass scales a `\p1` drawing about its `\pos` or `\move` point; `\org` only sets the rotation centre. The test checked the tag, not the picture.
+How it was caught: p3-sets visual QA flagged it, and the p3b plan measured frames from a CI render.
+Fix: p3b-host-placement moves the `\move` end point to (dx + WIDTH/2 * (1 - S), HEIGHT/2 * (1 - S)) and drops `\org`.
+Rule going forward: any transform anchor gets a check against a rendered frame, not only a tag assertion.
+Test added: `tests/visuals/test_push_in.py` (centre stays fixed).
+
+### 2026-11-27: Kokoro paces by syllables, so a word count can pass a script that renders too short
+What happened: the demo-data fixture has 163 words and passed the length check, but rendered at 56.6 s, under the 62 s floor.
+Why it happened (root cause, not symptom): the check counts words, and Kokoro speaks by syllables. Short words give fewer syllables per word.
+How it was caught: the first M1 render of demo-data.
+Fix: the fixture was rewritten with longer words.
+Rule going forward: do not trust word count alone for duration; check a rendered length. A syllable-based check in validate is in the backlog for the owner to decide.
+Test added: none, and why: the fix was fixture text; the backlog row covers a validate change.
+
+### 2026-11-27: a locked test that no correct implementation can pass
+What happened: the p3b-lipsync-wiring acceptance test shared one monkeypatch between two calls that needed different fakes, so no correct implementation could pass it.
+Why it happened (root cause, not symptom): the test was not run against a correct implementation before it was locked.
+How it was caught: the implementer's handoff reported partial with a CONTRACT_CHANGE.md.
+Fix: the Architect ruled on CONTRACT_CHANGE.md and fixed the test on `plan/p3b-lipsync-wiring-tests` (PR #213), merged before the task.
+Rule going forward: the implementer stops and writes CONTRACT_CHANGE.md; only the Architect edits the locked test, on a `plan/<id>-tests` branch.
+Test added: the fixed acceptance test in `tests/test_lipsync_wiring.py`.
+
+### 2026-11-27: a round-1 review finding that needs a locked test goes through the Architect
+What happened: a round-1 review finding needed a regression test in a locked file, which the implementer cannot edit.
+Why it happened (root cause, not symptom): CI reads locks and task YAML from main.
+How it was caught: the review and the scope check.
+Fix: the Architect adds the test on `plan/<id>-tests`, it merges to main first, then main is merged into the task branch. A pushed task branch is never rebased (see 2026-11-18).
+Rule going forward: same as 2026-11-26 (tests added during review), applied to every round-1 finding.
+Test added: none (process rule).
+
+### 2026-11-27: local pytest imports a stray `tests` package from site-packages
+What happened: a `tests` package in global site-packages shadows the repo's `tests/` directory, so local runs fail on imports (first logged 2026-11-15).
+Why it happened (root cause, not symptom): the installed package wins over the repo's directory on sys.path.
+How it was caught: the p3b plan evidence runs needed the workaround again.
+Fix: none in the repo. Workaround: preload the repo's package into `sys.modules['tests']` (a small shim) before running pytest.
+Rule going forward: use the shim for local runs; CI is not affected.
+Test added: none, and why: it is a local environment problem.
