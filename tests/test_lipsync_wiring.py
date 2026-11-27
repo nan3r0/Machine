@@ -60,5 +60,8 @@ def test_router_hands_the_levels_to_every_host(monkeypatch: pytest.MonkeyPatch) 
 
 
 def test_acceptance(fakes: Fakes, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:  # noqa: F811
-    test_render_one_passes_the_voice_levels_to_the_scenes(fakes, tmp_path, monkeypatch)
-    test_router_hands_the_levels_to_every_host(monkeypatch)
+    # Separate scopes: the render half fakes router.build_scenes_ass, which the router half needs real.
+    with monkeypatch.context() as m:
+        test_render_one_passes_the_voice_levels_to_the_scenes(fakes, tmp_path, m)
+    with monkeypatch.context() as m:
+        test_router_hands_the_levels_to_every_host(m)
