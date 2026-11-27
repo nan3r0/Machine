@@ -51,11 +51,14 @@ def set_events(art: SetArt, start: float, end: float, camera: str, dim: bool = F
     out: list[str] = []
     for index, layer in enumerate(art.layers):
         dx = drift_px(layer.depth, camera, seconds)
-        tags = f"\\move(0,0,{dx:g},0)"
+        end_x, end_y = dx, 0.0
+        grow = ""
         if camera == "push_in":
             pct = f"{c.PUSH_IN_SCALE * 100:g}"
             grow = f"\\t(0,{round(seconds * 1000)},\\fscx{pct}\\fscy{pct})"
-            tags += f"\\org({c.WIDTH // 2},{c.HEIGHT // 2}){grow}"
+            end_x += c.WIDTH / 2 * (1 - c.PUSH_IN_SCALE)
+            end_y = c.HEIGHT / 2 * (1 - c.PUSH_IN_SCALE)
+        tags = f"\\move(0,0,{end_x:g},{end_y:g}){grow}"
         out += [
             shape_event(s, art.palette, art.palette[art.outline_colour], start, end,
                         c.ASS_LAYER_SET + index, (0, 0), tags=tags)
