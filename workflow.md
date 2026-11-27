@@ -323,3 +323,11 @@ Specialist reviews: visual QA for every task touching `pipeline/visuals/**`, `pi
 | p3-spike | done | method A chosen by the owner 2026-11-25 |
 | p3-character-art | done | owner approved the still sheet 2026-11-26 (PR #187) |
 | p3-contracts | done (PR #188) | constants, art model, stubs, locked tests, fixtures, sample-65s visuals |
+| p3-validate-visuals | done | wave 4, merged |
+| p3-ass-kit | done | wave 4, merged |
+| p3-character | done | wave 5, merged |
+| p3-sets | done | wave 5, merged; push-in anchoring checked at M1 (backlog) |
+| p3-sets-art | done (PR #199) | owner approved runner stills 2026-11-26; spike branch deleted |
+| p3-cards | done (PR #198) | needed 3 rounds; Architect fixed the text-fit estimate; regression tests via PR #197 |
+| p3-charts | done (PR #201) | round 1 fixed unescaped ASS override tags; regression test via PR #200 |
+| p3-compose | done (PR #202) | heavy test ran in CI |

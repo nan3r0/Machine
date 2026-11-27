@@ -16,6 +16,39 @@ from tests.visuals.ass_parse import drawing, events, shown_text, visible
 
 ROOT = Path(__file__).resolve().parent.parent.parent
 BASE = json.loads((ROOT / "queue" / "approved" / "sample-65s.json").read_text(encoding="utf-8"))
+
+
+def from_json(data: dict[str, Any]) -> Script:
+    """Script is strict, so dates must come through JSON, as script files are parsed."""
+    return Script.model_validate_json(json.dumps(data))
+
+
+def fake_set(name: str) -> art.SetArt:
+    """A two-layer set whose far path has a height unique to `name`, so tests can tell sets apart."""
+    height = 100 + sum(map(ord, name)) % 1500
+    return art.SetArt.model_validate(
+        {
+            "name": name,
+            "outline_colour": "ink",
+            "palette": {"ink": "000000"},
+            "layers": [
+                {
+                    "depth": "far",
+                    "shapes": [
+                        {"layer": 0, "fill": "ink", "outline": 0, "path": f"m 0 0 l 1080 0 l 1080 {height}"}
+                    ],
+                },
+                {
+                    "depth": "near",
+                    "shapes": [
+                        {"layer": 1, "fill": "ink", "outline": 0, "path": "m 0 1000 l 900 1000 l 900 1900"}
+                    ],
+                },
+            ],
+        }
+    )
+
+
 SET = art.SetArt.model_validate(
     {
         "name": "fixture",
@@ -45,7 +78,7 @@ def script(
     types: list[str] | None = None,
 ) -> Script:
     word = "word"
-    return Script.model_validate(
+    return from_json(
         {
             **BASE,
             "hook": " ".join([word] * hook),
@@ -136,31 +169,61 @@ def test_layouts_and_explicit_choices() -> None:
 
 def test_scenes_ass_host_intro_and_outro_on_the_backdrop(monkeypatch: pytest.MonkeyPatch) -> None:
     loaded: list[str] = []
-    monkeypatch.setattr(art, "load_set", lambda set_id, *a, **k: loaded.append(set_id) or SET)
-    data = [{"set": "forest"}, {"items": [{"label": "Apart", "value": "3,219"}]}, {}]
-    s = script(4, [10, 10, 10], 12, data, ["story", "chart", "story"])
+    monkeypatch.setattr(art, "load_set", lambda set_id, *a, **k: loaded.append(set_id) or fake_set(set_id))
+    tagged = r"{\an1}Bloop\N"
+    data = [
+        {"set": "forest"},
+        {"items": [{"label": "Apart", "value": "3,219"}]},
+        {},
+        {"items": [{"label": tagged, "value": "3,219"}, {"label": "Whale", "value": "0"}]},
+    ]
+    s = script(4, [10, 10, 10, 10], 12, data, ["story", "chart", "story", "chart"])
     timings = timings_for(s)
     text = router.build_scenes_ass(s, timings)
     assert text.startswith("[Script Info]")
+    assert not any(ord(ch) < 0x20 and ch not in "\r\n" for ch in text), "control byte in scenes.ass"
     assert c.HOST_BACKDROP_SET in loaded and "forest" in loaded and c.DEFAULT_SET[s.template] in loaded
     evs = events(text)
     body = {sh.path for sh in art.load_host().body}
     spans = router.scene_spans(s, timings)
 
-    def host_shown(t: float) -> bool:
-        return body <= {drawing(e.text) for e in visible(evs, t)}
+    def drawn(t: float) -> set[str | None]:
+        return {drawing(e.text) for e in visible(evs, t)}
+
+    def far(set_id: str) -> str:
+        return fake_set(set_id).layers[0].shapes[0].path
+
+    def layer_at(layer: int, t: float) -> list[str]:
+        return [e.text for e in visible(evs, t) if e.layer == layer]
 
     for sp in spans:
         mid = (sp.start + sp.end) / 2
-        assert host_shown(mid) == (sp.index != 1), sp
+        data_scene = sp.index in (1, 3)
+        assert (body <= drawn(mid)) == (not data_scene), sp
+        assert bool(layer_at(c.ASS_LAYER_DIM, mid)) == data_scene, f"only data scenes dim the set: {sp}"
+    intro, first, outro = spans[0], spans[1], spans[-1]
+    for sp in (intro, outro):
+        mid = (sp.start + sp.end) / 2
+        assert far(c.HOST_BACKDROP_SET) in drawn(mid) and far("forest") not in drawn(mid), sp
+    first_mid = (first.start + first.end) / 2
+    assert far("forest") in drawn(first_mid) and far(c.HOST_BACKDROP_SET) not in drawn(first_mid)
+    transition = rf"\fad(0,{round(c.HOST_TRANSITION_S * 1000)})"
+    for sp in (first, outro):
+        fades = layer_at(c.ASS_LAYER_FADE, sp.start)
+        assert any(transition in f for f in fades), f"{c.HOST_TRANSITION_S} s transition at {sp}"
+    story = spans[3]
+    scene_fade = rf"\fad(0,{round(c.SCENE_FADE_S * 1000)})"
+    assert any(scene_fade in f for f in layer_at(c.ASS_LAYER_FADE, story.start)), "story scene fade-in"
     chart = spans[2]
     assert any("3,219" in shown_text(e.text) for e in visible(evs, chart.end - 0.05))
+    bars = [shown_text(e.text) for e in visible(evs, spans[4].end - 0.05)]
+    assert any(tagged in t for t in bars), "an override tag in a label is shown, not applied"
     assert max(e.end for e in evs) >= timings[-1].end + c.SCENE_TAIL_S - 0.01
 
 
 def test_empty_data_still_has_intro_and_outro(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(art, "load_set", lambda set_id, *a, **k: SET)
-    s = Script.model_validate(
+    s = from_json(
         {**BASE, "scenes": [{**sc, "visual": {"type": "story", "data": {}}} for sc in BASE["scenes"]]}
     )
     spans = router.scene_spans(s, timings_for(s))
