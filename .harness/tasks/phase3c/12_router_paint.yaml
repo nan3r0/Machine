@@ -1,0 +1,34 @@
+id: p3c-router-paint
+title: Router plans painted shots and overlays with no host; render_one wires images; host code deleted
+depends_on: [p3c-overlays, p3c-compose-stills, p3c-validate-images]
+role: implementer
+notes: |
+  .harness/handoffs/p3c-plan.md, "How a painted video is built", "Fallback" and "Retiring the host".
+  - router.py: spans with no intro or outro (the hook belongs to scene 1, the loop line to the last
+    scene); one shot per painted scene, and a scene without its own image extends the previous shot;
+    overlays from overlays.py; the flat set fallback for the whole video when no images exist.
+  - render_one.py: find the script's images under IMAGES_DIR and pass the shots to compose; stop
+    calling voice levels.
+  - Delete pipeline/visuals/character.py, cards.py, charts.py and pipeline/voice/levels.py, and every
+    import of them. Do not touch constants.py or art.py (p3c-retire-host does).
+  Visual QA. The owner then dispatches render.yml on this branch (M1 re-render).
+paths_allowed:
+  - pipeline/visuals/router.py
+  - pipeline/render_one.py
+  - pipeline/visuals/character.py
+  - pipeline/visuals/cards.py
+  - pipeline/visuals/charts.py
+  - pipeline/voice/levels.py
+  - pipeline/visuals/__init__.py
+tests:
+  - tests/visuals/test_router.py
+  - tests/test_render_one_visuals.py
+acceptance: tests/test_render_one_visuals.py::test_acceptance
+context_files:
+  - .harness/handoffs/p3c-plan.md
+  - pipeline/visuals/router.py
+  - pipeline/render_one.py
+  - pipeline/visuals/sets.py
+  - tests/visuals/test_router.py
+  - tests/test_render_one_visuals.py
+max_turns: 35

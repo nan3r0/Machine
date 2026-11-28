@@ -1,0 +1,27 @@
+id: p3c-cso
+title: Threat model v4 - Cloudflare Workers AI, paintings in the repo, the painted render path
+depends_on: [p3c-weekly-images, p3c-router-paint, p3c-writer-images]
+role: cso
+notes: |
+  HARNESS.md section 6b, new external integration. New section 4 rows with file:line controls:
+  - the CLOUDFLARE_API_TOKEN repo secret (the owner's choice; say whether an environment secret
+    limited to main is worth it), the token's scope (Workers AI only), the paint job's env;
+  - flux_cf: no redirects, https host only, account id format, body and image caps, JPEG header
+    check, quota stop;
+  - image prompts: model-written text sent to a third party and shown in the PR body;
+  - images committed to a public repo (growth, content the owner did not look at closely);
+  - compose with image inputs (paths escaped, argument list, timeout).
+  Carry over the slice 1 seeds the old p3-cso listed (visual data caps, ASS escaping, art assets).
+  The owner's sign-off joins the go-live gates.
+paths_allowed:
+  - docs/threat-model.md
+tests: []
+acceptance: null
+context_files:
+  - .harness/handoffs/p3c-plan.md
+  - HARNESS.md#6b
+  - docs/threat-model.md
+  - pipeline/visuals/
+  - pipeline/render/compose.py
+  - .github/workflows/weekly_scripts.yml
+max_turns: 30

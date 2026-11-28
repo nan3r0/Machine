@@ -1,0 +1,41 @@
+id: p3c-contracts-script
+title: Phase 3c script-side contracts - image prompts and overlays in scene data, writer and PR body tests
+depends_on: []
+role: test_author
+notes: |
+  Spec: .harness/handoffs/p3c-plan.md, "Scene format" and "Script writer". Goes to main on
+  `plan/p3c-contracts-script` before p3c-validate-images, p3c-writer-images and p3c-batch-images.
+  - constants.py: OVERLAY_KINDS = ("counter", "timer", "ring") and any overlay value limits.
+    Reuse CAMERA_MOVES, VISUAL_LABEL_MAX_CHARS, VISUAL_VALUE_MAX_CHARS and VISUAL_DATA_SCENES_MAX.
+    IMAGE_PROMPT_MAX_CHARS and IMAGES_PER_VIDEO are already in (p3c-plan).
+  - Rewrite tests/script/test_validate_visuals.py for the new rules and list it under
+    p3c-validate-images (it is then skipped on main until that task is done).
+  - New tests/script/test_generate_visuals.py (p3c-writer-images) and test_batch_visuals.py
+    (p3c-batch-images). The old ones went with their tasks in p3c-plan.
+  - PR body arithmetic: 7 scripts at every cap, image prompts and overlays included, stay under
+    PR_BODY_MAX_CHARS (tests/test_render_constants_visuals.py: replace the items term).
+  - New fixture tests/fixtures/scripts/paint-demo.json (new format, about 65 s of words, 6 images,
+    one counter, one ring, one timer, varied cameras). Every test that sends a script through
+    validate.problems on main (grep demo-data and sample-65s) must pass before and after
+    p3c-validate-images: move it to paint-demo.json or list the file under that task.
+  - PRD.md section 4 rows for the new rules; section 7 records the owner's gate answers.
+  Run the full suite without LOOM_TASK; every new contract and test path must be covered by
+  locks.yaml.
+paths_allowed:
+  - pipeline/constants.py
+  - tests/**
+  - .harness/locks.yaml
+  - .harness/tasks/phase3c/**
+  - PRD.md
+  - workflow.md
+tests: []
+acceptance: null
+context_files:
+  - .harness/handoffs/p3c-plan.md
+  - pipeline/script/validate.py
+  - pipeline/script/generate.py
+  - pipeline/script/batch.py
+  - tests/test_render_constants_visuals.py
+  - tests/script/test_validate_visuals.py
+  - lessons.md
+max_turns: 40

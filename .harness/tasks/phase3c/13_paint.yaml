@@ -1,0 +1,20 @@
+id: p3c-paint
+title: Paint a batch - one Flux call per scene image, stop on quota, flags for missing paintings
+depends_on: [p3c-flux-client, p3c-contracts-render]
+role: implementer
+notes: |
+  pipeline/visuals/paint.py only (stub from p3c-contracts-render). .harness/handoffs/p3c-plan.md,
+  "Paintings" and "Fallback". At most FLUX_MAX_IMAGES_PER_BATCH calls; FluxQuotaError stops the
+  batch at once; any other FluxError skips that one image. Writes IMAGES_DIR/<script id>/<scene>.jpg
+  only after image_size passes; never logs the token or image bytes. Returns flags for the PR body.
+paths_allowed:
+  - pipeline/visuals/paint.py
+tests:
+  - tests/visuals/test_paint.py
+acceptance: tests/visuals/test_paint.py::test_acceptance
+context_files:
+  - .harness/handoffs/p3c-plan.md
+  - pipeline/visuals/paint.py
+  - pipeline/visuals/flux_cf.py
+  - tests/visuals/test_paint.py
+max_turns: 25

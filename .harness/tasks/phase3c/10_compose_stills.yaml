@@ -1,0 +1,22 @@
+id: p3c-compose-stills
+title: compose renders painted shots with Ken Burns and zoom transitions under scenes.ass and captions
+depends_on: [p3c-contracts-render]
+role: implementer
+notes: |
+  compose.py only. Method from the spike (.harness/handoffs/p3c-render-spike.md). Argument lists
+  only, no shell; every image path escaped for the filtergraph; the call stays inside
+  COMPOSE_TIMEOUT_S, and a heavy test times it against RENDER_BUDGET_S. Without `shots`, compose
+  behaves as today (the set fallback). Security and visual QA.
+  The existing compose tests must keep passing (not listed under `tests`).
+paths_allowed:
+  - pipeline/render/compose.py
+tests:
+  - tests/render/test_compose_stills.py
+acceptance: tests/render/test_compose_stills.py::test_acceptance
+context_files:
+  - .harness/handoffs/p3c-plan.md
+  - .harness/handoffs/p3c-render-spike.md
+  - pipeline/render/compose.py
+  - tests/render/test_compose_stills.py
+  - lessons.md
+max_turns: 30

@@ -1,0 +1,15 @@
+id: p3c-qa-lead
+title: Phase 3c QA lead - mutation and coverage review of the painted path
+depends_on: [p3c-cso, p3c-audit, p3c-syllables, p3c-retire-host]
+role: qa_lead
+notes: |
+  HARNESS.md section 6b. Mutation report and coverage gaps for flux_cf, paint, overlays, router,
+  compose (stills), validate (images, syllables), generate and batch. Findings go to
+  .harness/backlog.md.
+paths_allowed: []
+tests: []
+acceptance: null
+context_files:
+  - .harness/handoffs/p3c-plan.md
+  - HARNESS.md#6b
+max_turns: 25

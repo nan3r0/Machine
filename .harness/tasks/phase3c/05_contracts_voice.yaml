@@ -1,0 +1,38 @@
+id: p3c-contracts-voice
+title: Deep male voice and length contracts - VOICE_* pin, speech rate, syllable range
+depends_on: [p3c-voice-samples]
+role: test_author
+notes: |
+  Starts only after owner gate G1 (the owner picked the voice from the p3c-voice-samples mp3s).
+  .harness/handoffs/p3c-plan.md, "Voice" and "Syllable check".
+  - constants.py: VOICE_NAME, VOICE_LANG_CODE ("b" for bm_*), the voice's VOICE_FILE_SHA256 entry
+    (from the HF tree at VOICE_REPO_REVISION; drop af_heart), SPEECH_WPM, TIKTOK_WORDS and
+    TARGET_WORDS from the spike's numbers; SPEECH_SYLLABLES_PER_MIN, a full-stop pause and
+    TIKTOK_SYLLABLES, so the predicted seconds lie in TIKTOK_SECONDS. 62 to 90 s and the 65 s
+    target stay.
+  - Update the locked voice, pin and speech-rate tests that name af_heart or the old numbers.
+  - New tests/script/test_validate_length.py (p3c-syllables): the syllable heuristic (vowel groups,
+    a silent final e, digits read as words through the normaliser), the predicted-seconds rule, and
+    a regression case from demo-data (163 words, rendered 56.6 s) that the word rule passes and the
+    syllable rule rejects.
+  - PLAN.md section 4 and spec.md: the speech-rate numbers. Tell the owner first if a rule changes
+    meaning.
+  Full suite without LOOM_TASK.
+paths_allowed:
+  - pipeline/constants.py
+  - tests/**
+  - .harness/locks.yaml
+  - .harness/tasks/phase3c/**
+  - PLAN.md
+  - PRD.md
+  - spec.md
+tests: []
+acceptance: null
+context_files:
+  - .harness/handoffs/p3c-plan.md
+  - .harness/handoffs/p3c-voice-samples.md
+  - pipeline/voice/kokoro.py
+  - pipeline/script/validate.py
+  - pipeline/factcheck/normalise.py
+  - lessons.md
+max_turns: 35

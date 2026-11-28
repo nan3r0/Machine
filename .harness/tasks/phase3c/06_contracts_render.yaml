@@ -1,0 +1,45 @@
+id: p3c-contracts-render
+title: Painted render contracts - shots, Ken Burns, transitions, overlays, set fallback; retire host tests
+depends_on: [p3c-render-spike, p3c-contracts-script]
+role: test_author
+notes: |
+  Starts only after owner gates G2 (the look) and G4 (where paintings are made).
+  .harness/handoffs/p3c-plan.md, "How a painted video is built", "Fallback" and "Retiring the host".
+  - constants.py: the spike's numbers (fit, Ken Burns scale and upscale factor, transition kind and
+    seconds, overlay position, sizes and ring geometry), IMAGES_DIR, and FLUX_STYLE_PREFIX as the
+    owner approved it.
+  - Stubs with docstring contracts: pipeline/visuals/overlays.py (counter, timer and ring events),
+    pipeline/visuals/paint.py (paint a batch for the weekly job), router.py (shots, and scenes.ass
+    without the host), and compose's new keyword-only `shots` argument (described in its test file).
+  - Delete the host tests: tests/visuals/test_character.py, test_host_lipsync.py, test_cards.py,
+    test_charts.py, tests/test_lipsync_wiring.py, tests/voice/test_levels.py. Rewrite
+    tests/visuals/test_router.py and tests/test_render_one_visuals.py and list them under
+    p3c-router-paint. New: tests/visuals/test_overlays.py, test_paint.py,
+    tests/render/test_compose_stills.py (with a heavy test timing a 90 s, 8-shot render against
+    RENDER_BUDGET_S) and tests/test_weekly_images.py (workflow rules).
+  - Paintings for the owner's M1 re-render: commit the spike's approved stills for sample-65s and
+    paint-demo under IMAGES_DIR, logged in assets/LICENSES.md.
+  - Remove the host rows from tests/test_render_constants_visuals.py. The HOST_* constants go in
+    p3c-retire-host, once no code imports them.
+paths_allowed:
+  - pipeline/constants.py
+  - pipeline/visuals/overlays.py
+  - pipeline/visuals/paint.py
+  - pipeline/visuals/router.py
+  - tests/**
+  - queue/images/**
+  - assets/LICENSES.md
+  - .harness/locks.yaml
+  - .harness/tasks/phase3c/**
+  - PRD.md
+  - workflow.md
+tests: []
+acceptance: null
+context_files:
+  - .harness/handoffs/p3c-plan.md
+  - .harness/handoffs/p3c-render-spike.md
+  - pipeline/visuals/router.py
+  - pipeline/render/compose.py
+  - pipeline/render_one.py
+  - lessons.md
+max_turns: 45

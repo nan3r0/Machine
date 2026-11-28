@@ -1,0 +1,23 @@
+id: p3c-flux-client
+title: Cloudflare Workers AI flux-1-schnell client, standard library only
+depends_on: []
+role: implementer
+notes: |
+  pipeline/visuals/flux_cf.py only. The stub's docstrings are the contract
+  (.harness/handoffs/p3c-plan.md, "Paintings"). Model it on pipeline/script/gemini.py: urllib with
+  an opener that never follows redirects, one retry, the token only in the Authorization header.
+  Read the response body with a cap (gemini.py does not; backlog). No new dependency.
+  The config.yaml security globs do not match this path; the orchestrator adds a security review by
+  hand (new external API, new secret).
+paths_allowed:
+  - pipeline/visuals/flux_cf.py
+tests:
+  - tests/visuals/test_flux_cf.py
+acceptance: tests/visuals/test_flux_cf.py::test_acceptance
+context_files:
+  - .harness/handoffs/p3c-plan.md
+  - pipeline/visuals/flux_cf.py
+  - pipeline/script/gemini.py
+  - tests/visuals/test_flux_cf.py
+  - tests/script/gemini_fakes.py
+max_turns: 25
