@@ -1,0 +1,21 @@
+id: p3c-overlays
+title: Art overlays with no box - counter, timer and ring as libass events
+depends_on: [p3c-contracts-render]
+role: implementer
+notes: |
+  pipeline/visuals/overlays.py only (stub from p3c-contracts-render). Reuse ass_kit helpers and move
+  over what is useful from the counter in charts.py; do not import cards.py or charts.py, which
+  p3c-router-paint deletes. Visual QA on the frames.
+paths_allowed:
+  - pipeline/visuals/overlays.py
+tests:
+  - tests/visuals/test_overlays.py
+acceptance: tests/visuals/test_overlays.py::test_acceptance
+context_files:
+  - .harness/handoffs/p3c-plan.md
+  - .harness/handoffs/p3c-render-spike.md
+  - pipeline/visuals/overlays.py
+  - pipeline/visuals/ass_kit.py
+  - pipeline/visuals/charts.py
+  - tests/visuals/test_overlays.py
+max_turns: 25

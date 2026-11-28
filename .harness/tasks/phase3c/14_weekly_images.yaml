@@ -1,0 +1,27 @@
+id: p3c-weekly-images
+title: Workflow A paints the batch in its own job and commits the images to the scripts PR
+depends_on: [p3c-paint, p3c-batch-images]
+role: implementer
+notes: |
+  Assumes gate G4 option (a). .harness/handoffs/p3c-plan.md, "Where paintings are made".
+  - A new `paint` job after `validate`: hashed install, CLOUDFLARE_API_TOKEN and
+    CLOUDFLARE_ACCOUNT_ID only, in the env of its one paint step; reads the batch artifact, runs
+    pipeline.visuals.paint, uploads the images. No Gemini key in this job.
+  - `open-pr` needs paint but still runs when paint fails (those scripts render on the set fallback,
+    flagged in the PR body). It commits IMAGES_DIR/<id>/ together with the scripts.
+  - Pinned action SHAs, as in the rest of the file. Security review.
+  - p3c-contracts-render relaxes tests/test_weekly_workflow.py and test_weekly_hardening.py (they
+    pin the job set and the checkout) and adds them to this task's `tests`. They are listed only
+    then, so they keep guarding the current workflow on main until that point.
+paths_allowed:
+  - .github/workflows/weekly_scripts.yml
+tests:
+  - tests/test_weekly_images.py
+acceptance: tests/test_weekly_images.py::test_acceptance
+context_files:
+  - .harness/handoffs/p3c-plan.md
+  - .github/workflows/weekly_scripts.yml
+  - tests/test_weekly_images.py
+  - tests/workflow_rules.py
+  - docs/runbook.md
+max_turns: 25

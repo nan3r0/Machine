@@ -1,0 +1,50 @@
+id: p3c-render-spike
+title: Throwaway runner spike - painted stills with Ken Burns, zoom transitions and art overlays, timed
+depends_on: []
+role: architect
+notes: |
+  .harness/handoffs/p3c-plan.md, "How a painted video is built". Throwaway branch `spike/p3c-paint`
+  (never merged, files under spike/), with a temporary change to compose and render_one, run on the
+  runner for sample-65s (about 70 s) and a 90 s narration with 8 scenes. FFmpeg and libass only.
+  - Stills: if the owner has set CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID (gate G3), make 8
+    real paintings with FLUX_STYLE_PREFIX through a throwaway client, and 20 more prompts to count
+    how often text or letters appear. Record the format (JPEG expected), size in px and bytes,
+    seconds per call, and the error body of an auth failure. Then, deliberately, at the end of the
+    run: loop at steps=8 until the daily allowance runs out (about 100 calls, $0, no payment method)
+    and record the real HTTP status and body, which settles the code 4006 guess in flux_cf's contract
+    before p3c-flux-client is built (a mismatch becomes a contract change). Also try one call with a
+    `seed` field and record whether it is accepted.
+    Without the secrets, use 8 FFmpeg-made stills (testsrc2, gradients) and say so.
+  - Record in the handoff, for M1: the exact per-scene image prompts and scene numbers used for
+    sample-65s, and a drafted paint-demo script (about 65 s of narration from a seeded source, 6
+    image prompts, one counter, one ring, one timer). p3c-contracts-script and p3c-validate-images
+    copy them, so the committed paintings match the scenes.
+  - Fit the square still to 9:16: (F1) centre crop and scale up, (F2) the square over a blurred
+    fill of itself (PLAN.md section 3). The owner judges.
+  - Ken Burns inside a scene with no whole-pixel stepping: (K1) scale the still up 2, 4 or 6 times
+    once, then zoompan to 1080x1920 at FPS; (K2) any other smooth method found. Cover the four
+    CAMERA_MOVES (still as a very slow push).
+  - Zoom transition between scenes: (T1) xfade transition=zoomin, (T2) a zoom through the cut.
+    0.4 to 0.8 s. Check that scene spans stay in sync with the voice.
+  - Overlays with no box, from libass in scenes.ass over the painting: a counter ticking up, a
+    timer m:ss ticking up, a ring that fills with the number inside. Captions on top, as now.
+  - Per method: compose seconds against RENDER_BUDGET_S (300 s) for the 90 s narration, mp4 size,
+    an 8-frame strip at 0.25 s across one transition and 8 consecutive frames inside a push_in.
+  Owner gate G2: the owner watches the mp4s and approves the method, fit, transition, overlay look
+  and the style prefix. Propose the constants for p3c-contracts-render. If no method fits the budget
+  smoothly, stop and say so; do not add a dependency. Delete the branch afterwards.
+paths_allowed:
+  - spike/**
+  - pipeline/render/compose.py
+  - pipeline/render_one.py
+  - .github/workflows/spike_paint.yml
+tests: []
+acceptance: null
+context_files:
+  - .harness/handoffs/p3c-plan.md
+  - .harness/handoffs/p3-spike.md
+  - pipeline/render/compose.py
+  - pipeline/visuals/ass_kit.py
+  - pipeline/constants.py
+  - lessons.md
+max_turns: 45

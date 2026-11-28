@@ -1,0 +1,18 @@
+id: p3c-audit
+title: Audit - Cloudflare Workers AI and FLUX.1 schnell terms, AI imagery disclosure
+depends_on: [p3c-weekly-images, p3c-router-paint]
+role: auditor
+notes: |
+  Read-only report for the owner, against the current official pages: the Workers AI free plan
+  (no payment method, daily neurons), the FLUX.1 [schnell] licence for output on a monetised
+  channel, YouTube's altered or synthetic content disclosure for AI paintings (PLAN.md section 6
+  item 7, YOUTUBE_SYNTHETIC_MEDIA), and the assets/LICENSES.md log for committed images.
+paths_allowed: []
+tests: []
+acceptance: null
+context_files:
+  - .harness/handoffs/p3c-plan.md
+  - PLAN.md#6
+  - assets/LICENSES.md
+  - pipeline/constants.py
+max_turns: 25

@@ -1,0 +1,27 @@
+id: p3c-retire-host
+title: Remove the host's constants, art model and assets once no code imports them
+depends_on: [p3c-router-paint]
+role: architect
+notes: |
+  .harness/handoffs/p3c-plan.md, "Retiring the host". Locked files, so the Architect does it.
+  - constants.py: drop HOST_*, MOUTH_*, BLINK_*, BOB_PX, ARM_SWING_DEG, IDLE_HALF_CYCLE_S, POSES,
+    DEFAULT_POSE, ASS_LAYER_HOST, HOST_CLOSED_MOUTHS, DATA_PANEL and the CARD_* values overlays do
+    not use. Grep pipeline/ and tests/ first.
+  - art.py: drop HostArt and load_host. Delete assets/character/ and assets/sets/host_backdrop.yaml
+    and their assets/LICENSES.md rows (keep one line saying they were own work, retired 2026-11).
+  - The tests that still name them (test_render_constants_visuals.py, test_sets_art.py).
+  Full suite without LOOM_TASK, ruff, mypy --strict.
+paths_allowed:
+  - pipeline/constants.py
+  - pipeline/visuals/art.py
+  - assets/character/**
+  - assets/sets/host_backdrop.yaml
+  - assets/LICENSES.md
+  - tests/**
+tests: []
+acceptance: null
+context_files:
+  - .harness/handoffs/p3c-plan.md
+  - pipeline/constants.py
+  - pipeline/visuals/art.py
+max_turns: 25

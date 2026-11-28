@@ -1,0 +1,32 @@
+id: p3c-voice-samples
+title: Throwaway runner spike - deep male Kokoro voice samples and speech-rate numbers
+depends_on: []
+role: architect
+notes: |
+  .harness/handoffs/p3c-plan.md, "Voice". Throwaway branch `spike/p3c-voice` (never merged, files
+  under spike/), push-triggered like p3-spike. Kokoro only, $0, no new dependency.
+  - Candidates (sha256 from the HF tree at VOICE_REPO_REVISION, listed in p3c-plan "Voice"):
+    am_fenrir, am_michael, am_onyx, am_puck, am_echo, am_eric, am_liam, bm_george, bm_fable,
+    bm_lewis, bm_daniel. bm_* need VOICE_LANG_CODE "b"; confirm it runs with the pinned packages.
+  - For each voice at VOICE_SPEED 0.9: synthesize the full narration of
+    queue/approved/sample-65s.json, tests/fixtures/scripts/demo-data.json and two more narrations
+    (mostly short words, mostly long words). Record per run: wav seconds, words, syllables
+    (vowel-group count, the heuristic p3c-contracts-voice will lock) and full stops.
+  - Upload one mp3 per voice (the first 25 s of sample-65s) for the owner, plus the numbers table.
+    Owner gate G1: the owner picks the voice by ear (and may ask for 0.85 on the top three).
+  - For the picked voice, fit seconds = syllables / rate + full stops * pause. Propose SPEECH_WPM,
+    the syllable rate, the pause, TIKTOK_WORDS, TARGET_WORDS and the syllable range for
+    p3c-contracts-voice.
+  Delete the branch afterwards.
+paths_allowed:
+  - spike/**
+  - .github/workflows/spike_voice.yml
+tests: []
+acceptance: null
+context_files:
+  - .harness/handoffs/p3c-plan.md
+  - pipeline/voice/kokoro.py
+  - pipeline/constants.py
+  - .harness/handoffs/p3-spike.md
+  - lessons.md
+max_turns: 40

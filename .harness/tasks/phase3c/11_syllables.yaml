@@ -1,0 +1,19 @@
+id: p3c-syllables
+title: validate.py predicts spoken length from syllables and full stops
+depends_on: [p3c-contracts-voice, p3c-validate-images]
+role: implementer
+notes: |
+  validate.py only. .harness/handoffs/p3c-plan.md, "Syllable check". The word range stays as a size
+  cap; the length decision moves to the predicted seconds. Reuse factcheck/normalise.py to read
+  digits as words. Standard library only. The existing validate tests must keep passing.
+paths_allowed:
+  - pipeline/script/validate.py
+tests:
+  - tests/script/test_validate_length.py
+acceptance: tests/script/test_validate_length.py::test_acceptance
+context_files:
+  - .harness/handoffs/p3c-plan.md
+  - pipeline/script/validate.py
+  - pipeline/factcheck/normalise.py
+  - tests/script/test_validate_length.py
+max_turns: 25

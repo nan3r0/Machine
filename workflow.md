@@ -103,8 +103,9 @@ Locked by p1-contracts. Every task's acceptance test is `test_acceptance` in its
 | R20.3 | `tests/visuals/test_character.py::test_acceptance`, `tests/test_render_constants_visuals.py::test_host_is_in_frame_and_clear_of_the_captions` |
 | R20.4 | `tests/visuals/test_sets.py::test_acceptance`, `tests/visuals/test_sets_art.py::test_acceptance`, `tests/visuals/test_cards.py::test_acceptance`, `tests/visuals/test_charts.py::test_acceptance` |
 | R20.5 | `tests/test_render_one_visuals.py::test_acceptance` (heavy; writes golden frames, the strip and consecutive frames) |
-| R21.1 | `tests/script/test_generate_visuals.py::test_acceptance` |
-| R21.2, R21.3 | `tests/script/test_batch_visuals.py::test_acceptance`, `tests/test_render_constants_visuals.py::test_seven_scripts_at_every_cap_fit_the_pr_body` |
+| R21.1 | tests/script/test_generate_visuals.py::test_acceptance (rewritten by p3c-contracts-script) |
+| R21.2, R21.3 | tests/script/test_batch_visuals.py::test_acceptance (rewritten by p3c-contracts-script), `tests/test_render_constants_visuals.py::test_seven_scripts_at_every_cap_fit_the_pr_body` |
+| Phase 3c Flux client | `tests/visuals/test_flux_cf.py::test_acceptance` |
 | R22.1 to R22.3 | Manual, owner (M0, M1, M2) |
 
 Phase 2 rows without backticks name test files that do not exist yet; the task that writes each file adds the backticks, so the docs check starts checking them.
@@ -309,12 +310,31 @@ wave 6: p3-sets-art, p3-cards                 (owner approves the set stills)
 wave 7: p3-charts, p3-compose
 wave 8: p3-router
 wave 9: p3-wiring                             (M1: render.yml on sample-65s and demo-data)
-wave 10: p3-writer-visuals, p3-batch-visuals  (M2: first Workflow A run)
-wave 11: p3-cso, p3-qa-lead
-wave 12: p3-phase-review
 ```
 
-Specialist reviews: visual QA for every task touching `pipeline/visuals/**`, `pipeline/render/**` or `assets/**`; security for p3-compose, p3-validate-visuals and p3-batch-visuals.
+Waves 10 to 12 (writer, batch, CSO, QA lead, phase review) were replaced on 2026-11-28 by Phase 3c below.
+
+Specialist reviews: visual QA for every task touching `pipeline/visuals/**`, `pipeline/render/**` or `assets/**`; security for p3-compose and p3-validate-visuals.
+
+## Phase 3c module order
+
+Planned 2026-11-28 by the Architect after the owner's M1 review (`.harness/handoffs/p3c-plan.md`): host retired, painted scenes, art overlays, deep male voice. Task files: `.harness/tasks/phase3c/`. Owner gates G1 to G4 are in the plan.
+
+```
+wave 1: p3c-voice-samples, p3c-render-spike   (G3 before; G1, G2, G4 after)
+wave 2: p3c-flux-client, p3c-contracts-script
+wave 3: p3c-validate-images, p3c-contracts-voice
+wave 4: p3c-contracts-render, p3c-writer-images
+wave 5: p3c-overlays, p3c-batch-images
+wave 6: p3c-compose-stills, p3c-syllables
+wave 7: p3c-router-paint, p3c-paint           (M1 re-render)
+wave 8: p3c-weekly-images, p3c-retire-host
+wave 9: p3c-cso, p3c-audit
+wave 10: p3c-qa-lead
+wave 11: p3c-phase-review                     (M2: first Workflow A run)
+```
+
+Specialist reviews: visual QA for overlays, compose-stills and router-paint; security for flux-client (by hand), validate-images, batch-images, compose-stills and weekly-images.
 
 ### Phase 3 status
 

@@ -162,6 +162,29 @@ VISUAL_LABEL_MAX_CHARS = 24
 VISUAL_VALUE_MAX_CHARS = 12
 VISUAL_TEXT_MAX_CHARS = 160  # every label and value of a script, summed
 
+# Paintings (Phase 3c, .harness/handoffs/p3c-plan.md). Cloudflare Workers AI flux-1-schnell, model page
+# and pricing read 2026-11-28: the input schema takes only `prompt` (1 to 2048 characters) and `steps`
+# (at most 8), with no size, aspect ratio or seed. Free plan: 10,000 neurons a day, reset 00:00 UTC, at
+# 4.8 neurons a 512x512 tile plus 9.6 a step, so a 1024x1024 image at 4 steps costs 57.6 (about 173 a day).
+FLUX_ENDPOINT = ("https://api.cloudflare.com/client/v4/accounts/{account_id}"
+                 "/ai/run/@cf/black-forest-labs/flux-1-schnell")
+FLUX_STEPS = 4
+FLUX_TIMEOUT_S = 120
+FLUX_RETRY_WAIT_S = 10  # wait before the single retry after HTTP 429, a 5xx or a timeout
+FLUX_PROMPT_MAX_CHARS = 2048  # the model's limit, style prefix included
+FLUX_IMAGE_MAX_BYTES = 4_000_000  # decoded image
+FLUX_RESPONSE_MAX_BYTES = 6_000_000  # whole response body: base64 of FLUX_IMAGE_MAX_BYTES plus the envelope
+FLUX_IMAGE_SIDE_PX = (512, 2048)  # (min, max) accepted width and height of a returned image
+# Sent in front of every scene prompt, so every painting shares one look. The owner approves the
+# wording at gate G2 (p3c-render-spike); a change is a contracts change.
+FLUX_STYLE_PREFIX = ("Dark painterly digital illustration, muted teal and amber palette, soft "
+                     "volumetric light, cinematic, no text, no letters, no signs, no logos, "
+                     "people only as distant silhouettes. Scene: ")
+IMAGE_PROMPT_MAX_CHARS = 300  # one scene's prompt as the writer gives it, before the prefix
+IMAGES_PER_VIDEO = (4, 8)  # (min, max) paintings in one video
+# SCRIPTS_PER_BATCH * IMAGES_PER_VIDEO[1]; a third of the daily allowance, so a rerun still fits.
+FLUX_MAX_IMAGES_PER_BATCH = 56
+
 # The compose call of a 90 s video must take under half of COMPOSE_TIMEOUT_S (the spike used 11%).
 RENDER_BUDGET_S = COMPOSE_TIMEOUT_S / 2
 
