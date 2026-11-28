@@ -460,3 +460,11 @@ How it was caught: the p3b plan evidence runs needed the workaround again.
 Fix: none in the repo. Workaround: preload the repo's package into `sys.modules['tests']` (a small shim) before running pytest.
 Rule going forward: use the shim for local runs; CI is not affected.
 Test added: none, and why: it is a local environment problem.
+
+### 2026-11-28: polish built before the owner saw a rough render
+What happened: the owner's first look at a real render (M1) rejected the whole look: the host mascot and its bounce, the boxed data cards, the flat set with no story scenes, hard transitions and the voice. Phase 3 waves 1 to 9 and Phase 3b (host placement, lip sync, lip sync wiring) were built first, and Phase 3c retires most of it.
+Why it happened (root cause, not symptom): the design was fixed on paper (PLAN.md, a spike on one clip) and polish (mouth sync tuning, host placement) was stacked on it before any rough render went to the owner. Visual direction cannot be verified by tests or by agents, which cannot watch video.
+How it was caught: the owner watched the M1 render and described what they expected (scenes that follow the story, no host).
+Fix: Phase 3c plan (PR #217): no host, painted scenes with zoom transitions, art overlays, a deep male voice.
+Rule going forward: a phase that changes what the video looks or sounds like gets an owner look at a rough render (stills or a short clip) after the first wave and before any polish task, such as tuning, lip sync or placement.
+Test added: none, and why: a product direction miss, not a code bug.
