@@ -13,8 +13,9 @@ notes: |
   - Update the locked voice, pin and speech-rate tests that name af_heart or the old numbers.
   - New tests/script/test_validate_length.py (p3c-syllables): the syllable heuristic (vowel groups,
     a silent final e, digits read as words through the normaliser), the predicted-seconds rule, and
-    a regression case from demo-data (163 words, rendered 56.6 s) that the word rule passes and the
-    syllable rule rejects.
+    a regression case that the word rule passes and the syllable rule rejects, built from the new
+    voice's spike numbers (demo-data's 56.6 s was af_heart; use whichever spike narration ran short
+    with the picked voice, or a fixture of short words sized from the fit).
   - PLAN.md section 4 and spec.md: the speech-rate numbers. Tell the owner first if a rule changes
     meaning.
   Full suite without LOOM_TASK.

@@ -1,6 +1,6 @@
 id: p3c-contracts-script
 title: Phase 3c script-side contracts - image prompts and overlays in scene data, writer and PR body tests
-depends_on: []
+depends_on: [p3c-render-spike]
 role: test_author
 notes: |
   Spec: .harness/handoffs/p3c-plan.md, "Scene format" and "Script writer". Goes to main on
@@ -14,8 +14,8 @@ notes: |
     (p3c-batch-images). The old ones went with their tasks in p3c-plan.
   - PR body arithmetic: 7 scripts at every cap, image prompts and overlays included, stay under
     PR_BODY_MAX_CHARS (tests/test_render_constants_visuals.py: replace the items term).
-  - New fixture tests/fixtures/scripts/paint-demo.json (new format, about 65 s of words, 6 images,
-    one counter, one ring, one timer, varied cameras). Every test that sends a script through
+  - New fixture tests/fixtures/scripts/paint-demo.json: the script p3c-render-spike drafted (its
+    handoff), with the same scene numbers and prompts it painted, so the M1 paintings match. Every test that sends a script through
     validate.problems on main (grep demo-data and sample-65s) must pass before and after
     p3c-validate-images: move it to paint-demo.json or list the file under that task.
   - PRD.md section 4 rows for the new rules; section 7 records the owner's gate answers.

@@ -5,8 +5,9 @@ role: implementer
 notes: |
   Rules in .harness/handoffs/p3c-plan.md, "Scene format", as locked by p3c-contracts-script. The old
   keys set, pose and items stop being allowed. Migrate queue/approved/sample-65s.json in the same
-  change (check first that origin/ledger holds no record for it): drop set, pose and items, add an
-  image prompt per picture, and keep an overlay only where a kind fits a cited number.
+  change (check first that origin/ledger holds no record for it): drop set, pose and items, add the
+  image prompts on the scene numbers p3c-render-spike recorded for it (its handoff), and keep an
+  overlay only where a kind fits a cited number.
   The existing validate tests must keep passing (not listed under `tests`).
 paths_allowed:
   - pipeline/script/validate.py
@@ -16,6 +17,7 @@ tests:
 acceptance: tests/script/test_validate_visuals.py::test_acceptance
 context_files:
   - .harness/handoffs/p3c-plan.md
+  - .harness/handoffs/p3c-render-spike.md
   - pipeline/script/validate.py
   - tests/script/test_validate_visuals.py
   - lessons.md

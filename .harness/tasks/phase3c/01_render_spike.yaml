@@ -9,8 +9,16 @@ notes: |
   - Stills: if the owner has set CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID (gate G3), make 8
     real paintings with FLUX_STYLE_PREFIX through a throwaway client, and 20 more prompts to count
     how often text or letters appear. Record the format (JPEG expected), size in px and bytes,
-    seconds per call, and the error body of an auth failure (and of the quota error if seen).
+    seconds per call, and the error body of an auth failure. Then, deliberately, at the end of the
+    run: loop at steps=8 until the daily allowance runs out (about 100 calls, $0, no payment method)
+    and record the real HTTP status and body, which settles the code 4006 guess in flux_cf's contract
+    before p3c-flux-client is built (a mismatch becomes a contract change). Also try one call with a
+    `seed` field and record whether it is accepted.
     Without the secrets, use 8 FFmpeg-made stills (testsrc2, gradients) and say so.
+  - Record in the handoff, for M1: the exact per-scene image prompts and scene numbers used for
+    sample-65s, and a drafted paint-demo script (about 65 s of narration from a seeded source, 6
+    image prompts, one counter, one ring, one timer). p3c-contracts-script and p3c-validate-images
+    copy them, so the committed paintings match the scenes.
   - Fit the square still to 9:16: (F1) centre crop and scale up, (F2) the square over a blurred
     fill of itself (PLAN.md section 3). The owner judges.
   - Ken Burns inside a scene with no whole-pixel stepping: (K1) scale the still up 2, 4 or 6 times

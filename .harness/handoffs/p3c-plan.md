@@ -42,7 +42,7 @@ Fit, an open question for G2. The model returns a square (no width, height or se
 
 | Key | Value | Rule |
 |---|---|---|
-| `image` | scene prompt, at most IMAGE_PROMPT_MAX_CHARS | Starts a new painting. A scene without one keeps the previous painting (the zoom continues). Scene 1 needs one whenever any scene has one. The count lies in IMAGES_PER_VIDEO. Passes the published-field text rules (no URL, `<`, `>` or control characters), since it is shown in the PR body and sent to Cloudflare |
+| `image` | scene prompt, at most IMAGE_PROMPT_MAX_CHARS | Starts a new painting. A scene without one keeps the previous painting (the zoom continues). Scene 1 needs one whenever any scene has one. Validate enforces only the maximum, IMAGES_PER_VIDEO[1]. Fewer than IMAGES_PER_VIDEO[0] is valid and gets a PR flag from batch, because three paintings beat the flat fallback. The writer drops prompts past the maximum in code. Passes the published-field text rules (no URL, `<`, `>` or control characters), since it is shown in the PR body and sent to Cloudflare |
 | `camera` | CAMERA_MOVES (push_in, pan_left, pan_right, still) | default push_in, kept from slice 1 |
 | `overlay` | `{kind, label, value}` | kind in OVERLAY_KINDS. counter: a plain number with an optional `$` and a short unit; timer: whole seconds, shown as m:ss; ring: an integer 0 to 100 followed by `%`. The label is required. At most VISUAL_DATA_SCENES_MAX overlays per script |
 
@@ -201,7 +201,7 @@ See Risks. The render contracts are not written yet, so the overlays, compose-st
 - Owed at close-out (orchestrator or Scribe):
   - CLAUDE.md Status: Phase 3c replaces waves 10 to 12 of phase 3; host retired; the next step is wave 1.
   - workflow.md: a `### Phase 3c status` table and the module order.
-  - `.harness/handoffs/orchestrator.md` State: point at this plan.
+  - `.harness/handoffs/orchestrator.md` State: it still names the deleted p3-writer-visuals, p3-batch-visuals, p3-cso, p3-qa-lead and p3-phase-review as next, and the M1 host checks. Point it at this plan instead.
   - backlog: close the push_in, MOUTH and host-contrast rows as "dropped, host retired 2026-11-28"; mark the syllable row as p3c-syllables.
 - Owed by tasks:
   - PRD.md section 4 and 7 rows (p3c-contracts-script, p3c-contracts-voice).

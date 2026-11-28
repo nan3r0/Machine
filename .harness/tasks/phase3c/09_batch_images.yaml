@@ -5,7 +5,8 @@ role: implementer
 notes: |
   batch.py only. .harness/handoffs/p3c-plan.md, "Script writer".
   - `_script_section` shows each scene's image prompt (or "same picture"), camera and overlay as
-    same-line code spans (`_code`). A script with fewer than IMAGES_PER_VIDEO[0] prompts gets a Flag.
+    same-line code spans (`_code`). A script with fewer than IMAGES_PER_VIDEO[0] prompts (valid, since
+    validate enforces only the maximum) gets a Flag.
   - After any rewrite, `exact.unsupported` checks the overlay's label and value against the scene's
     cited facts. A miss becomes a Flag and the overlay is dropped (p3-plan D4, kept). No Gemini
     call and no stop; the p4d quota guard is untouched.

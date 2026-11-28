@@ -13,7 +13,9 @@ notes: |
     text or signs; people only as distant silhouettes; repeat the subject's words across scenes.
     The style prefix is added by flux_cf, never written by Gemini.
   - A broken visual falls back in code (drop the overlay, keep the previous picture), with no
-    GenerateError and no extra call. Too few images keeps the script; batch flags it.
+    GenerateError and no extra call. Prompts past IMAGES_PER_VIDEO[1] are dropped in code (those
+    scenes keep the previous picture); a missing scene 1 prompt takes the first one given. Fewer
+    than IMAGES_PER_VIDEO[0] is valid (validate enforces the maximum only); batch flags it.
   - rewrite_line keeps the scene's visual.
   The existing generate and prompt_data tests must keep passing (not listed under `tests`).
 paths_allowed:
