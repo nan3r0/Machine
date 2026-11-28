@@ -106,6 +106,8 @@ Goal: Workflow A opens a real pull request of 7 fact-checked scripts, with flags
 
 ### Phase 3: visual templates (slice 1)
 
+> Superseded in part (owner, 2026-11-28): the host, the data cards and the flat sets below are being retired by Phase 3c (`.harness/handoffs/p3c-plan.md`): AI paintings with zoom transitions, art overlays and a deep male voice. R19 and R20 are rewritten when the p3c contract tasks land; until then do not build from them.
+
 Goal: every video shows the recurring host, flat parallax sets and, where the script has numbers, data cards, so two videos on similar topics look clearly different (PLAN.md section 11). Planned 2026-11-25 (`.harness/handoffs/p3-plan.md`), method A from p3-spike. Painted sets (Flux, slice 2) and b-roll (D10) are out of this slice.
 
 **R19. Scene data and fallbacks.**
